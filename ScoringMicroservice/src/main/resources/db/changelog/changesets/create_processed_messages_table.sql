@@ -1,0 +1,6 @@
+CREATE TABLE processed_messages (
+    id SERIAL PRIMARY KEY,
+    message_id VARCHAR(255) NOT NULL UNIQUE,
+    processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    eventType VARCHAR(24) NOT NULL
+);

@@ -1,0 +1,100 @@
+name: LeaderboardApplication
+version:
+  '3.8'
+
+services:
+  # More isolated version
+  # scoresdb:
+  #   image: bitnami/postgres:latest
+  #   environment:
+  #     POSTGRES_USER: jzargo
+  #     POSTGRES_PASSWORD: root333
+  #     POSTGRES_DB: scoresdb
+  # usersdb:
+  #   image: bitnami/postgres:latest
+  #   environment:
+  #     POSTGRES_USER: jzargo
+  #     POSTGRES_PASSWORD: root333
+  #     POSTGRES_DB: usersdb
+  # analyticsdb:
+  #   image: bitnami/postgres:latest
+  #   environment:
+  #     POSTGRES_USER: jzargo
+  #     POSTGRES_PASSWORD: root333
+  #     POSTGRES_DB: analyticsdb
+
+  db:
+    image: bitnami/postgresql:latest
+    environment:
+      POSTGRES_USER: jzargo
+      POSTGRES_PASSWORD: root333
+      POSTGRES_DB: generaldb
+    volumes:
+      - ./postgres-init:/docker-entrypoint-initdb.d
+
+  kafka1:
+    image: bitnami/kafka:latest
+    container_name: kafka1
+    hostname: kafka1
+    ports:
+      - "9090:9090"
+      - "9091:9091"
+    environment:
+      KAFKA_CFG_BROKER_ID: 1
+      KAFKA_CFG_NODE_ID: 1
+      BITNAMI_DEBUG: true
+      KAFKA_CFG_PROCESS_ROLES: "controller,broker"
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "1@kafka1:9092,2@kafka2:9092,3@kafka3:9092"
+      KAFKA_CFG_LISTENERS: PLAINTEXT://0.0.0.0:9091,PLAINTEXT_HOST://0.0.0.0:9090,CONTROLLER://0.0.0.0:9092
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:9091,PLAINTEXT_HOST://localhost:9090
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT, PLAINTEXT_HOST:PLAINTEXT"
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_CFG_LOG_DIRS: "/bitnami/kafka/data"
+      KAFKA_CLUSTER_ID: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+    volumes:
+      - ./kafka1-data:/bitnami/kafka/data
+
+  kafka2:
+    image: bitnami/kafka:latest
+    container_name: kafka2
+    hostname: kafka2
+    ports:
+      - "9092:9090"
+      - "9093:9091"
+    environment:
+      KAFKA_CFG_BROKER_ID: 2
+      KAFKA_CFG_NODE_ID: 2
+      KAFKA_CFG_PROCESS_ROLES: "controller,broker"
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "1@kafka1:9092,2@kafka2:9092,3@kafka3:9092"
+      KAFKA_CFG_LISTENERS: PLAINTEXT://0.0.0.0:9091,PLAINTEXT_HOST://0.0.0.0:9090,CONTROLLER://0.0.0.0:9092
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:9091,PLAINTEXT_HOST://localhost:9092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT"
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_CFG_LOG_DIRS: "/bitnami/kafka/data"
+      KAFKA_CLUSTER_ID: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+    volumes:
+      - ./kafka2-data:/bitnami/kafka/data
+
+  kafka3:
+    image: bitnami/kafka:latest
+    container_name: kafka3
+    hostname: kafka3
+    ports:
+      - "9094:9090"
+      - "9095:9091"
+    environment:
+      KAFKA_CFG_BROKER_ID: 3
+      KAFKA_CFG_NODE_ID: 3
+      KAFKA_CFG_PROCESS_ROLES: "controller,broker"
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "1@kafka1:9092,2@kafka2:9092,3@kafka3:9092"
+      KAFKA_CFG_LISTENERS: PLAINTEXT://0.0.0.0:9091,PLAINTEXT_HOST://0.0.0.0:9090,CONTROLLER://0.0.0.0:9092
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka3:9091,PLAINTEXT_HOST://localhost:9094
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT"
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_CFG_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_CFG_LOG_DIRS: "/bitnami/kafka/data"
+      KAFKA_CLUSTER_ID: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+    volumes:
+      - ./kafka3-data:/bitnami/kafka/data
