@@ -8,14 +8,12 @@ import com.jzargo.scoringmicroservice.repository.LeaderboardEventsRepository;
 import com.jzargo.scoringmicroservice.mapper.CreateHappenedToScoreEventMapper;
 import com.jzargo.scoringmicroservice.repository.ScoringEventRepository;
 import com.jzargo.scoringmicroservice.repository.UserScoreEventRepository;
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import messaging.LeaderboardEventDeletion;
 import messaging.LeaderboardEventInitialization;
 import messaging.UserEventHappenedCommand;
 import org.springframework.stereotype.Service;
-
-import java.util.Map;
-
 
 @Service
 @Slf4j
@@ -35,6 +33,7 @@ public class ScoringServiceImpl implements ScoringService{
         this.scoringEventRepository = scoringEventRepository;
     }
 
+    @Transactional
     @Override
     public void saveUserEvent(UserEventHappenedCommand message) {
         UserScoreEvent map = createHappenedToScoreEventMapper.map(message);
@@ -54,6 +53,7 @@ public class ScoringServiceImpl implements ScoringService{
     }
 
     @Override
+    @Transactional
     public void saveEvents(LeaderboardEventInitialization message) {
         LeaderboardEvents map = leaderboardCreateMapper.map(message);
         message.getEvents().forEach((key, value) -> scoringEventRepository.getScoringEventByEventNameAndScore(key, value)
@@ -78,6 +78,7 @@ public class ScoringServiceImpl implements ScoringService{
     }
 
     @Override
+    @Transactional
     public boolean deleteEvents(LeaderboardEventDeletion message) {
         if (leaderboardEventsRepository.existsById(message.getLbId())) {
             leaderboardEventsRepository.deleteById(message.getLbId());

@@ -5,11 +5,12 @@ import lombok.NoArgsConstructor;
 
 import java.util.Map;
 
-@NoArgsConstructor @Data
-public class UserScoreEvent {
-    private double score;
-    private String name;
+@Data
+@NoArgsConstructor
+public class UserScoreUploadEvent {
     private String lbId;
-    private Long userId;
+    private String userId;
+    private int score;
+    private String name;
     private Map<String, Object> metadata;
 }

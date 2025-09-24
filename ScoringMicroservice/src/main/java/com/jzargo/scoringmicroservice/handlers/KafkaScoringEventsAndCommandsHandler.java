@@ -19,7 +19,9 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Slf4j
-@KafkaListener(topics = {KafkaConfig.COMMAND_STRING_SCORE_TOPIC,KafkaConfig.USER_EVENT_SCORE_TOPIC})
+@KafkaListener (topics = {KafkaConfig.COMMAND_STRING_SCORE_TOPIC,KafkaConfig.USER_EVENT_SCORE_TOPIC},
+                groupId = KafkaConfig.GROUP_ID
+)
 public class KafkaScoringEventsAndCommandsHandler {
     private final ProcessedMessageRepository processedMessageRepository;
     private final ScoringService scoringService;
