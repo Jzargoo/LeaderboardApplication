@@ -20,6 +20,8 @@ public class LeaderboardInfo {
     private String id;
     private String description;
     private long ownerId;
+    @Builder.Default
+    private int globalRange = 10;
     private String name;
     private int initialValue;
     private boolean isPublic;

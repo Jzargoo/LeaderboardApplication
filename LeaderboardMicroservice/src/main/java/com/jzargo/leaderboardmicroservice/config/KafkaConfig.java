@@ -8,6 +8,7 @@ import org.springframework.kafka.config.TopicBuilder;
 @Configuration
 public class KafkaConfig{
     public static final String LEADERBOARD_EVENT_TOPIC = "leaderboard-event-topic";
+    public static final String LEADERBOARD_UPDATE_TOPIC = "leaderboard-update-topic";
     public static final String MESSAGE_ID = "message-id";
 
     @Bean
@@ -20,5 +21,14 @@ public class KafkaConfig{
                 .build();
     }
 
+    @Bean
+    public NewTopic leaderboardUpdateTopic(){
+        return TopicBuilder
+                .name(LEADERBOARD_UPDATE_TOPIC)
+                .partitions(3)
+                .replicas(2)
+                .config("Min.insync.replicas", "2")
+                .build();
+    }
 
 }
