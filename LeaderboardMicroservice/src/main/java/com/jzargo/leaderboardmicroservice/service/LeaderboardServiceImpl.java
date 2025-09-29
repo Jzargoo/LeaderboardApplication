@@ -2,8 +2,8 @@ package com.jzargo.leaderboardmicroservice.service;
 
 import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.repository.LeaderboardInfoRepository;
-import messaging.UserScoreEvent;
-import messaging.UserScoreUploadEvent;
+import com.jzargo.messaging.UserScoreEvent;
+import com.jzargo.messaging.UserScoreUploadEvent;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
@@ -15,13 +15,16 @@ public class LeaderboardServiceImpl implements LeaderboardService{
 
     private final StringRedisTemplate stringRedisTemplate;
     private final LeaderboardInfoRepository leaderboardInfoRepository;
-    private final RedisScript<String> leaderboardScript;
+    private final RedisScript<String> mutableLeaderboardScript;
+    private final RedisScript<String> immutableLeaderboardScript;
 
     public LeaderboardServiceImpl(StringRedisTemplate stringRedisTemplate, LeaderboardInfoRepository LeaderboardInfoRepository,
-                                   RedisScript<String> leaderboardScript) {
+                                  RedisScript<String> mutableLeaderboardScript, RedisScript<String> immutableLeaderboardScript
+                                  ) {
         this.stringRedisTemplate = stringRedisTemplate;
         this.leaderboardInfoRepository = LeaderboardInfoRepository;
-        this.leaderboardScript = leaderboardScript;
+        this.mutableLeaderboardScript = mutableLeaderboardScript;
+        this.immutableLeaderboardScript = immutableLeaderboardScript;
     }
 
     @Override
@@ -29,20 +32,23 @@ public class LeaderboardServiceImpl implements LeaderboardService{
         executeScoreChange(
                 changeEvent.getLbId(),
                 changeEvent.getUserId(),
-                changeEvent.getScore()
+                changeEvent.getScore(),
+                true
         );
     }
 
     @Override
     public void addNewScore(UserScoreUploadEvent uploadEvent) {
         executeScoreChange(
+
                 uploadEvent.getLbId(),
                 uploadEvent.getUserId(),
-                uploadEvent.getScore()
+                uploadEvent.getScore(),
+                false
         );
     }
 
-    private void executeScoreChange(String lbId, Long userId, double scoreDelta) {
+    private void executeScoreChange(String lbId, Long userId, double scoreDelta, boolean isMutable) {
         LeaderboardInfo info = leaderboardInfoRepository.findById(lbId)
                 .orElseThrow(() ->
                         new IllegalArgumentException("Leaderboard with id " + lbId + " does not exist")
@@ -51,7 +57,7 @@ public class LeaderboardServiceImpl implements LeaderboardService{
         List<String> keys = getStrings(userId, lbId, info.getGlobalRange());
 
         String execute = stringRedisTemplate.execute(
-                leaderboardScript,
+                isMutable? mutableLeaderboardScript : immutableLeaderboardScript,
                 keys,
                 userId.toString(),
                 String.valueOf(scoreDelta),

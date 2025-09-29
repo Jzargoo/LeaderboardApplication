@@ -1,8 +1,8 @@
 package com.jzargo.scoringmicroservice.mapper;
 
 import com.jzargo.scoringmicroservice.entity.LeaderboardEvents;
-import mapper.Mapper;
-import messaging.LeaderboardEventInitialization;
+import com.jzargo.mapper.Mapper;
+import com.jzargo.messaging.LeaderboardEventInitialization;
 import org.springframework.stereotype.Component;
 
 @Component

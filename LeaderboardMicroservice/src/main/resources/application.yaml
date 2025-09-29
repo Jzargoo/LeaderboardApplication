@@ -4,3 +4,24 @@ server:
 spring:
   application:
     name: LeaderboardMicroservice
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: rootRedisPassword
+      cluster:
+        nodes: localhost:6379,localhost:6380,localhost:6381
+  kafka:
+    consumer:
+      bootstrap-servers: localhost:9090,localhost:9092
+      group-id: leaderboard-group
+      value-deserializer: org.apache.kafka.common.serialization.JsonDeserializer
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        spring.json.trusted.packages: "com.jzargo.messaging"
+    producer:
+      bootstrap-servers: localhost:9090,localhost:9092
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.trusted.packages: "com.jzargo.messaging"

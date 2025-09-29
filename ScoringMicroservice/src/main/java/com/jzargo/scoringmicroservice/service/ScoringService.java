@@ -1,8 +1,8 @@
 package com.jzargo.scoringmicroservice.service;
 
-import messaging.LeaderboardEventDeletion;
-import messaging.LeaderboardEventInitialization;
-import messaging.UserEventHappenedCommand;
+import com.jzargo.messaging.LeaderboardEventDeletion;
+import com.jzargo.messaging.LeaderboardEventInitialization;
+import com.jzargo.messaging.UserEventHappenedCommand;
 
 public interface ScoringService {
     void saveUserEvent(UserEventHappenedCommand message);

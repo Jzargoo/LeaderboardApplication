@@ -1,7 +1,7 @@
 package com.jzargo.leaderboardmicroservice.service;
 
-import messaging.UserScoreEvent;
-import messaging.UserScoreUploadEvent;
+import com.jzargo.messaging.UserScoreEvent;
+import com.jzargo.messaging.UserScoreUploadEvent;
 
 public interface LeaderboardService {
     void increaseUserScore(UserScoreEvent ChangeEvent);

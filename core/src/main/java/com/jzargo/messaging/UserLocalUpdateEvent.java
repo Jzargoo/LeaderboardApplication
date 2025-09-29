@@ -1,4 +1,4 @@
-package messaging;
+package com.jzargo.messaging;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;

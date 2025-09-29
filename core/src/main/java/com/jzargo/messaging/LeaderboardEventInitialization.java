@@ -1,4 +1,4 @@
-package messaging;
+package com.jzargo.messaging;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

@@ -11,6 +11,6 @@ spring:
       value-deserializer: org.apache.kafka.common.serialization.JsonDeserializer
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       properties:
-        spring.json.trusted.packages: "*"
+        spring.json.trusted.packages: "com.jzargo.messaging*"
   application:
     name: ScoringMicroservice

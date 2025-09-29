@@ -15,7 +15,7 @@ public class RedisConfig {
     }
 
     @Bean
-    RedisScript<String> leaderboardScript(){
+    RedisScript<String> mutableLeaderboardScript(){
         DefaultRedisScript<String> redisScript = new DefaultRedisScript<>();
         redisScript.setScriptText(
                 new ClassPathResource("/scripts/increase_user_score.lua").toString()
@@ -23,4 +23,14 @@ public class RedisConfig {
         redisScript.setResultType(String.class);
         return redisScript;
     }
+    @Bean
+    RedisScript<String> immutableLeaderboardScript(){
+        DefaultRedisScript<String> redisScript = new DefaultRedisScript<>();
+        redisScript.setScriptText(
+                new ClassPathResource("/scripts/update_user_score.lua").toString()
+        );
+        redisScript.setResultType(String.class);
+        return redisScript;
+    }
+
 }

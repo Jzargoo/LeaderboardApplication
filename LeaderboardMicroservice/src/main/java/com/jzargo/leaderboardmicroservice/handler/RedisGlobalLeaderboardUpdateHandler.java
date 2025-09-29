@@ -1,14 +1,12 @@
 package com.jzargo.leaderboardmicroservice.handler;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jzargo.leaderboardmicroservice.config.KafkaConfig;
 import com.jzargo.leaderboardmicroservice.dto.GlobalLeaderboardCache;
-import com.jzargo.leaderboardmicroservice.exceptions.IllegalPublicStateException;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
-import messaging.GlobalLeaderboardEvent;
+import com.jzargo.messaging.GlobalLeaderboardEvent;
 import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.data.redis.core.DefaultTypedTuple;

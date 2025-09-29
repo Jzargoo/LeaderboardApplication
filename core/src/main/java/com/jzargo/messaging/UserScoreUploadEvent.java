@@ -1,4 +1,4 @@
-package messaging;
+package com.jzargo.messaging;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -7,9 +7,10 @@ import java.util.Map;
 
 @Data
 @NoArgsConstructor
-public class UserEventHappenedCommand {
+public class UserScoreUploadEvent {
     private String lbId;
-    private String eventName;
     private Long userId;
+    private double score;
+    private String name;
     private Map<String, Object> metadata;
 }

@@ -1,16 +1,15 @@
-package messaging;
+package com.jzargo.messaging;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.Map;
 
-@NoArgsConstructor @Data
-public class UserScoreEvent {
-    private double score;
-    private String name;
-    private String region;
+@Data
+@NoArgsConstructor
+public class UserEventHappenedCommand {
     private String lbId;
+    private String eventName;
     private Long userId;
     private Map<String, Object> metadata;
 }

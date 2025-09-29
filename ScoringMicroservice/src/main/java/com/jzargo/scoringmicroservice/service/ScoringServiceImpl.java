@@ -10,9 +10,9 @@ import com.jzargo.scoringmicroservice.repository.ScoringEventRepository;
 import com.jzargo.scoringmicroservice.repository.UserScoreEventRepository;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
-import messaging.LeaderboardEventDeletion;
-import messaging.LeaderboardEventInitialization;
-import messaging.UserEventHappenedCommand;
+import com.jzargo.messaging.LeaderboardEventDeletion;
+import com.jzargo.messaging.LeaderboardEventInitialization;
+import com.jzargo.messaging.UserEventHappenedCommand;
 import org.springframework.stereotype.Service;
 
 @Service

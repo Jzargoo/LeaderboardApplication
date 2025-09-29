@@ -1,9 +1,8 @@
 package com.jzargo.leaderboardmicroservice.handler;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
-import messaging.UserLocalUpdateEvent;
+import com.jzargo.messaging.UserLocalUpdateEvent;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.connection.MessageListener;
