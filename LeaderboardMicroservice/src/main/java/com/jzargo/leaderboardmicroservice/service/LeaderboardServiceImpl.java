@@ -9,7 +9,6 @@ import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Set;
 
 @Service
 public class LeaderboardServiceImpl implements LeaderboardService{
@@ -27,67 +26,55 @@ public class LeaderboardServiceImpl implements LeaderboardService{
 
     @Override
     public void increaseUserScore(UserScoreEvent changeEvent) {
-        var info = leaderboardInfoRepository.findById(changeEvent.getLbId())
-                .orElseThrow(() ->
-                        new IllegalArgumentException("Leaderboard with id " + changeEvent.getLbId() + " does not exist")
-                );
-
-        String daily = "user_cached:" + changeEvent.getUserId() + ":dailyAttempts";
-        String  ttla = "user_cached:" + changeEvent.getUserId() + ":totalAttempts";
-        String   lbk = "leaderboard:" + changeEvent.getLbId() + ":mutable";
-        String   uhk = "user_cached:" + changeEvent.getUserId();
-
-        List<String> keys = List.of(daily, ttla, lbk, uhk);
-
-        String userId = changeEvent.getUserId().toString();
-        String scoreDelta = ""+changeEvent.getScore();
-        String maxEventsTotal = String.valueOf(info.getMaxEventsPerUser());
-        String maxEventsDaily = String.valueOf(info.getMaxEventsPerUserPerDay());
-        String regions = String.join(",", info.getRegions());
-
-        String execute = stringRedisTemplate.execute(
-                leaderboardScript,
-                keys,
-                userId, scoreDelta,
-                maxEventsTotal, maxEventsDaily,
-                regions, info.isPublic()
+        executeScoreChange(
+                changeEvent.getLbId(),
+                changeEvent.getUserId(),
+                changeEvent.getScore()
         );
-
-        if(execute.equals("ERR")) {
-            throw new IllegalStateException("Failed to update score for user " + changeEvent.getUserId());
-        }
     }
 
     @Override
-    public void addNewScore( UserScoreUploadEvent uploadEvent) {
-        LeaderboardInfo info = leaderboardInfoRepository.findById(uploadEvent.getLbId())
+    public void addNewScore(UserScoreUploadEvent uploadEvent) {
+        executeScoreChange(
+                uploadEvent.getLbId(),
+                uploadEvent.getUserId(),
+                uploadEvent.getScore()
+        );
+    }
+
+    private void executeScoreChange(String lbId, Long userId, double scoreDelta) {
+        LeaderboardInfo info = leaderboardInfoRepository.findById(lbId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("Leaderboard with id " + uploadEvent.getLbId() + " does not exist")
+                        new IllegalArgumentException("Leaderboard with id " + lbId + " does not exist")
                 );
 
-        String daily = "user_cached:" + uploadEvent.getUserId() + ":dailyAttempts";
-        String  ttla = "user_cached:" + uploadEvent.getUserId() + ":totalAttempts";
-        String   lbk = "leaderboard:" + uploadEvent.getLbId() + ":mutable";
-        String   uhk = "user_cached:" + uploadEvent.getUserId();
-
-        List<String> keys = List.of(daily,ttla,lbk, uhk);
-
-        String userId = uploadEvent.getUserId();
-        String scoreDelta = ""+uploadEvent.getScore();
-        String regions = String.join(",", info.getRegions());
+        List<String> keys = getStrings(userId, lbId, info.getGlobalRange());
 
         String execute = stringRedisTemplate.execute(
                 leaderboardScript,
                 keys,
-                userId, scoreDelta,
-                info.getMaxEventsPerUser(), info.getMaxEventsPerUserPerDay(),
-                regions, info.isPublic() ? 1 : 0
+                userId.toString(),
+                String.valueOf(scoreDelta),
+                String.valueOf(info.getMaxEventsPerUser()),
+                String.valueOf(info.getMaxEventsPerUserPerDay()),
+                String.join(",", info.getRegions()),
+                info.isPublic() ? "1" : "0",
+                String.valueOf(info.getGlobalRange())
         );
 
-        if(!execute.equals("success")) {
-            throw new IllegalStateException("Failed to add score for user " +
-                    uploadEvent.getUserId() +
-                    execute);
+        if (!"success".equals(execute)) {
+            throw new IllegalStateException("Failed to update score for user " + userId + ": " + execute);
         }
+    }
+
+    private static List<String> getStrings(Long userId, String lbId, int globalRange) {
+        String daily = "user_cached:" + userId + ":dailyAttempts";
+        String ttla = "user_cached:" + userId + ":totalAttempts";
+        String lbk = "leaderboard:" + lbId + ":mutable";
+        String uhk = "user_cached:" + userId;
+        String globalLbk = "leaderboard-cache:" + lbId + ":top" + globalRange + "Leaderboard";
+        String localLbk = "leaderboard-cache:" + lbId + ":userId:" + userId + ":local-leaderboard-update";
+
+        return List.of(daily, ttla, lbk, uhk, globalLbk, localLbk);
     }
 }

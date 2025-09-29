@@ -50,7 +50,7 @@ public class RedisGlobalLeaderboardUpdateHandler implements MessageListener {
 
             Set<ZSetOperations.TypedTuple<String>> typedTuples =
                     stringRedisTemplate.opsForZSet()
-                            .rangeWithScores(pattern.toString(), 0, -1);
+                            .reverseRangeWithScores(pattern.toString(), 0, -1);
 
             Set<ZSetOperations.TypedTuple<String>> collect = globalLeaderboardCache
                     .getPayload().stream()

@@ -2,15 +2,18 @@
 -- KEYS[2] = totalAttemptsKey
 -- KEYS[3] = leaderboardKey
 -- KEYS[4] = userHashKey
--- KEYS[5] = pubsubChannel
--- KEYS[6] = countGloablTop
+-- KEYS[5] = pubsubChannelGlobal
+-- KEYS[6] = pubsubChannelLocal
+
 -- ARGV[1] = userId
 -- ARGV[2] = scoreDelta
 -- ARGV[3] = maxEventsPerUser
 -- ARGV[4] = maxEventsPerUserPerDay
--- ARGV[6] = allowedRegion
+-- ARGV[5] = allowedRegion
 -- ARGV[6] = isActive
--- ARGV[7] = uuid
+-- ARGV[7] = countGlobalTop
+
+local cjson = require "cjson"
 
 -- daily attempts
 local daily = tonumber(redis.call("GET", KEYS[1]) or "0")
@@ -31,15 +34,22 @@ if userRegion ~= ARGV[5] then
 end
 
 -- check availability
-local active = redis.call("HGET", KEYS[6], "active")
-if not active or active ~= "1" then
+local active = redis.call("HGET", KEYS[4], "active")
+if not active or active ~= ARGV[6] then
   return "User not active"
 end
 
+-- old rank before update
+local oldRank = redis.call("ZRANK", KEYS[3], ARGV[1])
 
-local cjson = require "cjson"
+-- update counters and score
+redis.call("INCR", KEYS[1]) -- daily attempts
+redis.call("INCR", KEYS[2]) -- total attempts
+redis.call("HINCRBY", KEYS[4], "attempts", 1)
+redis.call("ZINCRBY", KEYS[3], tonumber(ARGV[2]), ARGV[1])
 
-local range_result = redis.call('ZRANGE', KEYS[3], 0, KEYS[6] - 1, 'WITHSCORES')
+-- build updated leaderboard
+local range_result = redis.call('ZRANGE', KEYS[3], 0, tonumber(ARGV[8]) - 1, 'WITHSCORES')
 
 local leaderboard = {}
 for i=1,#range_result,2 do
@@ -54,11 +64,8 @@ local payload = cjson.encode({
   top  = leaderboard
 })
 
--- update all atomically
-redis.call("INCR", KEYS[1])
-redis.call("INCR", KEYS[2])
-redis.call("PUBLISH",pubsubChannel ,payload)
-redis.call("ZINCRBY", KEYS[3], ARGV[2], ARGV[1])
-redis.call("HINCRBY", KEYS[4], "attempts", 1)
+-- publish updates
+redis.call("PUBLISH", KEYS[5], payload)
+redis.call("PUBLISH", KEYS[6], oldRank or -1)
 
 return "success"
