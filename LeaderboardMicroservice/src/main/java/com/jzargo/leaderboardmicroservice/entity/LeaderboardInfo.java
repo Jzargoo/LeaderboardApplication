@@ -25,8 +25,11 @@ public class LeaderboardInfo {
     private String name;
     private int initialValue;
     private boolean isPublic;
-    private LocalDateTime createdAt;
-    private LocalDateTime expireAt;
+    private boolean isMutable;
+    @Builder.Default
+    private LocalDateTime createdAt = LocalDateTime.now();
+    @Builder.Default
+    private LocalDateTime expireAt = LocalDateTime.now().plusDays(15);
     private double maxScore;
     @Builder.Default
     private Set<String> regions = new HashSet<>();
