@@ -23,6 +23,27 @@ public class RedisConfig {
         redisScript.setResultType(String.class);
         return redisScript;
     }
+
+    @Bean
+    RedisScript<String> createLeaderboardScript(){
+        DefaultRedisScript<String> redisScript = new DefaultRedisScript<>();
+        redisScript.setScriptText(
+                new ClassPathResource("/scripts/create_leaderboard.lua").toString()
+        );
+        redisScript.setResultType(String.class);
+        return redisScript;
+    }
+
+    @Bean
+    RedisScript<String> createUserCachedScript(){
+        DefaultRedisScript<String> redisScript = new DefaultRedisScript<>();
+        redisScript.setScriptText(
+                new ClassPathResource("/scripts/create_user_cached.lua").toString()
+        );
+        redisScript.setResultType(String.class);
+        return redisScript;
+    }
+
     @Bean
     RedisScript<String> immutableLeaderboardScript(){
         DefaultRedisScript<String> redisScript = new DefaultRedisScript<>();

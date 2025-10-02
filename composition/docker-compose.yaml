@@ -1,30 +1,38 @@
 name: LeaderboardApplication
+
 version:
   '3.8'
 
 services:
-  # More isolated version
-  # scoresdb:
-  #   image: bitnami/postgres:latest
-  #   environment:
-  #     POSTGRES_USER: jzargo
-  #     POSTGRES_PASSWORD: root333
-  #     POSTGRES_DB: scoresdb
-  # usersdb:
-  #   image: bitnami/postgres:latest
-  #   environment:
-  #     POSTGRES_USER: jzargo
-  #     POSTGRES_PASSWORD: root333
-  #     POSTGRES_DB: usersdb
-  # analyticsdb:
-  #   image: bitnami/postgres:latest
-  #   environment:
-  #     POSTGRES_USER: jzargo
-  #     POSTGRES_PASSWORD: root333
-  #     POSTGRES_DB: analyticsdb
+  scoresdb:
+    image: bitnami/postgres:latest
+    profiles:
+      - "isolated-db"
+    environment:
+      POSTGRES_USER: jzargo
+      POSTGRES_PASSWORD: root333
+      POSTGRES_DB: scoresdb
+  usersdb:
+    image: bitnami/postgres:latest
+    profiles:
+      - "isolated-db"
+    environment:
+      POSTGRES_USER: jzargo
+      POSTGRES_PASSWORD: root333
+      POSTGRES_DB: usersdb
+  analyticsdb:
+    image: bitnami/postgres:latest
+    profiles:
+      - "isolated-db"
+    environment:
+      POSTGRES_USER: jzargo
+      POSTGRES_PASSWORD: root333
+      POSTGRES_DB: analyticsdb
 
   db:
     image: bitnami/postgresql:latest
+    profiles:
+      - "lightweight"
     environment:
       POSTGRES_USER: jzargo
       POSTGRES_PASSWORD: root333
@@ -79,6 +87,8 @@ services:
 
   kafka3:
     image: bitnami/kafka:latest
+    profiles:
+      - "fault-tolerant-kafka"
     container_name: kafka3
     hostname: kafka3
     ports:
@@ -98,3 +108,55 @@ services:
       KAFKA_CLUSTER_ID: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
     volumes:
       - ./kafka3-data:/bitnami/kafka/data
+  redis-master:
+    image: redis:latest
+    container_name: redis-master
+    ports:
+      - "6379:6379"
+    command: [
+      "redis-server",
+      "--requirepass", "masterRedisPassword",
+      "--appendonly","yes",
+      "--appendfsync", "everysec",
+    ]
+    volumes:
+      - ./redis-master-data:/data
+  redis-slave-1:
+    image: redis:latest
+    profiles:
+      - "fault-tolerant-redis"
+    container_name: redis-slave-1
+    depends_on:
+      - redis-master
+    ports:
+      - "6380:6379"
+    command: [
+      "redis-server",
+      "--requirepass", "rootRedisPassword",
+      "--appendonly","yes",
+      "--appendfsync", "everysec",
+      "--replicaof", "redis-master", "6379",
+      "--masterauth", "masterRedisPassword"
+    ]
+    volumes:
+      - ./redis-slave-1-data:/data
+
+  redis-slave-2:
+    image: redis:latest
+    profiles:
+      - "fault-tolerant-redis"
+    container_name: redis-slave-2
+    depends_on:
+      - redis-master
+    ports:
+      - "6381:6379"
+    command: [
+      "redis-server",
+      "--requirepass", "rootRedisPassword",
+      "--appendonly","yes",
+      "--appendfsync", "everysec",
+      "--replicaof", "redis-master", "6379",
+      "--masterauth", "masterRedisPassword"
+    ]
+    volumes:
+      - ./redis-slave-2-data:/data

@@ -16,10 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 
 @Slf4j
-@KafkaListener(topics = {
-            KafkaConfig.LEADERBOARD_EVENT_TOPIC,
-            KafkaConfig.LEADERBOARD_LOOP_TOPIC
-        },
+@KafkaListener(topics = {KafkaConfig.LEADERBOARD_EVENT_TOPIC},
         groupId = "leaderboard-group"
 )
 @Component

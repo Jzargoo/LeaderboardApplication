@@ -3,18 +3,16 @@ package com.jzargo.leaderboardmicroservice.service;
 import com.jzargo.leaderboardmicroservice.dto.CreateLeaderboardRequest;
 import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.mapper.MapperCreateLeaderboardInfo;
+import com.jzargo.leaderboardmicroservice.repository.CachedUserRepository;
 import com.jzargo.leaderboardmicroservice.repository.LeaderboardInfoRepository;
 import com.jzargo.messaging.UserScoreEvent;
 import com.jzargo.messaging.UserScoreUploadEvent;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisOperations;
-import org.springframework.data.redis.core.SessionCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Map;
 
 @Service
 @Slf4j
@@ -24,20 +22,29 @@ public class LeaderboardServiceImpl implements LeaderboardService{
     private final LeaderboardInfoRepository leaderboardInfoRepository;
     private final RedisScript<String> mutableLeaderboardScript;
     private final RedisScript<String> immutableLeaderboardScript;
+    private final RedisScript<String> createLeaderboardScript;
     private final MapperCreateLeaderboardInfo mapperCreateLeaderboardInfo;
+    private final CachedUserRepository cachedUserRepository;
+    private final RedisScript<String> createUserCachedScript;
 
     public LeaderboardServiceImpl(StringRedisTemplate stringRedisTemplate, LeaderboardInfoRepository LeaderboardInfoRepository,
                                   RedisScript<String> mutableLeaderboardScript, RedisScript<String> immutableLeaderboardScript,
-                                  MapperCreateLeaderboardInfo mapperCreateLeaderboardInfo) {
+                                  MapperCreateLeaderboardInfo mapperCreateLeaderboardInfo, RedisScript<String> createLeaderboardScript,
+                                  CachedUserRepository cachedUserRepository, RedisScript<String> createUserCachedScript) {
+
         this.stringRedisTemplate = stringRedisTemplate;
         this.leaderboardInfoRepository = LeaderboardInfoRepository;
         this.mutableLeaderboardScript = mutableLeaderboardScript;
         this.immutableLeaderboardScript = immutableLeaderboardScript;
         this.mapperCreateLeaderboardInfo = mapperCreateLeaderboardInfo;
+        this.createLeaderboardScript = createLeaderboardScript;
+        this.cachedUserRepository = cachedUserRepository;
+        this.createUserCachedScript = createUserCachedScript;
     }
 
     @Override
     public void increaseUserScore(UserScoreEvent changeEvent) {
+        userCachedCheck(changeEvent.getUserId(), changeEvent.getName(), changeEvent.getRegion());
         executeScoreChange(
                 changeEvent.getLbId(),
                 changeEvent.getUserId(),
@@ -46,8 +53,29 @@ public class LeaderboardServiceImpl implements LeaderboardService{
         );
         log.info("incremented score for user: " + changeEvent.getUserId());
     }
+
+    private void userCachedCheck(Long userId, String username, String region) {
+        if (cachedUserRepository.existsById(userId)) {
+            return;
+        }
+
+        String execute = stringRedisTemplate.execute(createUserCachedScript,
+                List.of("user_cached:" + userId,
+                        "user_cached:" + userId + ":daily_attempts",
+                        "user_cached:" + userId + ":total_attempts"
+                ),
+                userId, username, region
+        );
+        if(!execute.equals("OK")) {
+            log.error("Adding new user failed with id {} and name {}", userId, username);
+            throw new IllegalStateException("Cannot create user cached version");
+        }
+        log.info("Adding new user ended successfully for username {}",username);
+    }
+
     @Override
     public void addNewScore(UserScoreUploadEvent uploadEvent) {
+        userCachedCheck(uploadEvent.getUserId(),uploadEvent.getName(), "un");
         executeScoreChange(
 
                 uploadEvent.getLbId(),
@@ -100,11 +128,12 @@ public class LeaderboardServiceImpl implements LeaderboardService{
 
     @Override
     public void createLeaderboard(CreateLeaderboardRequest request, long ownerId) {
-        if(request.getMaxScore() < -1 && request.getMaxScore() <= request.getInitialValue()) {
+        if(request.getMaxScore() < -1 && request.getMaxScore() == request.getInitialValue()) {
             throw new IllegalArgumentException("initial value cannot be equal or greater than max score");
         }
         request.setOwnerId(ownerId);
         LeaderboardInfo map = mapperCreateLeaderboardInfo.map(request);
+
         StringBuilder builder = new StringBuilder("leaderboard:");
         builder.append(map.getId())
                 .append(":")
@@ -114,25 +143,16 @@ public class LeaderboardServiceImpl implements LeaderboardService{
 
         String id = builder.toString();
 
-        List<String> txResults = stringRedisTemplate.execute(new SessionCallback<>() {
-            @Override
-            @SuppressWarnings("unchecked")
-            public List<Object> execute(RedisOperations operations) {
-                operations.multi();
+        List<String> keys = List.of(
+                id,
+                "leaderboard_information:" + map.getId()
+        );
 
-                operations.opsForZSet().add("leaderboard:" + id + ":scores", "init_user", map.getInitialValue());
-
-                operations.opsForHash().putAll("leaderboard_information:" + id, Map.of(
-                        "id", map.getId(),
-                        "description", map.getDescription(),
-                        "ownerId", String.valueOf(map.getOwnerId()),
-                        "initialValue", String.valueOf(map.getInitialValue()),
-                        "isPublic", String.valueOf(map.isPublic()),
-                        "isMutable", String.valueOf(map.isMutable())
-                ));
-
-                return operations.exec();
-            }
-        });
+        stringRedisTemplate.execute(createLeaderboardScript,
+                keys,
+                ownerId, request.getInitialValue(),
+                map.getId(), request.getDescription(),
+                map.isPublic(),map.isMutable(), map.isShowTies()
+        );
     }
 }

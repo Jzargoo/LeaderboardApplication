@@ -12,5 +12,6 @@ public class UserScoreUploadEvent {
     private Long userId;
     private double score;
     private String name;
+    private String region;
     private Map<String, Object> metadata;
 }
