@@ -43,15 +43,15 @@ public class LeaderboardServiceImpl implements LeaderboardService{
     }
 
     @Override
-    public void increaseUserScore(UserScoreEvent changeEvent) {
-        userCachedCheck(changeEvent.getUserId(), changeEvent.getName(), changeEvent.getRegion());
+    public void increaseUserScore(UserScoreEvent changeEvent, long userId, String name, String region) {
+        userCachedCheck(userId, name, region);
         executeScoreChange(
                 changeEvent.getLbId(),
-                changeEvent.getUserId(),
+                userId,
                 changeEvent.getScore(),
                 true
         );
-        log.info("incremented score for user: " + changeEvent.getUserId());
+        log.info("incremented score for user: " + userId);
     }
 
     private void userCachedCheck(Long userId, String username, String region) {
@@ -74,16 +74,16 @@ public class LeaderboardServiceImpl implements LeaderboardService{
     }
 
     @Override
-    public void addNewScore(UserScoreUploadEvent uploadEvent) {
-        userCachedCheck(uploadEvent.getUserId(),uploadEvent.getName(), "un");
+    public void addNewScore(UserScoreUploadEvent uploadEvent, long ownerId, String username, String region) {
+        userCachedCheck(ownerId, username, region);
         executeScoreChange(
 
                 uploadEvent.getLbId(),
-                uploadEvent.getUserId(),
+                ownerId,
                 uploadEvent.getScore(),
                 false
         );
-        log.info("added score for user: " + uploadEvent.getUserId());
+        log.info("added score for user: " + ownerId);
     }
 
     private void executeScoreChange(String lbId, Long userId, double scoreDelta, boolean isMutable) {
@@ -127,10 +127,11 @@ public class LeaderboardServiceImpl implements LeaderboardService{
     }
 
     @Override
-    public void createLeaderboard(CreateLeaderboardRequest request, long ownerId) {
+    public void createLeaderboard(CreateLeaderboardRequest request, long ownerId, String username, String region) {
         if(request.getMaxScore() < -1 && request.getMaxScore() == request.getInitialValue()) {
             throw new IllegalArgumentException("initial value cannot be equal or greater than max score");
         }
+        userCachedCheck(ownerId, username, region);
         request.setOwnerId(ownerId);
         LeaderboardInfo map = mapperCreateLeaderboardInfo.map(request);
 

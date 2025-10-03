@@ -5,7 +5,7 @@ import com.jzargo.messaging.UserScoreEvent;
 import com.jzargo.messaging.UserScoreUploadEvent;
 
 public interface LeaderboardService {
-    void increaseUserScore(UserScoreEvent ChangeEvent);
-    void createLeaderboard(CreateLeaderboardRequest request, long userId);
-    void addNewScore(UserScoreUploadEvent uploadEvent);
+    void increaseUserScore(UserScoreEvent changeEvent, long userId, String name, String region);
+    void addNewScore(UserScoreUploadEvent uploadEvent, long ownerId, String username, String region);
+    void createLeaderboard(CreateLeaderboardRequest request, long ownerId, String username, String region);
 }

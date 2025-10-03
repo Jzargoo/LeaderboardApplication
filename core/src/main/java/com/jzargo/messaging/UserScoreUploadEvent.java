@@ -9,9 +9,6 @@ import java.util.Map;
 @NoArgsConstructor
 public class UserScoreUploadEvent {
     private String lbId;
-    private Long userId;
     private double score;
-    private String name;
-    private String region;
     private Map<String, Object> metadata;
 }
