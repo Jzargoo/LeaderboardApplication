@@ -1,0 +1,24 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.jzargo'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    implementation 'org.keycloak:keycloak-server-spi:26.4.0'
+    compileOnly 'org.keycloak:keycloak-server-spi-private:26.4.0'
+    implementation 'org.keycloak:keycloak-core:26.4.0'
+    implementation 'org.jboss.logging:jboss-logging:3.6.1.Final'
+    implementation 'org.keycloak:keycloak-model-jpa:26.4.0'
+}
+
+test {
+    useJUnitPlatform()
+}

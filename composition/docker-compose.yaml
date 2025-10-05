@@ -1,45 +1,56 @@
 name: LeaderboardApplication
 
-version:
-  '3.8'
+volumes:
+  postgres_data: {}
 
 services:
   scoresdb:
-    image: bitnami/postgres:latest
+    image: bitnami/postgresql:latest
+    container_name: scores-db
     profiles:
       - "isolated-db"
     environment:
       POSTGRES_USER: jzargo
       POSTGRES_PASSWORD: root333
       POSTGRES_DB: scoresdb
+    ports:
+      - "5433:5432"
   usersdb:
-    image: bitnami/postgres:latest
+    image: bitnami/postgresql:latest
+    container_name: users-db
     profiles:
       - "isolated-db"
     environment:
       POSTGRES_USER: jzargo
       POSTGRES_PASSWORD: root333
       POSTGRES_DB: usersdb
+    ports:
+      - "5434:5432"
   analyticsdb:
-    image: bitnami/postgres:latest
+    image: bitnami/postgresql:latest
+    container_name: analytics-db
     profiles:
       - "isolated-db"
     environment:
       POSTGRES_USER: jzargo
       POSTGRES_PASSWORD: root333
       POSTGRES_DB: analyticsdb
+    ports:
+      - "5435:5432"
 
-  db:
+
+  generaldb:
     image: bitnami/postgresql:latest
-    profiles:
-      - "lightweight"
+    container_name: generaldb
     environment:
       POSTGRES_USER: jzargo
       POSTGRES_PASSWORD: root333
       POSTGRES_DB: generaldb
+    ports:
+      - "5432:5432"
     volumes:
+      - postgres_data:/var/lib/postgresql/data
       - ./postgres-init:/docker-entrypoint-initdb.d
-
   kafka1:
     image: bitnami/kafka:latest
     container_name: kafka1
@@ -62,7 +73,6 @@ services:
       KAFKA_CLUSTER_ID: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
     volumes:
       - ./kafka1-data:/bitnami/kafka/data
-
   kafka2:
     image: bitnami/kafka:latest
     container_name: kafka2
@@ -84,7 +94,6 @@ services:
       KAFKA_CLUSTER_ID: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
     volumes:
       - ./kafka2-data:/bitnami/kafka/data
-
   kafka3:
     image: bitnami/kafka:latest
     profiles:
@@ -108,6 +117,7 @@ services:
       KAFKA_CLUSTER_ID: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
     volumes:
       - ./kafka3-data:/bitnami/kafka/data
+
   redis-master:
     image: redis:latest
     container_name: redis-master
@@ -140,7 +150,6 @@ services:
     ]
     volumes:
       - ./redis-slave-1-data:/data
-
   redis-slave-2:
     image: redis:latest
     profiles:
@@ -160,3 +169,23 @@ services:
     ]
     volumes:
       - ./redis-slave-2-data:/data
+
+  keycloak:
+    image: keycloak/keycloak:latest
+    container_name: keycloak-security
+    command: start-dev
+    depends_on:
+      - generaldb
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin-password
+      KC_DB: postgres
+      KC_DB_USERNAME: jzargo
+      KC_DB_PASSWORD: root333
+      KC_HTTP_PORT: 8080
+      KC_LOG_LEVEL: info
+      KC_DB_URL: jdbc:postgresql://generaldb:5432/keycloakdb
+    ports:
+      - "8899:8080"
+    volumes:
+      - /home/jzargo/IdeaProjects/LeaderboardApplication/keycloak-extensions/files:/opt/keycloak/providers

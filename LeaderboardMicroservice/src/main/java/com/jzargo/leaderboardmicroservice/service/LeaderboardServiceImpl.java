@@ -43,15 +43,16 @@ public class LeaderboardServiceImpl implements LeaderboardService{
     }
 
     @Override
-    public void increaseUserScore(UserScoreEvent changeEvent, long userId, String name, String region) {
-        userCachedCheck(userId, name, region);
+    public void increaseUserScore(UserScoreEvent changeEvent) {
+
+        userCachedCheck(changeEvent.getUserId(), changeEvent.getUsername(), changeEvent.getRegion());
         executeScoreChange(
                 changeEvent.getLbId(),
-                userId,
+                changeEvent.getUserId(),
                 changeEvent.getScore(),
                 true
         );
-        log.info("incremented score for user: " + userId);
+        log.info("incremented score for user: " + changeEvent.getUserId());
     }
 
     private void userCachedCheck(Long userId, String username, String region) {
@@ -74,16 +75,16 @@ public class LeaderboardServiceImpl implements LeaderboardService{
     }
 
     @Override
-    public void addNewScore(UserScoreUploadEvent uploadEvent, long ownerId, String username, String region) {
-        userCachedCheck(ownerId, username, region);
+    public void addNewScore(UserScoreUploadEvent uploadEvent) {
+        userCachedCheck(uploadEvent.getUserId(), uploadEvent.getUsername(), uploadEvent.getRegion());
         executeScoreChange(
 
                 uploadEvent.getLbId(),
-                ownerId,
+                uploadEvent.getUserId(),
                 uploadEvent.getScore(),
                 false
         );
-        log.info("added score for user: " + ownerId);
+        log.info("added score for user: " + uploadEvent.getUserId());
     }
 
     private void executeScoreChange(String lbId, Long userId, double scoreDelta, boolean isMutable) {

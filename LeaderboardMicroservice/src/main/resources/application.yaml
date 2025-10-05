@@ -25,3 +25,8 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
         spring.json.trusted.packages: "com.jzargo.messaging"
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri:
