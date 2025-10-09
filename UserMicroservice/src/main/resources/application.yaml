@@ -3,4 +3,10 @@ spring:
     name: UserMicroservice
 
 api:
+  keycloak-connection-header: X-KEYCLOAK-SECRET
   secret-keycloak-connection: Gz9Tj7cE2Rk1Q4L8aXnYhP7vWb3sQ6Lf
+images:
+  dir-path:
+    user: ../images/user
+  dump:
+    user: dump.png

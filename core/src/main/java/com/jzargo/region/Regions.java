@@ -1,4 +1,4 @@
-package com.jzargo.leaderboardmicroservice.entity;
+package com.jzargo.region;
 
 import java.util.Optional;
 
@@ -24,7 +24,7 @@ public enum Regions {
 
     public static Regions fromStringCode(String code){
         for(Regions region: Regions.values()){
-            if(region.getCode().equalsIgnoreCase(code)) return Optional.of(region);
+            if(region.getCode().equalsIgnoreCase(code)) return region;
         }
         return GLOBAL;
     }

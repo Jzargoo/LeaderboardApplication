@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
 
+
 @Service
 @Slf4j
 public class ImageServiceImpl implements ImageService{
@@ -20,10 +21,13 @@ public class ImageServiceImpl implements ImageService{
     @Override
     public String saveImage(byte[] image) {
         try {
+
             Files.createDirectories(Path.of(dirUserPath));
             log.debug("created directories if needed");
-            String filename = UUID.randomUUID().toString();
-            Files.write(Path.of(STR."\{dirUserPath}/\{filename}.png"), image);
+
+            String filename = UUID.randomUUID() + ".png";
+            Files.write(Path.of(dirUserPath+"/"+filename), image);
+
             log.info("Image saved successfully");
             return filename;
         } catch (IOException e) {

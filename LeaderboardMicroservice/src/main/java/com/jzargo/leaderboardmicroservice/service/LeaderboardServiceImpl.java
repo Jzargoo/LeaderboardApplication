@@ -1,6 +1,7 @@
 package com.jzargo.leaderboardmicroservice.service;
 
 import com.jzargo.leaderboardmicroservice.dto.CreateLeaderboardRequest;
+import com.jzargo.leaderboardmicroservice.dto.InitUserScoreRequest;
 import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.mapper.MapperCreateLeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.repository.CachedUserRepository;
@@ -156,5 +157,11 @@ public class LeaderboardServiceImpl implements LeaderboardService{
                 map.getId(), request.getDescription(),
                 map.isPublic(),map.isMutable(), map.isShowTies()
         );
+    }
+
+    @Override
+    public void initUserScore(InitUserScoreRequest request, String username, long userId, String region) {
+        userCachedCheck(userId, username, region);
+
     }
 }
