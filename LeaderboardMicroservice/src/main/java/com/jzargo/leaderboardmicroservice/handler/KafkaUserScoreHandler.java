@@ -38,7 +38,7 @@ public class KafkaUserScoreHandler {
                 .opsForValue()
                 .setIfAbsent("processed:" + messageId, "1", Duration.ofDays(7));
         if(success != null && !success) {
-            log.debug("Handled processed message with id {}", messageId);
+            log.warn("Handled processed message with id {}", messageId);
             return;
         }
         try {
