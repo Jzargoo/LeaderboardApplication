@@ -10,10 +10,7 @@
 -- ARGV[3] = maxEventsPerUser
 -- ARGV[4] = maxEventsPerUserPerDay
 -- ARGV[5] = allowedRegion
--- ARGV[6] = isActive
--- ARGV[7] = countGlobalTop
-
-local cjson = require "cjson"
+-- ARGV[6] = countGlobalTop
 
 -- check daily attempts
 local daily = tonumber(redis.call("GET", KEYS[1]) or "0")
@@ -35,7 +32,7 @@ end
 
 -- check activity status
 local active = redis.call("HGET", KEYS[4], "active")
-if not active or active ~= ARGV[6] then
+if active ~= "true" then
 	return "User not active"
 end
 
@@ -49,7 +46,7 @@ redis.call("ZINCRBY", KEYS[3], tonumber(ARGV[2]), ARGV[1])
 redis.call("HINCRBY", KEYS[4], "attempts", 1)
 
 -- fetch updated leaderboard top N
-local range_result = redis.call("ZREVRANGE", KEYS[3], 0, tonumber(ARGV[7]) - 1, "WITHSCORES")
+local range_result = redis.call("ZREVRANGE", KEYS[3], 0, tonumber(ARGV[6]) - 1, "WITHSCORES")
 
 local leaderboard = {}
 for i=1,#range_result,2 do

@@ -1,5 +1,8 @@
 package com.jzargo.leaderboardmicroservice;
 
+import com.jzargo.leaderboardmicroservice.config.KafkaConfig;
+import com.jzargo.leaderboardmicroservice.handler.RedisGlobalLeaderboardUpdateHandler;
+import com.jzargo.leaderboardmicroservice.handler.RedisLocalLeaderboardHandler;
 import com.jzargo.leaderboardmicroservice.repository.CachedUserRepository;
 import com.jzargo.leaderboardmicroservice.repository.LeaderboardInfoRepository;
 import com.jzargo.leaderboardmicroservice.service.LeaderboardService;
@@ -7,23 +10,35 @@ import com.jzargo.messaging.UserScoreEvent;
 import com.jzargo.messaging.UserScoreUploadEvent;
 import com.jzargo.region.Regions;
 import jakarta.annotation.PostConstruct;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.data.redis.core.script.RedisScript;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Testcontainers
+@ActiveProfiles("test")
+@EnableAutoConfiguration(exclude = { KafkaAutoConfiguration.class })
 @SpringBootTest
-public class LeaderboardPushEventIntegrationTest {
+class LeaderboardPushEventIntegrationTest {
 
     private static final  Long LEADERBOARD_ID= 10234L;
     private static final  String LEADERBOARD_KEY_IMMUTABLE = "leaderboard:" + (LEADERBOARD_ID + 1) + ":immutable";
@@ -35,7 +50,7 @@ public class LeaderboardPushEventIntegrationTest {
     private static final  String DESCRIPTION = "Top players 2025";
     private static final Long OWNER_ID = 999L;
     private static final Double MAX_SCORE = 100000.0;
-
+    @Container
     static GenericContainer<?> redisContainer = new GenericContainer<>(
             DockerImageName.parse("redis:latest")
     ).withExposedPorts(6379);
@@ -51,13 +66,19 @@ public class LeaderboardPushEventIntegrationTest {
     @Autowired
     private CachedUserRepository cachedUserRepository;
 
-    @BeforeAll
-    static void prepareRedis(){
-        redisContainer.start();
-        System.setProperty("spring.data.redis.host", redisContainer.getHost());
-        System.setProperty("spring.data.redis.port",
-                redisContainer.getFirstMappedPort().toString());
+    @MockitoBean
+    private RedisGlobalLeaderboardUpdateHandler redisGlobalLeaderboardUpdateHandler;
+    @MockitoBean
+    private RedisLocalLeaderboardHandler redisLocalLeaderboardHandler;
+    @MockitoBean
+    private KafkaTemplate<String, Object> kafkaTemplate;
+    @MockitoBean
+    private KafkaConfig kafkaConfig;
 
+    @DynamicPropertySource
+    static void redisProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.data.redis.host", redisContainer::getHost);
+        registry.add("spring.data.redis.port", () -> redisContainer.getFirstMappedPort().toString());
     }
 
     @PostConstruct
@@ -83,17 +104,23 @@ public class LeaderboardPushEventIntegrationTest {
     }
 
     private void createLeaderboard(boolean b) {
+        Long lbId = b ?
+                LEADERBOARD_ID :
+                LEADERBOARD_ID + 1;
         List<String> keys = Arrays.asList(
                 b?
                         LEADERBOARD_KEY_MUTABLE :
                         LEADERBOARD_KEY_IMMUTABLE
                 ,
-                "leaderboard_information:" + LEADERBOARD_ID
+                "leaderboard_information:" + lbId
+
         );
-        List<String> args = Arrays.asList(
+        stringRedisTemplate.execute(
+                createLeaderboardScript,
+                keys,
                 OWNER_ID.toString(),
                 INIT.toString(),
-                LEADERBOARD_ID.toString(),
+                lbId.toString(),
                 DESCRIPTION,
                 "true",
                 b + "",
@@ -106,11 +133,6 @@ public class LeaderboardPushEventIntegrationTest {
                 "10",
                 "3"
         );
-        stringRedisTemplate.execute(
-                createLeaderboardScript,
-                keys, args
-        );
-
     }
 
     private void assertLeaderboardState(

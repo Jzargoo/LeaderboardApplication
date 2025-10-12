@@ -20,16 +20,17 @@ import static org.springframework.data.redis.listener.Topic.pattern;
 public class RedisLocalLeaderboardHandler implements MessageListener {
     private final KafkaTemplate<String, UserLocalUpdateEvent> kafkaTemplate;
     private final StringRedisTemplate stringRedisTemplate;
-
+    private final RedisMessageListenerContainer container;
     public RedisLocalLeaderboardHandler(
             KafkaTemplate<String, UserLocalUpdateEvent> kafkaTemplate,
-            StringRedisTemplate stringRedisTemplate) {
+            StringRedisTemplate stringRedisTemplate, RedisMessageListenerContainer container) {
         this.kafkaTemplate = kafkaTemplate;
         this.stringRedisTemplate = stringRedisTemplate;
+        this.container = container;
     }
 
     @PostConstruct
-    public void subscription(RedisMessageListenerContainer container) {
+    public void subscription() {
         container.addMessageListener(this, pattern("leaderboard-cache:*:userId:*:local-leaderboard-update"));
         log.trace("Subscribed to user's local-leaderboard-update channel");
 

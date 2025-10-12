@@ -1,0 +1,27 @@
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: rootRedisPassword
+      cluster:
+        nodes: localhost:6379,localhost:6380
+  kafka:
+    consumer:
+      bootstrap-servers: localhost:9090,localhost:9092
+      group-id: leaderboard-group
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        spring.json.trusted.packages: "com.jzargo.messaging"
+    producer:
+      bootstrap-servers: localhost:9090,localhost:9092
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.trusted.packages: "com.jzargo.messaging"
+    security:
+      oauth2:
+        resourceserver:
+          jwt:
+            issuer-uri: http://localhost:421

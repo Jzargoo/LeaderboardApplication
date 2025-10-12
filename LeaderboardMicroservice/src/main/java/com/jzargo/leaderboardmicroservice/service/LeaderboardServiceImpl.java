@@ -3,6 +3,7 @@ package com.jzargo.leaderboardmicroservice.service;
 import com.jzargo.leaderboardmicroservice.dto.CreateLeaderboardRequest;
 import com.jzargo.leaderboardmicroservice.dto.InitUserScoreRequest;
 import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
+import com.jzargo.leaderboardmicroservice.entity.UserCached;
 import com.jzargo.leaderboardmicroservice.mapper.MapperCreateLeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.repository.CachedUserRepository;
 import com.jzargo.leaderboardmicroservice.repository.LeaderboardInfoRepository;
@@ -66,7 +67,7 @@ public class LeaderboardServiceImpl implements LeaderboardService{
                         "user_cached:" + userId + ":daily_attempts",
                         "user_cached:" + userId + ":total_attempts"
                 ),
-                userId, username, region
+                userId.toString(), username, region
         );
         if(!execute.equals("OK")) {
             log.error("Adding new user failed with id {} and name {}", userId, username);
@@ -94,6 +95,10 @@ public class LeaderboardServiceImpl implements LeaderboardService{
                         new IllegalArgumentException("Leaderboard with id " + lbId + " does not exist")
                 );
 
+        UserCached cached = cachedUserRepository.findById(userId).orElseThrow(() ->
+                        new IllegalArgumentException("Leaderboard with id " + lbId + " does not exist")
+        );
+
         List<String> keys = getStrings(userId, lbId, info.getGlobalRange(), isMutable);
 
         String execute = stringRedisTemplate.execute(
@@ -103,8 +108,7 @@ public class LeaderboardServiceImpl implements LeaderboardService{
                 String.valueOf(scoreDelta),
                 String.valueOf(info.getMaxEventsPerUser()),
                 String.valueOf(info.getMaxEventsPerUserPerDay()),
-                String.join(",", info.getRegions()),
-                info.isPublic() ? "1" : "0",
+                cached.getRegion(),
                 String.valueOf(info.getGlobalRange())
         );
 

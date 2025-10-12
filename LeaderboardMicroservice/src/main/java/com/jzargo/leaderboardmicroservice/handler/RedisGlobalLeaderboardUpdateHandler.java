@@ -27,13 +27,15 @@ import static org.springframework.data.redis.listener.Topic.pattern;
 @Slf4j
 public class RedisGlobalLeaderboardUpdateHandler implements MessageListener {
     private final ObjectMapper objectMapper;
+    private final RedisMessageListenerContainer container;
     private final KafkaTemplate<String, GlobalLeaderboardEvent> kafkaTemplate;
     private final StringRedisTemplate stringRedisTemplate;
 
-    public RedisGlobalLeaderboardUpdateHandler(ObjectMapper objectMapper,
+    public RedisGlobalLeaderboardUpdateHandler(ObjectMapper objectMapper, RedisMessageListenerContainer container,
                                                KafkaTemplate<String, GlobalLeaderboardEvent> kafkaTemplate,
                                                StringRedisTemplate stringRedisTemplate) {
         this.objectMapper = objectMapper;
+        this.container = container;
         this.kafkaTemplate = kafkaTemplate;
         this.stringRedisTemplate = stringRedisTemplate;
     }
@@ -88,7 +90,7 @@ public class RedisGlobalLeaderboardUpdateHandler implements MessageListener {
     }
 
     @PostConstruct
-    public void subscribing(RedisMessageListenerContainer container) {
+    public void subscribing() {
         container.addMessageListener(this, pattern("leaderboard-cache:*:top*Leaderboard"));
         log.trace("Subscribed to Redis channel with global leaderboard update pattern");
     }

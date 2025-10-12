@@ -23,7 +23,7 @@ public class LeaderboardInfo {
     @Builder.Default
     private int globalRange = 10;
     private String name;
-    private int initialValue;
+    private double initialValue;
     private boolean isPublic;
     private boolean isMutable;
     @Builder.Default

@@ -46,7 +46,7 @@ public class LeaderboardController {
     }
 
     @PutMapping
-    public ResponseEntity<String> initUserScore(
+    public ResponseEntity<Void> initUserScore(
             @RequestBody @Validated InitUserScoreRequest request,
             @AuthenticationPrincipal Jwt jwt
     ) {
@@ -57,5 +57,6 @@ public class LeaderboardController {
                 Regions.fromStringCode(
                         jwt.getClaimAsString("region")).getCode();
         leaderboardService.initUserScore(request, preferredUsername, userId, region);
+        return ResponseEntity.ok().build();
     }
 }

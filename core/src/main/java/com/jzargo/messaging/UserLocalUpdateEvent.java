@@ -10,7 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Data
-@AllArgsConstructor @NoArgsConstructor
+@AllArgsConstructor
+@NoArgsConstructor
 @Builder
 public class UserLocalUpdateEvent {
     private String leaderboardId;

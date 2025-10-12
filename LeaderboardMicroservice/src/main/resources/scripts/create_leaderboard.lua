@@ -34,4 +34,4 @@ redis.call("HMSET", KEYS[2],
 	"maxScore", ARGV[11]
 )
 
-return {"OK"}
+return "OK"
