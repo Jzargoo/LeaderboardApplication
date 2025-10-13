@@ -10,7 +10,6 @@ import com.jzargo.messaging.UserScoreEvent;
 import com.jzargo.messaging.UserScoreUploadEvent;
 import com.jzargo.region.Regions;
 import jakarta.annotation.PostConstruct;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,6 +49,7 @@ class LeaderboardPushEventIntegrationTest {
     private static final  String DESCRIPTION = "Top players 2025";
     private static final Long OWNER_ID = 999L;
     private static final Double MAX_SCORE = 100000.0;
+
     @Container
     static GenericContainer<?> redisContainer = new GenericContainer<>(
             DockerImageName.parse("redis:latest")
@@ -177,6 +177,8 @@ class LeaderboardPushEventIntegrationTest {
         userScoreUploadEvent.setLbId(immutableId.toString());
 
         leaderboardService.addNewScore(userScoreUploadEvent);
+
+
 
         assertLeaderboardState(
                 immutableId,

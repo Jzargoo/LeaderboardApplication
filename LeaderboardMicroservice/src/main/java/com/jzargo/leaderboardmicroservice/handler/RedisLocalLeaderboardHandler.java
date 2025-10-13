@@ -1,71 +1,92 @@
 package com.jzargo.leaderboardmicroservice.handler;
 
-import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import com.jzargo.messaging.UserLocalUpdateEvent;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.springframework.data.redis.connection.Message;
-import org.springframework.data.redis.connection.MessageListener;
+import org.springframework.data.redis.connection.stream.*;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.listener.RedisMessageListenerContainer;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.util.*;
 
-import static org.springframework.data.redis.listener.Topic.pattern;
 
 @Component
 @Slf4j
-public class RedisLocalLeaderboardHandler implements MessageListener {
+public class RedisLocalLeaderboardHandler {
     private final KafkaTemplate<String, UserLocalUpdateEvent> kafkaTemplate;
     private final StringRedisTemplate stringRedisTemplate;
-    private final RedisMessageListenerContainer container;
+    private static final String STREAM_KEY = "local-leaderboard-stream";
+    private static final String GROUP_NAME = "local-consumer-group";
+
+
     public RedisLocalLeaderboardHandler(
             KafkaTemplate<String, UserLocalUpdateEvent> kafkaTemplate,
-            StringRedisTemplate stringRedisTemplate, RedisMessageListenerContainer container) {
+            StringRedisTemplate stringRedisTemplate) {
         this.kafkaTemplate = kafkaTemplate;
         this.stringRedisTemplate = stringRedisTemplate;
-        this.container = container;
+        try {
+            stringRedisTemplate.opsForStream().createGroup(STREAM_KEY, GROUP_NAME);
+        } catch (Exception e) {
+            log.info("Consumer group might already exist: {}", e.getMessage());
+        }
+        new Thread(this::pollStream).start();
     }
 
-    @PostConstruct
-    public void subscription() {
-        container.addMessageListener(this, pattern("leaderboard-cache:*:userId:*:local-leaderboard-update"));
-        log.trace("Subscribed to user's local-leaderboard-update channel");
 
+    private void pollStream() {
+        while (true) {
+            List<MapRecord<String, Object, Object>> messages =
+                    stringRedisTemplate.opsForStream().read(
+                            Consumer.from(GROUP_NAME, "consumer-1"),
+                            StreamReadOptions.empty().count(10).block(Duration.ofSeconds(2)),
+                            StreamOffset.create(STREAM_KEY, ReadOffset.lastConsumed())
+                    );
+
+            if (messages != null) {
+                for (MapRecord<String, Object, Object> message : messages) {
+                    handleMessage(message);
+                    stringRedisTemplate.opsForStream().acknowledge(STREAM_KEY, GROUP_NAME, message.getId());
+                }
+            }
+        }
     }
 
-    @Override
-    public void onMessage(Message message, byte[] pattern) {
-        int rankOld = Integer.parseInt(Arrays.toString(message.getBody()));
-        log.info("Received local leaderboard update message with old rank: {}", rankOld);
+    private void handleMessage(MapRecord<String, Object, Object> message) {
+        Long oldRank = (Long) message.getValue().get("oldRank");
+        String leaderboardKey = (String) message.getValue().get("leaderboardKey");
+        String userId = (String) message.getValue().get("userId");
 
-        String[] split = Arrays.toString(pattern).split(":");
-        Long l = stringRedisTemplate.opsForZSet().reverseRank(split[1], split[3]);
-        if(l == null){
-            log.warn("User with ID {} not found in leaderboard {}", split[3], split[1]);
+        Long l = stringRedisTemplate.opsForZSet().reverseRank(leaderboardKey, userId);
+        if (l == null) {
+            log.warn("User {} not found in leaderboard {}", userId, leaderboardKey);
             return;
         }
 
-        Set<String> range = stringRedisTemplate.opsForZSet().range(split[1], rankOld, l - 1);
-        List<UserLocalUpdateEvent.UserLocalEntry> list = new ArrayList<>(Objects.requireNonNull(range).stream().map(
+        Set<String> range = stringRedisTemplate.opsForZSet().range(leaderboardKey, oldRank, l - 1);
+        List<UserLocalUpdateEvent.UserLocalEntry> list = range.stream().map(
                 el -> {
-                    Long rank = stringRedisTemplate.opsForZSet().rank(split[1], el);
-                    return new UserLocalUpdateEvent.UserLocalEntry(Long.getLong(el), null, rank);
+                    Long rank = stringRedisTemplate.opsForZSet().rank(leaderboardKey, el);
+                    return new UserLocalUpdateEvent.UserLocalEntry(Long.parseLong(el), null, rank);
                 }
-        ).toList());
+        ).toList();
 
-        Objects.requireNonNull(stringRedisTemplate.opsForZSet().reverseRangeWithScores(split[1], l, l)).forEach(
-                el -> {
-                    UserLocalUpdateEvent.UserLocalEntry userLocalEntry = new UserLocalUpdateEvent.UserLocalEntry(Long.getLong(el.getValue()), el.getScore(), l);
-                    list.add(userLocalEntry);
-                }
-        );
+        Set<ZSetOperations.TypedTuple<String>> last = stringRedisTemplate.opsForZSet().reverseRangeWithScores(leaderboardKey, l, l);
+        if (last != null) {
+            last.forEach(el -> {
+                UserLocalUpdateEvent.UserLocalEntry entry = new UserLocalUpdateEvent.UserLocalEntry(
+                        Long.parseLong(el.getValue()), el.getScore(), l
+                );
+                list.add(entry);
+            });
+        }
 
         String messageId = UUID.randomUUID().toString();
-        ProducerRecord<String, UserLocalUpdateEvent>
-                record= new ProducerRecord<>(split[1], new UserLocalUpdateEvent(split[1],list));
+        ProducerRecord<String, UserLocalUpdateEvent> record = new ProducerRecord<>(
+                leaderboardKey, new UserLocalUpdateEvent(leaderboardKey, list)
+        );
         record.headers().add("message-id", messageId.getBytes());
         kafkaTemplate.send(record);
     }

@@ -2,8 +2,8 @@
 -- KEYS[2] = totalAttemptsKey
 -- KEYS[3] = leaderboardKey
 -- KEYS[4] = userHashKey
--- KEYS[5] = pubsubChannelGlobal
--- KEYS[6] = pubsubChannelLocal
+-- KEYS[5] = StreamGlobal
+-- KEYS[6] = StreamLocal
 
 -- ARGV[1] = userId
 -- ARGV[2] = scoreDelta
@@ -11,6 +11,7 @@
 -- ARGV[4] = maxEventsPerUserPerDay
 -- ARGV[5] = allowedRegion
 -- ARGV[6] = countGlobalTop
+-- ARGV[7] = lbId
 
 -- daily attempts
 local daily = tonumber(redis.call("GET", KEYS[1]) or "0")
@@ -57,12 +58,15 @@ for i=1,#range_result,2 do
 end
 
 local payload = cjson.encode({
-  lbId = KEYS[3],
-  top  = leaderboard
+  lbKey = KEYS[3],
+  lbId = ARGV[7],
+  maxTop = tonumber(ARGV[6])
 })
 
--- publish updates
-redis.call("PUBLISH", KEYS[5], payload)
-redis.call("PUBLISH", KEYS[6], oldRank or 10)
+local oldRankValue = ARGV[3] or -1
+
+-- publish to streams
+redis.call("XADD", KEYS[5], "*", "payload", payload)
+redis.call("XADD", KEYS[6], "*", "oldRank", oldRankValue)
 
 return "success"

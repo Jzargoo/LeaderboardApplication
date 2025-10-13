@@ -1,97 +1,85 @@
 package com.jzargo.leaderboardmicroservice.handler;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jzargo.leaderboardmicroservice.config.KafkaConfig;
-import com.jzargo.leaderboardmicroservice.dto.GlobalLeaderboardCache;
-import jakarta.annotation.PostConstruct;
-import lombok.extern.slf4j.Slf4j;
 import com.jzargo.messaging.GlobalLeaderboardEvent;
-import org.springframework.data.redis.connection.Message;
-import org.springframework.data.redis.connection.MessageListener;
-import org.springframework.data.redis.core.DefaultTypedTuple;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.ZSetOperations;
-import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.stereotype.Component;
 
-import java.util.Arrays;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import static org.springframework.data.redis.listener.Topic.pattern;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 
 @Component
 @Slf4j
-public class RedisGlobalLeaderboardUpdateHandler implements MessageListener {
-    private final ObjectMapper objectMapper;
-    private final RedisMessageListenerContainer container;
+public class RedisGlobalLeaderboardUpdateHandler{
     private final KafkaTemplate<String, GlobalLeaderboardEvent> kafkaTemplate;
     private final StringRedisTemplate stringRedisTemplate;
+    private static final String STREAM_KEY = "global-leaderboard-stream";
+    private static final String GROUP_NAME = "global-consumer-group";
 
-    public RedisGlobalLeaderboardUpdateHandler(ObjectMapper objectMapper, RedisMessageListenerContainer container,
-                                               KafkaTemplate<String, GlobalLeaderboardEvent> kafkaTemplate,
-                                               StringRedisTemplate stringRedisTemplate) {
-        this.objectMapper = objectMapper;
-        this.container = container;
+
+    public RedisGlobalLeaderboardUpdateHandler(KafkaTemplate<String, GlobalLeaderboardEvent> kafkaTemplate, StringRedisTemplate stringRedisTemplate) {
         this.kafkaTemplate = kafkaTemplate;
         this.stringRedisTemplate = stringRedisTemplate;
-    }
-
-    @Override
-    public void onMessage(Message message, byte[] pattern) {
-        String body = new String(message.getBody());
-        log.info("Received leaderboard update message: {}", body);
-        try {
-            GlobalLeaderboardCache globalLeaderboardCache =
-                    objectMapper.readValue(body, GlobalLeaderboardCache.class);
-
-            Set<ZSetOperations.TypedTuple<String>> typedTuples =
-                    stringRedisTemplate.opsForZSet()
-                            .reverseRangeWithScores(pattern.toString(), 0, -1);
-
-            Set<ZSetOperations.TypedTuple<String>> collect = globalLeaderboardCache
-                    .getPayload().stream()
-                    .map(e ->
-                            new DefaultTypedTuple<>(
-                                    e.getUserId() + "", e.getScore()))
-                    .collect(Collectors.toSet());
-
-            if (!Objects.equals(typedTuples, collect)) {
-                stringRedisTemplate.opsForZSet()
-                        .removeRange(pattern.toString(), 0, -1);
-                stringRedisTemplate.opsForZSet()
-                        .add(Arrays.toString(pattern), collect);
-                log.info("Updated leaderboard {} in Redis", globalLeaderboardCache.getLeaderboardId());
-
-                GlobalLeaderboardEvent event = GlobalLeaderboardEvent.builder()
-                        .id(globalLeaderboardCache.getLeaderboardId())
-                        .topNLeaderboard(
-                                globalLeaderboardCache.getPayload().stream()
-                                        .map(e ->
-                                                new GlobalLeaderboardEvent.Entry(
-                                                        e.getUserId(), e.getScore()))
-                                        .toList()
-                        )
-                        .build();
-
-                kafkaTemplate.send(KafkaConfig.LEADERBOARD_UPDATE_TOPIC, event);
-                log.info("Published leaderboard {} update event to Kafka", globalLeaderboardCache.getLeaderboardId());
-
-            } else {
-                log.info("No changes detected for leaderboard {}, skipping update", globalLeaderboardCache.getLeaderboardId());
-            }
-        } catch (JsonProcessingException e) {
-            log.error("Failed to parse leaderboard update message: {}", body, e);
+        try{
+            stringRedisTemplate.opsForStream().createGroup(STREAM_KEY, GROUP_NAME);
+        } catch (Exception e) {
+            log.info("Consumer group might already exist: {}", e.getMessage());
         }
-
+        new Thread(this::pollStream).start();
     }
 
-    @PostConstruct
-    public void subscribing() {
-        container.addMessageListener(this, pattern("leaderboard-cache:*:top*Leaderboard"));
-        log.trace("Subscribed to Redis channel with global leaderboard update pattern");
+    public void pollStream(){
+        while (true){
+            var messages = stringRedisTemplate.opsForStream().read(
+                    org.springframework.data.redis.connection.stream.Consumer.from(GROUP_NAME, "consumer-1"),
+                    org.springframework.data.redis.connection.stream.StreamReadOptions.empty().count(10).block(java.time.Duration.ofSeconds(2)),
+                    org.springframework.data.redis.connection.stream.StreamOffset.create(STREAM_KEY, org.springframework.data.redis.connection.stream.ReadOffset.lastConsumed())
+            );
+            if(messages != null){
+                for(var message : messages){
+                    handleMessage(message);
+                    stringRedisTemplate.opsForStream().acknowledge(STREAM_KEY, GROUP_NAME, message.getId());
+                }
+            }
+        }
+    }
+
+    private void handleMessage(MapRecord<String, Object, Object> message){
+        String leaderboardKey = (String) message.getValue().get("lbKey");
+        Integer maxTop = (Integer) message.getValue().get("maxTop");
+        String lbId = (String) message.getValue().get("lbId");
+
+
+        ArrayList<GlobalLeaderboardEvent.Entry> top = new ArrayList<>();
+        stringRedisTemplate.opsForZSet().reverseRangeWithScores(leaderboardKey, 0, maxTop - 1)
+                .forEach(tuple -> {
+                    GlobalLeaderboardEvent.Entry entry = new GlobalLeaderboardEvent.Entry();
+                    entry.setUserId(Long.parseLong(tuple.getValue()));
+                    entry.setScore(tuple.getScore());
+                    top.add(entry);
+                });
+        GlobalLeaderboardEvent build = GlobalLeaderboardEvent.builder()
+                .id(lbId)
+                .topNLeaderboard(top)
+                .createdAt(LocalDateTime.now())
+                .build();
+        ProducerRecord<String, GlobalLeaderboardEvent> record =
+                new ProducerRecord<>(KafkaConfig.LEADERBOARD_UPDATE_TOPIC, lbId, build);
+
+        record.headers().add(
+                KafkaConfig.MESSAGE_ID,
+                        message.getId().getValue().getBytes()
+                )
+                .add(
+                        KafkaHeaders.RECEIVED_KEY,
+                        message.getId().getValue().getBytes()
+                );
+
+        kafkaTemplate.send(record);
     }
 }
