@@ -8,7 +8,6 @@ import com.jzargo.leaderboardmicroservice.repository.LeaderboardInfoRepository;
 import com.jzargo.leaderboardmicroservice.service.LeaderboardService;
 import com.jzargo.messaging.UserScoreEvent;
 import com.jzargo.messaging.UserScoreUploadEvent;
-import com.jzargo.region.Regions;
 import jakarta.annotation.PostConstruct;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
@@ -16,10 +15,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
-import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -32,23 +32,15 @@ import org.testcontainers.utility.DockerImageName;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static com.jzargo.leaderboardmicroservice.IntegrationTestHelper.*;
 
 @Testcontainers
-@ActiveProfiles("test")
 @EnableAutoConfiguration(exclude = { KafkaAutoConfiguration.class })
 @SpringBootTest
+@DirtiesContext
+@Import(TestConfigHelper.class)
+@ActiveProfiles("test")
 class LeaderboardPushEventIntegrationTest {
-
-    private static final  Long LEADERBOARD_ID= 10234L;
-    private static final  String LEADERBOARD_KEY_IMMUTABLE = "leaderboard:" + (LEADERBOARD_ID + 1) + ":immutable";
-    private static final  String LEADERBOARD_KEY_MUTABLE = "leaderboard:" + LEADERBOARD_ID + ":mutable";
-    private static final  Long USER_ID = 10L;
-    private static final  Double INIT = 0.0;
-    private static final  String CODE = Regions.GLOBAL.getCode();
-    private static final  String USERNAME = "Alex111";
-    private static final  String DESCRIPTION = "Top players 2025";
-    private static final Long OWNER_ID = 999L;
-    private static final Double MAX_SCORE = 100000.0;
 
     @Container
     static GenericContainer<?> redisContainer = new GenericContainer<>(
@@ -57,8 +49,6 @@ class LeaderboardPushEventIntegrationTest {
 
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
-    @Autowired
-    private RedisScript<String> createLeaderboardScript;
     @Autowired
     private LeaderboardService leaderboardService;
     @Autowired
@@ -74,6 +64,8 @@ class LeaderboardPushEventIntegrationTest {
     private KafkaTemplate<String, Object> kafkaTemplate;
     @MockitoBean
     private KafkaConfig kafkaConfig;
+    @Autowired
+    private IntegrationTestHelper integrationTestHelper;
 
     @DynamicPropertySource
     static void redisProperties(DynamicPropertyRegistry registry) {
@@ -83,56 +75,9 @@ class LeaderboardPushEventIntegrationTest {
 
     @PostConstruct
     public void prepareLeaderboards(){
-        createLeaderboard(true);
-        createLeaderboard(false);
-
-        initializeUser();
-    }
-
-    private void initializeUser() {
-        stringRedisTemplate.opsForZSet().add(
-                LEADERBOARD_KEY_MUTABLE,
-                USER_ID.toString(),
-                INIT
-                );
-
-        stringRedisTemplate.opsForZSet().add(
-                "leaderboard:" + LEADERBOARD_ID + ":immutable",
-                USER_ID.toString(),
-                INIT
-        );
-    }
-
-    private void createLeaderboard(boolean b) {
-        Long lbId = b ?
-                LEADERBOARD_ID :
-                LEADERBOARD_ID + 1;
-        List<String> keys = Arrays.asList(
-                b?
-                        LEADERBOARD_KEY_MUTABLE :
-                        LEADERBOARD_KEY_IMMUTABLE
-                ,
-                "leaderboard_information:" + lbId
-
-        );
-        stringRedisTemplate.execute(
-                createLeaderboardScript,
-                keys,
-                OWNER_ID.toString(),
-                INIT.toString(),
-                lbId.toString(),
-                DESCRIPTION,
-                "true",
-                b + "",
-                "false",
-                "100",
-                "2025-10-10T18:00",
-                "2025-12-31T23:59",
-                MAX_SCORE.toString(),
-                CODE,
-                "10",
-                "3"
-        );
+        integrationTestHelper.createLeaderboard(true);
+        integrationTestHelper.createLeaderboard(false);
+        integrationTestHelper.initializeUser();
     }
 
     private void assertLeaderboardState(
@@ -168,21 +113,20 @@ class LeaderboardPushEventIntegrationTest {
 
     @Test
     public void handleSuccessfulUserImmutableChangeEvent() {
-        Long immutableId = LEADERBOARD_ID + 1;
 
         UserScoreUploadEvent userScoreUploadEvent = new UserScoreUploadEvent();
         userScoreUploadEvent.setUserId(USER_ID);
         userScoreUploadEvent.setUsername(USERNAME);
         userScoreUploadEvent.setRegion(CODE);
-        userScoreUploadEvent.setLbId(immutableId.toString());
+        userScoreUploadEvent.setLbId(IMMUTABLE_LEADERBOARD_ID.toString());
 
         leaderboardService.addNewScore(userScoreUploadEvent);
 
 
 
         assertLeaderboardState(
-                immutableId,
-                LEADERBOARD_KEY_IMMUTABLE,
+                IMMUTABLE_LEADERBOARD_ID,
+                IMMUTABLE_BOARD,
                 false,
                 userScoreUploadEvent.getScore()
         );
@@ -195,13 +139,13 @@ class LeaderboardPushEventIntegrationTest {
         userScoreEvent.setScore(10.0);
         userScoreEvent.setRegion(CODE);
         userScoreEvent.setUsername(USERNAME);
-        userScoreEvent.setLbId(LEADERBOARD_ID.toString());
+        userScoreEvent.setLbId(MUTABLE_LEADERBOARD_ID.toString());
 
         leaderboardService.increaseUserScore(userScoreEvent);
 
         assertLeaderboardState(
-                LEADERBOARD_ID,
-                LEADERBOARD_KEY_MUTABLE,
+                MUTABLE_LEADERBOARD_ID,
+                MUTABLE_BOARD,
                 true,
                 userScoreEvent.getScore() + INIT
         );

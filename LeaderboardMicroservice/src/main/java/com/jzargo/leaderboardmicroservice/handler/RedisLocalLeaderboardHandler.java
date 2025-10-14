@@ -18,7 +18,7 @@ import java.util.*;
 public class RedisLocalLeaderboardHandler {
     private final KafkaTemplate<String, UserLocalUpdateEvent> kafkaTemplate;
     private final StringRedisTemplate stringRedisTemplate;
-    private static final String STREAM_KEY = "local-leaderboard-stream";
+    public static final String LOCAL_STREAM_KEY = "local-leaderboard-stream";
     private static final String GROUP_NAME = "local-consumer-group";
 
 
@@ -28,7 +28,7 @@ public class RedisLocalLeaderboardHandler {
         this.kafkaTemplate = kafkaTemplate;
         this.stringRedisTemplate = stringRedisTemplate;
         try {
-            stringRedisTemplate.opsForStream().createGroup(STREAM_KEY, GROUP_NAME);
+            stringRedisTemplate.opsForStream().createGroup(LOCAL_STREAM_KEY, GROUP_NAME);
         } catch (Exception e) {
             log.info("Consumer group might already exist: {}", e.getMessage());
         }
@@ -42,13 +42,13 @@ public class RedisLocalLeaderboardHandler {
                     stringRedisTemplate.opsForStream().read(
                             Consumer.from(GROUP_NAME, "consumer-1"),
                             StreamReadOptions.empty().count(10).block(Duration.ofSeconds(2)),
-                            StreamOffset.create(STREAM_KEY, ReadOffset.lastConsumed())
+                            StreamOffset.create(LOCAL_STREAM_KEY, ReadOffset.lastConsumed())
                     );
 
             if (messages != null) {
                 for (MapRecord<String, Object, Object> message : messages) {
                     handleMessage(message);
-                    stringRedisTemplate.opsForStream().acknowledge(STREAM_KEY, GROUP_NAME, message.getId());
+                    stringRedisTemplate.opsForStream().acknowledge(LOCAL_STREAM_KEY, GROUP_NAME, message.getId());
                 }
             }
         }

@@ -18,7 +18,7 @@ import java.util.ArrayList;
 public class RedisGlobalLeaderboardUpdateHandler{
     private final KafkaTemplate<String, GlobalLeaderboardEvent> kafkaTemplate;
     private final StringRedisTemplate stringRedisTemplate;
-    private static final String STREAM_KEY = "global-leaderboard-stream";
+    public static final String GLOBAL_STREAM_KEY = "global-leaderboard-stream";
     private static final String GROUP_NAME = "global-consumer-group";
 
 
@@ -26,7 +26,7 @@ public class RedisGlobalLeaderboardUpdateHandler{
         this.kafkaTemplate = kafkaTemplate;
         this.stringRedisTemplate = stringRedisTemplate;
         try{
-            stringRedisTemplate.opsForStream().createGroup(STREAM_KEY, GROUP_NAME);
+            stringRedisTemplate.opsForStream().createGroup(GLOBAL_STREAM_KEY, GROUP_NAME);
         } catch (Exception e) {
             log.info("Consumer group might already exist: {}", e.getMessage());
         }
@@ -38,12 +38,12 @@ public class RedisGlobalLeaderboardUpdateHandler{
             var messages = stringRedisTemplate.opsForStream().read(
                     org.springframework.data.redis.connection.stream.Consumer.from(GROUP_NAME, "consumer-1"),
                     org.springframework.data.redis.connection.stream.StreamReadOptions.empty().count(10).block(java.time.Duration.ofSeconds(2)),
-                    org.springframework.data.redis.connection.stream.StreamOffset.create(STREAM_KEY, org.springframework.data.redis.connection.stream.ReadOffset.lastConsumed())
+                    org.springframework.data.redis.connection.stream.StreamOffset.create(GLOBAL_STREAM_KEY, org.springframework.data.redis.connection.stream.ReadOffset.lastConsumed())
             );
             if(messages != null){
                 for(var message : messages){
                     handleMessage(message);
-                    stringRedisTemplate.opsForStream().acknowledge(STREAM_KEY, GROUP_NAME, message.getId());
+                    stringRedisTemplate.opsForStream().acknowledge(GLOBAL_STREAM_KEY, GROUP_NAME, message.getId());
                 }
             }
         }

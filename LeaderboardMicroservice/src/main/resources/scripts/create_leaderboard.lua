@@ -18,6 +18,7 @@
 redis.call("ZADD", KEYS[1], ARGV[2], ARGV[1])
 
 redis.call("HMSET", KEYS[2],
+	"_class", "com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo",
 	"id", ARGV[3],
 	"description", ARGV[4],
 	"ownerId", ARGV[1],

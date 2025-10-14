@@ -14,13 +14,15 @@
 -- ARGV[7] = lbId
 
 -- daily attempts
-local daily = tonumber(redis.call("GET", KEYS[1]) or "0")
+local daily = tonumber(redis.call("HGET", KEYS[1], "__init__") or "0")
+
+
 if daily >= tonumber(ARGV[4]) then
   return "No daily attempts left"
 end
 
 -- total attempts
-local total = tonumber(redis.call("GET", KEYS[2]) or "0")
+local total = tonumber(redis.call("HGET", KEYS[2], "__init__") or "0")
 if total >= tonumber(ARGV[3]) then
   return "No total attempts left"
 end
