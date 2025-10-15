@@ -40,7 +40,7 @@ if active ~= "true" then
 end
 
 -- old rank before update
-local oldRank = redis.call("ZRANK", KEYS[3], ARGV[1])
+local oldRank = redis.call("ZREVRANK", KEYS[3], ARGV[1])
 
 -- update counters and score
 redis.call("INCR", KEYS[1]) -- daily attempts
@@ -68,7 +68,9 @@ local payload = cjson.encode({
 local oldRankValue = ARGV[3] or -1
 
 -- publish to streams
-redis.call("XADD", KEYS[5], "*", "payload", payload)
+if(oldRank < ARGV[6]) then
+  redis.call("XADD", KEYS[5], "*", "payload", payload)
+end
 redis.call("XADD", KEYS[6], "*", "oldRank", oldRankValue)
 
 return "success"

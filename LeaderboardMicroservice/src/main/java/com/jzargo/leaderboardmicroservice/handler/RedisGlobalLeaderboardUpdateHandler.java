@@ -12,6 +12,9 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Objects;
+
+import static org.springframework.kafka.support.KafkaHeaders.*;
 
 @Component
 @Slf4j
@@ -56,8 +59,9 @@ public class RedisGlobalLeaderboardUpdateHandler{
 
 
         ArrayList<GlobalLeaderboardEvent.Entry> top = new ArrayList<>();
-        stringRedisTemplate.opsForZSet().reverseRangeWithScores(leaderboardKey, 0, maxTop - 1)
+        Objects.requireNonNull(stringRedisTemplate.opsForZSet().reverseRangeWithScores(leaderboardKey, 0, maxTop - 1))
                 .forEach(tuple -> {
+                    if(tuple.getValue() == null || tuple.getScore() == null) return;
                     GlobalLeaderboardEvent.Entry entry = new GlobalLeaderboardEvent.Entry();
                     entry.setUserId(Long.parseLong(tuple.getValue()));
                     entry.setScore(tuple.getScore());
@@ -70,13 +74,12 @@ public class RedisGlobalLeaderboardUpdateHandler{
                 .build();
         ProducerRecord<String, GlobalLeaderboardEvent> record =
                 new ProducerRecord<>(KafkaConfig.LEADERBOARD_UPDATE_TOPIC, lbId, build);
-
         record.headers().add(
                 KafkaConfig.MESSAGE_ID,
                         message.getId().getValue().getBytes()
                 )
                 .add(
-                        KafkaHeaders.RECEIVED_KEY,
+                        RECEIVED_KEY,
                         message.getId().getValue().getBytes()
                 );
 

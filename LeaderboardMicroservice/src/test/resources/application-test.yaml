@@ -17,3 +17,6 @@ spring:
   embedded:
     kafka:
       bootstrap-servers: localhost:9090
+kafka:
+  consumer:
+    group-id: leaderboard-group

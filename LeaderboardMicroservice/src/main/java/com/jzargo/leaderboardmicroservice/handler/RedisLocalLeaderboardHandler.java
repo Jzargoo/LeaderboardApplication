@@ -54,7 +54,7 @@ public class RedisLocalLeaderboardHandler {
         }
     }
 
-    private void handleMessage(MapRecord<String, Object, Object> message) {
+    public void handleMessage(MapRecord<String, Object, Object> message) {
         Long oldRank = (Long) message.getValue().get("oldRank");
         String leaderboardKey = (String) message.getValue().get("leaderboardKey");
         String userId = (String) message.getValue().get("userId");
