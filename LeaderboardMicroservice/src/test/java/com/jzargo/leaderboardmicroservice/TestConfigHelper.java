@@ -12,4 +12,9 @@ public class TestConfigHelper {
                                                        RedisScript<String>createLeaderboardScript) {
         return new IntegrationTestHelper(stringRedisTemplate, createLeaderboardScript);
     }
+
+    @Bean
+    public TestConsumer testConsumer() {
+        return new TestConsumer();
+    }
 }

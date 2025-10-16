@@ -33,21 +33,20 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.shaded.org.awaitility.Awaitility;
 
 import java.util.*;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import static com.jzargo.leaderboardmicroservice.IntegrationTestHelper.*;
 import static com.jzargo.leaderboardmicroservice.handler.RedisGlobalLeaderboardUpdateHandler.GLOBAL_STREAM_KEY;
 import static com.jzargo.leaderboardmicroservice.handler.RedisLocalLeaderboardHandler.LOCAL_STREAM_KEY;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.verify;
-import static org.springframework.kafka.test.utils.ContainerTestUtils.waitForAssignment;
+import static org.mockito.Mockito.*;
 
 
 // Test class to verify integration between Redis Streams and Kafka
@@ -71,6 +70,7 @@ class LeaderboardRedisStreamsIntegrationTest {
         redisContainer.start();
     }
 
+
     @DynamicPropertySource
     static void setProperties(DynamicPropertyRegistry registry) {
         System.out.println(">>> Redis test container host=" + redisContainer.getHost());
@@ -84,6 +84,9 @@ class LeaderboardRedisStreamsIntegrationTest {
     private RedisScript<String> mutableLeaderboardScript;
 
     @Autowired
+    private TestConsumer testConsumer;
+
+    @Autowired
     private StringRedisTemplate stringRedisTemplate;
 
     @Autowired
@@ -92,57 +95,9 @@ class LeaderboardRedisStreamsIntegrationTest {
     @Autowired
     private LeaderboardInfoRepository leaderboardInfoRepository;
 
-    @SpyBean
+    @MockitoSpyBean
     private RedisLocalLeaderboardHandler  redisLocalLeaderboardHandler;
 
-    @Autowired
-    private EmbeddedKafkaBroker embeddedKafkaBroker;
-
-
-    BlockingQueue<GlobalLeaderboardEvent> globalRecordsQueue;
-    BlockingQueue<UserLocalUpdateEvent> localRecordsQueue;
-
-
-    @Value("${spring.kafka.consumer.properties.spring.json.trusted.packages}")
-    private String trustedPackages;
-
-    @Value("${kafka.consumer.group-id}")
-    private String groupId;
-
-    @BeforeEach
-    public void setUp() {
-        DefaultKafkaConsumerFactory<String,Object> factory = new DefaultKafkaConsumerFactory<>(getProperties());
-
-        ContainerProperties globalProps = new ContainerProperties(KafkaConfig.LEADERBOARD_UPDATE_TOPIC);
-        ContainerProperties localProps = new ContainerProperties(KafkaConfig.LEADERBOARD_UPDATE_TOPIC);
-
-        KafkaMessageListenerContainer<String, Object> globalContainer =
-                new KafkaMessageListenerContainer<>(factory, globalProps);
-        KafkaMessageListenerContainer<String, Object> localContainer =
-                new KafkaMessageListenerContainer<>(factory, localProps);
-
-        globalContainer.setupMessageListener((MessageListener<String, GlobalLeaderboardEvent>) globalRecordsQueue::add);
-        localContainer.setupMessageListener((MessageListener<String, UserLocalUpdateEvent>) localRecordsQueue::add);
-
-
-        globalContainer.start();
-        localContainer.start();
-
-        waitForAssignment(globalContainer, embeddedKafkaBroker.getPartitionsPerTopic());
-        waitForAssignment(localContainer, embeddedKafkaBroker.getPartitionsPerTopic());
-    }
-
-    private Map<String, Object> getProperties() {
-        return Map.of(
-                ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, embeddedKafkaBroker.getBrokersAsString(),
-                ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class,
-                ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class,
-                ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS, JsonDeserializer.class,
-                JsonDeserializer.TRUSTED_PACKAGES, trustedPackages,
-                ConsumerConfig.GROUP_ID_CONFIG, groupId,
-                ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"
-        );
-    }
 
 
     @PostConstruct
@@ -183,17 +138,22 @@ class LeaderboardRedisStreamsIntegrationTest {
 
         assertGlobalRange(leaderboardInfo);
 
-        verify(redisLocalLeaderboardHandler, timeout(3000))
-                .handleMessage(recordCaptor.capture());
-
+        Awaitility.await()
+                .atMost(5, TimeUnit.SECONDS)
+                .untilAsserted(() ->
+                        verify(redisLocalLeaderboardHandler, times(1)).handleMessage(recordCaptor.capture())
+                );
         MapRecord<String, Object, Object> captured = recordCaptor.getValue();
         Long oldRank = (Long) captured.getValue().get("oldRank");
-        assertLocalRange(leaderboardInfo, oldRank);
+        assertLocalRange(oldRank);
 
     }
 
-    private void assertLocalRange(LeaderboardInfo leaderboardInfo, Long oldRank) throws InterruptedException {
-        UserLocalUpdateEvent poll = localRecordsQueue.poll(3, TimeUnit.SECONDS);
+    private void assertLocalRange(Long oldRank){
+        UserLocalUpdateEvent poll = Awaitility.await()
+                .atMost(5, TimeUnit.SECONDS)
+                .pollInterval(100, TimeUnit.MILLISECONDS)
+                .until(() -> testConsumer.getLocalRecordsQueue().poll(), Objects::nonNull);
 
         assertNotNull(poll);
         assertNotNull(poll.getEntries());
@@ -218,8 +178,11 @@ class LeaderboardRedisStreamsIntegrationTest {
         assertArrayEquals(top.toArray(), poll.getEntries().toArray());
     }
 
-    private void assertGlobalRange(LeaderboardInfo leaderboardInfo) throws InterruptedException {
-        GlobalLeaderboardEvent poll = globalRecordsQueue.poll(3, TimeUnit.SECONDS);
+    private void assertGlobalRange(LeaderboardInfo leaderboardInfo){
+         GlobalLeaderboardEvent poll = Awaitility.await()
+                .atMost(5, TimeUnit.SECONDS)
+                .pollInterval(100, TimeUnit.MILLISECONDS)
+                .until(() -> testConsumer.getGlobalRecordsQueue().poll(), Objects::nonNull);
 
         assertNotNull(poll);
         assertNotNull(poll.getTopNLeaderboard());
