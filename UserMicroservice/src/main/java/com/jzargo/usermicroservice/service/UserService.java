@@ -1,6 +1,7 @@
 package com.jzargo.usermicroservice.service;
 
 import com.jzargo.messaging.ActiveLeaderboardEvent;
+import com.jzargo.messaging.DiedLeaderboardEvent;
 import com.jzargo.usermicroservice.api.UserRegisterRequest;
 import com.jzargo.usermicroservice.api.UserResponse;
 
@@ -12,4 +13,6 @@ public interface UserService {
     UserResponse findById(Long id);
 
     void addActiveLeaderboard(ActiveLeaderboardEvent event);
+
+    void removeLeaderboard(DiedLeaderboardEvent event);
 }

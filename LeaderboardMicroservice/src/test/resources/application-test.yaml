@@ -20,3 +20,6 @@ spring:
 kafka:
   consumer:
     group-id: leaderboard-group
+  topic:
+    insync-replicas: 1
+    replicas: 1

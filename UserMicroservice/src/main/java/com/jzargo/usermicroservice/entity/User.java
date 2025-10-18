@@ -35,4 +35,8 @@ public class User {
     public void addActiveLeaderboard(String leaderboardName) {
         activeLeaderboards.add(leaderboardName);
     }
+
+    public void removeActiveLeaderboard(String leaderboardName) {
+        activeLeaderboards.remove(leaderboardName);
+    }
 }

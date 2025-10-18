@@ -8,6 +8,7 @@ spring:
         nodes: localhost:6379,localhost:6380
   kafka:
     consumer:
+
       bootstrap-servers: localhost:9090,localhost:9092
       group-id: leaderboard-group
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
@@ -25,3 +26,7 @@ spring:
         resourceserver:
           jwt:
             issuer-uri: http://localhost:421
+kafka:
+    topic:
+      insync-replicas: 2
+      replicas: 2

@@ -1,7 +1,9 @@
 package com.jzargo.usermicroservice.handler;
 
 import com.jzargo.messaging.ActiveLeaderboardEvent;
+import com.jzargo.messaging.DiedLeaderboardEvent;
 import com.jzargo.usermicroservice.config.KafkaConfig;
+import com.jzargo.usermicroservice.entity.ProcessingMessage;
 import com.jzargo.usermicroservice.repository.ProcessingMessageRepository;
 import com.jzargo.usermicroservice.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 @KafkaListener(topics = {KafkaConfig.PULSE_LEADERBOARD})
 public class UserKafkaHandler {
 
+    private static final String PROCESSED_EVENT_MESSAGE = "That message already had been processed";
     private final ProcessingMessageRepository processingMessageRepository;
     private final UserService userService;
 
@@ -31,10 +34,41 @@ public class UserKafkaHandler {
             @Header("message-id") String messageId,
             @Payload ActiveLeaderboardEvent event){
         if(processingMessageRepository.existsById(messageId)){
-            log.warn("That message already had been processed");
+            log.warn(PROCESSED_EVENT_MESSAGE);
             return;
         }
+        try {
+            userService.addActiveLeaderboard(event);
+        } finally {
+            processingMessageRepository.save(
+                ProcessingMessage.builder()
+                        .id(messageId)
+                        .type("Event")
+                        .build()
+            );
+        }
 
-        userService.addActiveLeaderboard(event);
+    }
+
+    @Transactional
+    @KafkaHandler
+    public void endLeaderboard(
+            @Header("message-id") String messageId,
+            @Payload DiedLeaderboardEvent event){
+        if(processingMessageRepository.existsById(messageId)){
+            log.warn(PROCESSED_EVENT_MESSAGE);
+            return;
+        }
+        try {
+            userService.removeLeaderboard(event);
+        } finally {
+            processingMessageRepository.save(
+                ProcessingMessage.builder()
+                        .id(messageId)
+                        .type("Event")
+                        .build()
+            );
+        }
+
     }
 }

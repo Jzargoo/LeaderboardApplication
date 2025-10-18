@@ -1,5 +1,6 @@
 package com.jzargo.leaderboardmicroservice.entity;
 
+import com.jzargo.region.Regions;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -8,8 +9,10 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.redis.core.RedisHash;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Data
 @Builder
@@ -32,9 +35,16 @@ public class LeaderboardInfo {
     private LocalDateTime expireAt = LocalDateTime.now().plusDays(15);
     private double maxScore;
     @Builder.Default
-    private Set<String> regions = new HashSet<>();
+    private String regions = Regions.GLOBAL.getCode();
     private int maxEventsPerUser;
     private int maxEventsPerUserPerDay;
     private boolean showTies;
 
+    public Set<String> getRegions(){
+        return Arrays.stream(regions.split(",")).collect(Collectors.toSet());
+    }
+
+    public void setRegions(Set<String> regions){
+        this.regions = String.join(",", regions);
+    }
 }

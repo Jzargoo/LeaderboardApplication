@@ -1,12 +1,14 @@
 package com.jzargo.usermicroservice.service;
 
 import com.jzargo.messaging.ActiveLeaderboardEvent;
+import com.jzargo.messaging.DiedLeaderboardEvent;
 import com.jzargo.usermicroservice.api.UserRegisterRequest;
 import com.jzargo.usermicroservice.api.UserResponse;
 import com.jzargo.usermicroservice.entity.User;
 import com.jzargo.usermicroservice.mapper.CreateRegisterUserMapper;
 import com.jzargo.usermicroservice.mapper.ReadUserMapper;
 import com.jzargo.usermicroservice.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -30,6 +32,7 @@ public class UserServiceImpl implements UserService{
     }
 
     @Override
+    @Transactional
     public void changeAvatar(byte[] avatar, long userId) {
         User byId = userRepository.findById(userId)
                 .orElseThrow();
@@ -59,5 +62,17 @@ public class UserServiceImpl implements UserService{
                 .orElseThrow();
 
         user.addActiveLeaderboard(event.getLeaderboardName());
+        userRepository.save(user);
+    }
+
+    @Override
+    public void removeLeaderboard(DiedLeaderboardEvent event) {
+        for(Long userId : event.getUserIds()){
+            User user = userRepository.findById(userId)
+                    .orElseThrow();
+
+            user.removeActiveLeaderboard(event.getLeaderboardName());
+            userRepository.save(user);
+        }
     }
 }

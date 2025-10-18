@@ -2,38 +2,26 @@ package com.jzargo.leaderboardmicroservice;
 
 import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.config.KafkaConfig;
-import com.jzargo.leaderboardmicroservice.handler.RedisLocalLeaderboardHandler;
 import com.jzargo.leaderboardmicroservice.repository.LeaderboardInfoRepository;
 import com.jzargo.messaging.GlobalLeaderboardEvent;
 import com.jzargo.messaging.UserLocalUpdateEvent;
 import jakarta.annotation.PostConstruct;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.redis.connection.stream.Consumer;
 import org.springframework.data.redis.connection.stream.MapRecord;
+import org.springframework.data.redis.connection.stream.ReadOffset;
+import org.springframework.data.redis.connection.stream.StreamOffset;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
-import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
-import org.springframework.kafka.listener.ContainerProperties;
-import org.springframework.kafka.listener.KafkaMessageListenerContainer;
-import org.springframework.kafka.listener.MessageListener;
-import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
-import org.springframework.kafka.support.serializer.JsonDeserializer;
-import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -43,10 +31,8 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static com.jzargo.leaderboardmicroservice.IntegrationTestHelper.*;
-import static com.jzargo.leaderboardmicroservice.handler.RedisGlobalLeaderboardUpdateHandler.GLOBAL_STREAM_KEY;
-import static com.jzargo.leaderboardmicroservice.handler.RedisLocalLeaderboardHandler.LOCAL_STREAM_KEY;
+import static com.jzargo.leaderboardmicroservice.config.RedisConfig.*;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 
 // Test class to verify integration between Redis Streams and Kafka
@@ -56,7 +42,7 @@ import static org.mockito.Mockito.*;
 @Testcontainers
 @ActiveProfiles("test")
 @Import(TestConfigHelper.class)
-@EmbeddedKafka(partitions = 3, topics = {KafkaConfig.LEADERBOARD_UPDATE_TOPIC})
+@EmbeddedKafka(partitions = 3,brokerProperties = "num.brokers=3", topics = {KafkaConfig.LEADERBOARD_UPDATE_TOPIC})
 @SpringBootTest(properties = "spring.kafka.producer.bootstrap-servers=${spring.embedded.kafka.brokers}")
 
 class LeaderboardRedisStreamsIntegrationTest {
@@ -95,10 +81,6 @@ class LeaderboardRedisStreamsIntegrationTest {
     @Autowired
     private LeaderboardInfoRepository leaderboardInfoRepository;
 
-    @MockitoSpyBean
-    private RedisLocalLeaderboardHandler  redisLocalLeaderboardHandler;
-
-
 
     @PostConstruct
     public void prepareLeaderboards(){
@@ -109,7 +91,7 @@ class LeaderboardRedisStreamsIntegrationTest {
 
 
     @Test
-    public void testHandleAndPostGlobalMessageToKafkaTopic_whenGlobalLocalStreamsHappened() throws InterruptedException {
+    public void testHandleAndPostGlobalMessageToKafkaTopic_whenGlobalLocalStreamsHappened() {
         List<String> keys = List.of(
                 "user_cached:" + USER_ID + ":daily_attempts",
                 "user_cached:" + USER_ID + ":total_attempts",
@@ -122,30 +104,38 @@ class LeaderboardRedisStreamsIntegrationTest {
         LeaderboardInfo leaderboardInfo = leaderboardInfoRepository.findById(MUTABLE_LEADERBOARD_ID.toString())
                 .orElseThrow();
 
-        ArgumentCaptor<MapRecord<String, Object, Object>> recordCaptor =
-                ArgumentCaptor.forClass((Class) MapRecord.class);
 
-        stringRedisTemplate.execute(
+        String execute = stringRedisTemplate.execute(
                 mutableLeaderboardScript, keys,
                 USER_ID.toString(),
                 "50",
                 String.valueOf(leaderboardInfo.getMaxEventsPerUser()),
                 String.valueOf(leaderboardInfo.getMaxEventsPerUserPerDay()),
-                leaderboardInfo.getRegions().toString(),
+                String.join(",", leaderboardInfo.getRegions()),
                 String.valueOf(leaderboardInfo.getGlobalRange()),
                 MUTABLE_LEADERBOARD_ID.toString()
         );
 
-        assertGlobalRange(leaderboardInfo);
+        assertArrayEquals("success".toCharArray(), execute.toCharArray());
 
-        Awaitility.await()
-                .atMost(5, TimeUnit.SECONDS)
-                .untilAsserted(() ->
-                        verify(redisLocalLeaderboardHandler, times(1)).handleMessage(recordCaptor.capture())
-                );
-        MapRecord<String, Object, Object> captured = recordCaptor.getValue();
-        Long oldRank = (Long) captured.getValue().get("oldRank");
+        Long sizeGlobal = stringRedisTemplate.opsForStream().size(GLOBAL_STREAM_KEY);
+        Long sizeLocal = stringRedisTemplate.opsForStream().size(LOCAL_STREAM_KEY);
+
+
+
+        assertEquals(1L, sizeLocal, "Local stream should have one message");
+        assertEquals(1L, sizeGlobal, "Global stream should have one message");
+
+
+        MapRecord<String, Object, Object> captured = Objects.requireNonNull(stringRedisTemplate.opsForStream()
+                .read(
+                        Consumer.from(LOCAL_GROUP_NAME, "consumer-1"),
+                        StreamOffset.create(LOCAL_STREAM_KEY, ReadOffset.lastConsumed())
+                )).getFirst();
+
+        long oldRank = Long.parseLong( (String) captured.getValue().get("oldRank"));
         assertLocalRange(oldRank);
+        assertGlobalRange(leaderboardInfo);
 
     }
 

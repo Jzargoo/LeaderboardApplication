@@ -4,10 +4,10 @@ import com.jzargo.leaderboardmicroservice.config.KafkaConfig;
 import com.jzargo.messaging.GlobalLeaderboardEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.springframework.data.redis.connection.stream.MapRecord;
+import org.springframework.data.redis.connection.stream.*;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -18,44 +18,21 @@ import static org.springframework.kafka.support.KafkaHeaders.*;
 
 @Component
 @Slf4j
-public class RedisGlobalLeaderboardUpdateHandler{
+public class RedisGlobalLeaderboardUpdateHandler implements StreamListener<String, MapRecord<String, String, String>> {
     private final KafkaTemplate<String, GlobalLeaderboardEvent> kafkaTemplate;
     private final StringRedisTemplate stringRedisTemplate;
-    public static final String GLOBAL_STREAM_KEY = "global-leaderboard-stream";
-    private static final String GROUP_NAME = "global-consumer-group";
 
 
     public RedisGlobalLeaderboardUpdateHandler(KafkaTemplate<String, GlobalLeaderboardEvent> kafkaTemplate, StringRedisTemplate stringRedisTemplate) {
         this.kafkaTemplate = kafkaTemplate;
         this.stringRedisTemplate = stringRedisTemplate;
-        try{
-            stringRedisTemplate.opsForStream().createGroup(GLOBAL_STREAM_KEY, GROUP_NAME);
-        } catch (Exception e) {
-            log.info("Consumer group might already exist: {}", e.getMessage());
-        }
-        new Thread(this::pollStream).start();
     }
 
-    public void pollStream(){
-        while (true){
-            var messages = stringRedisTemplate.opsForStream().read(
-                    org.springframework.data.redis.connection.stream.Consumer.from(GROUP_NAME, "consumer-1"),
-                    org.springframework.data.redis.connection.stream.StreamReadOptions.empty().count(10).block(java.time.Duration.ofSeconds(2)),
-                    org.springframework.data.redis.connection.stream.StreamOffset.create(GLOBAL_STREAM_KEY, org.springframework.data.redis.connection.stream.ReadOffset.lastConsumed())
-            );
-            if(messages != null){
-                for(var message : messages){
-                    handleMessage(message);
-                    stringRedisTemplate.opsForStream().acknowledge(GLOBAL_STREAM_KEY, GROUP_NAME, message.getId());
-                }
-            }
-        }
-    }
-
-    private void handleMessage(MapRecord<String, Object, Object> message){
-        String leaderboardKey = (String) message.getValue().get("lbKey");
-        Integer maxTop = (Integer) message.getValue().get("maxTop");
-        String lbId = (String) message.getValue().get("lbId");
+    @Override
+    public void onMessage(MapRecord<String, String, String> message){
+        String leaderboardKey = message.getValue().get("lbKey");
+        int maxTop = Integer.parseInt(message.getValue().get("maxTop"));
+        String lbId = message.getValue().get("lbId");
 
 
         ArrayList<GlobalLeaderboardEvent.Entry> top = new ArrayList<>();

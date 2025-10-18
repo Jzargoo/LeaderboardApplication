@@ -1,6 +1,7 @@
 package com.jzargo.leaderboardmicroservice.config;
 
 import org.apache.kafka.clients.admin.NewTopic;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.TopicBuilder;
@@ -11,13 +12,19 @@ public class KafkaConfig{
     public static final String LEADERBOARD_UPDATE_TOPIC = "leaderboard-update-topic";
     public static final String MESSAGE_ID = "message-id";
 
+    @Value("${kafka.topic.insync-replicas}")
+    private int minInSyncReplicas;
+
+    @Value("${kafka.topic.replicas}")
+    private int replicas;
+
     @Bean
     public NewTopic leaderboardEventsTopic(){
         return TopicBuilder
                 .name(LEADERBOARD_EVENT_TOPIC)
                 .partitions(3)
-                .replicas(2)
-                .config("Min.insync.replicas", "2")
+                .replicas(replicas)
+                .config("min.insync.replicas", String.valueOf(minInSyncReplicas))
                 .build();
     }
 
@@ -26,8 +33,8 @@ public class KafkaConfig{
         return TopicBuilder
                 .name(LEADERBOARD_UPDATE_TOPIC)
                 .partitions(3)
-                .replicas(2)
-                .config("Min.insync.replicas", "2")
+                .replicas(replicas)
+                .config("min.insync.replicas", String.valueOf(minInSyncReplicas))
                 .build();
     }
 
