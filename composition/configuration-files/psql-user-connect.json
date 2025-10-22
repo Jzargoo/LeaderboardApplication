@@ -1,0 +1,21 @@
+{
+  "name": "pg-users-connect",
+  "config": {
+    "plugin.name": "pgoutput",
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "database.hostname": "generaldb",
+    "database.port": "5432",
+    "database.user": "debezium",
+    "database.password": "dbz123",
+    "database.dbname": "uesrsdb",
+    "database.server.name": "pgserver",
+    "table.include.list": "public.users",
+    "slot.name": "usersdb_debezium",
+    "publication.name": "users_publication",
+    "heartbeat.interval.ms": "500",
+    "transforms": "AddPrefix",
+    "transforms.AddPrefix.type": "org.apache.kafka.connect.transforms.RegexRouter",
+    "transforms.AddPrefix.regex": "pgserver.users.public.(.*)",
+    "transforms.AddPrefix.replacement": "data.cdc.scoring.$1"
+  }
+}

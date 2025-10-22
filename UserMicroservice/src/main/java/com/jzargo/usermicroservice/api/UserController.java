@@ -1,5 +1,6 @@
 package com.jzargo.usermicroservice.api;
 
+import com.jzargo.usermicroservice.api.model.UserResponse;
 import com.jzargo.usermicroservice.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -66,6 +67,44 @@ public class UserController {
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PutMapping
+    public ResponseEntity<String> updateUser(
+            HttpHeaders headers,
+            @RequestBody UserRegisterRequest request
+    ){
+        String secret = headers.getFirst(keycloakHeader);
+        if(secret == null || secret.equals(keycloakValue)){
+            return ResponseEntity
+                    .status(HttpStatus.FORBIDDEN)
+                    .build();
+        }
+        try{
+            userService.updateUser(request.getUserId(), request);
+            return ResponseEntity.ok("User updated successfully");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping
+    public ResponseEntity<String> deleteUser(
+            HttpHeaders headers,
+            @RequestParam Long id
+    ){
+        String secret = headers.getFirst(keycloakHeader);
+        if(secret == null || secret.equals(keycloakValue)){
+            return ResponseEntity
+                    .status(HttpStatus.FORBIDDEN)
+                    .build();
+        }
+        try{
+            userService.deleteUser(id);
+            return ResponseEntity.ok("User deleted successfully");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 }

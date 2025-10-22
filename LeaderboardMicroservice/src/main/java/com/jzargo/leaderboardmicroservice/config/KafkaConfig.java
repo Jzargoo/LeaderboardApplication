@@ -11,6 +11,7 @@ public class KafkaConfig{
     public static final String LEADERBOARD_EVENT_TOPIC = "leaderboard-event-topic";
     public static final String LEADERBOARD_UPDATE_TOPIC = "leaderboard-update-topic";
     public static final String MESSAGE_ID = "message-id";
+    public static final String USER_STATE_EVENT_TOPIC = "user-state-event-topic";
 
     @Value("${kafka.topic.insync-replicas}")
     private int minInSyncReplicas;
@@ -27,6 +28,17 @@ public class KafkaConfig{
                 .config("min.insync.replicas", String.valueOf(minInSyncReplicas))
                 .build();
     }
+
+    @Bean
+    public NewTopic userStateEventTopic(){
+        return TopicBuilder
+                .name(USER_STATE_EVENT_TOPIC)
+                .partitions(3)
+                .replicas(replicas)
+                .config("min.insync.replicas", String.valueOf(minInSyncReplicas))
+                .build();
+    }
+
 
     @Bean
     public NewTopic leaderboardUpdateTopic(){

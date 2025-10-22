@@ -43,15 +43,14 @@ services:
     image: bitnami/postgresql:latest
     container_name: generaldb
     environment:
-      POSTGRES_USER: jzargo
-      POSTGRES_PASSWORD: root333
-      POSTGRES_DB: generaldb
+      POSTGRESQL_USERNAME: postgres
+      POSTGRESQL_PASSWORD: root333
+      POSTGRESQL_DATABASE: generaldb
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres-init:/docker-entrypoint-initdb.d
-
 
   kafka1:
     image: bitnami/kafka:latest
@@ -191,3 +190,21 @@ services:
       - "8899:8080"
     volumes:
       - /home/jzargo/IdeaProjects/LeaderboardApplication/keycloak-extensions/files:/opt/keycloak/providers
+
+  debezium:
+    image: quay.io/debezium/connect:latest
+    container_name: debezium
+    depends_on:
+      - kafka1
+      - kafka2
+      - generaldb
+    ports:
+      - "10103:8083"
+    environment:
+      BOOTSTRAP_SERVERS: kafka1:9091,kafka2:9093
+      GROUP_ID: 1
+      CONFIG_STORAGE_TOPIC: connect-configs-topic
+      OFFSET_STORAGE_TOPIC: connect-offsets-topic
+      STATUS_STORAGE_TOPIC: connect-statuses-topic
+    volumes:
+      - ./configuration-files:/kafka/configs

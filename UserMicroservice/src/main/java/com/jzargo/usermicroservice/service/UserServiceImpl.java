@@ -3,7 +3,7 @@ package com.jzargo.usermicroservice.service;
 import com.jzargo.messaging.ActiveLeaderboardEvent;
 import com.jzargo.messaging.DiedLeaderboardEvent;
 import com.jzargo.usermicroservice.api.UserRegisterRequest;
-import com.jzargo.usermicroservice.api.UserResponse;
+import com.jzargo.usermicroservice.api.model.UserResponse;
 import com.jzargo.usermicroservice.entity.User;
 import com.jzargo.usermicroservice.mapper.CreateRegisterUserMapper;
 import com.jzargo.usermicroservice.mapper.ReadUserMapper;
@@ -12,8 +12,6 @@ import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
-
 @Service
 @Slf4j
 public class UserServiceImpl implements UserService{
@@ -21,6 +19,7 @@ public class UserServiceImpl implements UserService{
     private final UserRepository userRepository;
     private final CreateRegisterUserMapper createRegisterUserMapper;
     private final ReadUserMapper readUserMapper;
+
 
     public UserServiceImpl(ImageService imageService, UserRepository userRepository,
                            CreateRegisterUserMapper createRegisterUserMapper,
@@ -46,6 +45,22 @@ public class UserServiceImpl implements UserService{
     public void register(UserRegisterRequest request) {
         User map = createRegisterUserMapper.map(request);
         userRepository.save(map);
+    }
+
+    @Override
+    public boolean deleteUser(Long id) {
+        userRepository.deleteById(id);
+        return !userRepository.existsById(id);
+    }
+
+    @Override
+    public void updateUser(Long id, UserRegisterRequest request) {
+        User user = userRepository.findById(id)
+                .orElseThrow();
+        user.setName(request.getName());
+        user.setEmail(request.getEmail());
+
+        userRepository.save(user);
     }
 
     @Override

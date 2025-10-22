@@ -47,4 +47,12 @@ public class LeaderboardInfo {
     public void setRegions(Set<String> regions){
         this.regions = String.join(",", regions);
     }
+
+    public String getKey() {
+        return "leaderboard:" + id + (
+                isMutable?
+                        ":mutable":
+                        ":immutable"
+        );
+    }
 }

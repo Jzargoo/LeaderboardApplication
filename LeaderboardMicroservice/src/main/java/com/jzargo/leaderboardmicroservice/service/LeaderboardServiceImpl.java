@@ -9,12 +9,14 @@ import com.jzargo.leaderboardmicroservice.repository.CachedUserRepository;
 import com.jzargo.leaderboardmicroservice.repository.LeaderboardInfoRepository;
 import com.jzargo.messaging.UserScoreEvent;
 import com.jzargo.messaging.UserScoreUploadEvent;
+import com.jzargo.messaging.UserUpdateEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -165,7 +167,22 @@ public class LeaderboardServiceImpl implements LeaderboardService{
 
     @Override
     public void initUserScore(InitUserScoreRequest request, String username, long userId, String region) {
+        LeaderboardInfo lb = leaderboardInfoRepository.findById(request.getLeaderboardId())
+                .orElseThrow();
         userCachedCheck(userId, username, region);
+        stringRedisTemplate.opsForZSet().add(lb.getKey(),
+                String.valueOf(userId),
+                lb.getInitialValue()
+        );
+    }
 
+    @Override
+    public void updateUserCache(UserUpdateEvent userUpdateEvent) {
+        UserCached userCached = cachedUserRepository.findById(userUpdateEvent.getId()).orElseThrow();
+        userCached.setUsername(userUpdateEvent.getName());
+        userCached.setRegion(
+                userUpdateEvent
+                        .getRegion().getCode());
+        cachedUserRepository.save(userCached);
     }
 }
