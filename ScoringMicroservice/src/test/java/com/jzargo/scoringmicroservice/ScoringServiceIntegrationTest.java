@@ -28,6 +28,9 @@ import java.net.http.HttpResponse;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 @SpringBootTest
 public class ScoringServiceIntegrationTest {
     private static final String LEADERBOARD_ID = "leaderboard-123";
@@ -62,6 +65,7 @@ public class ScoringServiceIntegrationTest {
             .withEnv("DATABASE_PASSWORD", postgresqlContainer.getPassword())
             .withEnv("DATABASE_DBNAME", postgresqlContainer.getDatabaseName())
             .withExposedPorts(8083);
+    public static final double V_3 = 200.0;
     @Autowired
     private TestConsumer testConsumer;
 
@@ -106,6 +110,7 @@ public class ScoringServiceIntegrationTest {
     @Autowired
     private ScoringService scoringService;
     @Test
+    @SuppressWarnings("unchecked")
     public void test(){
         LeaderboardEventInitialization build = LeaderboardEventInitialization.builder()
                 .lbId(LEADERBOARD_ID)
@@ -113,7 +118,7 @@ public class ScoringServiceIntegrationTest {
                         Map.of(
                                 "WIN_GAME", 100.0,
                                 LOSE_GAME, -50.0,
-                                COMPLETE_QUEST, 200.0,
+                                COMPLETE_QUEST, V_3,
                                 "DEFEAT_BOSS", 500.0
                         )
                 )
@@ -124,11 +129,22 @@ public class ScoringServiceIntegrationTest {
         scoringService.saveEvents(build);
 
         UserEventHappenedCommand userEventHappenedCommand =
-                new UserEventHappenedCommand(LEADERBOARD_ID, COMPLETE_QUEST, 42L, Map.of());
+                new UserEventHappenedCommand();
+
+        userEventHappenedCommand.setLbId(LEADERBOARD_ID);
+        userEventHappenedCommand.setEventName(COMPLETE_QUEST);
+        userEventHappenedCommand.setUserId(42L);
+        userEventHappenedCommand.setMetadata(new HashMap<>());
 
         scoringService.saveUserEvent(userEventHappenedCommand);
         Map<String, Object> lastMessage = testConsumer.getLastMessage();
+        Map<String, Object> payload = (Map<String, Object>) lastMessage.get("payload");
+        Map<String, Object> after = (Map<String, Object>) payload.get("after");
 
+        assertEquals(userEventHappenedCommand.getUserId(), after.get("user_id"));
+        assertEquals(userEventHappenedCommand.getLbId(), after.get("lb_id"));
+        assertEquals("c", payload.get("op"));
+        assertEquals(V_3, after.get("score_delta"));
 
     }
 }
