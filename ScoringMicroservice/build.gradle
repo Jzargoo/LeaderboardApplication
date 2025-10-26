@@ -1,6 +1,6 @@
 plugins {
 	id 'java'
-	id 'org.springframework.boot' version '3.5.6'
+	id 'org.springframework.boot' version '3.3.4'
 	id 'io.spring.dependency-management' version '1.1.7'
 }
 
@@ -28,6 +28,7 @@ repositories {
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.kafka:spring-kafka'
+	implementation 'org.springframework.kafka:spring-kafka-streams'
 	implementation 'com.jzargo:core:1.0-SNAPSHOT'
 	implementation 'org.liquibase:liquibase-core'
 	testImplementation 'org.testcontainers:junit-jupiter'

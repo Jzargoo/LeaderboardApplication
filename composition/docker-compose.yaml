@@ -1,7 +1,5 @@
 name: LeaderboardApplication
 
-volumes:
-  postgres_data: {}
 
 services:
   scoresdb:
@@ -38,7 +36,6 @@ services:
     ports:
       - "5435:5432"
 
-
   generaldb:
     image: bitnami/postgresql:latest
     container_name: generaldb
@@ -49,7 +46,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./postgres-data:/var/lib/postgresql/data
       - ./postgres-init:/docker-entrypoint-initdb.d
 
   kafka1:
@@ -97,8 +94,6 @@ services:
       - ./kafka2-data:/bitnami/kafka/data
   kafka3:
     image: bitnami/kafka:latest
-    profiles:
-      - "fault-tolerant-kafka"
     container_name: kafka3
     hostname: kafka3
     ports:
@@ -197,6 +192,7 @@ services:
     depends_on:
       - kafka1
       - kafka2
+      - kafka3
       - generaldb
     ports:
       - "10103:8083"
