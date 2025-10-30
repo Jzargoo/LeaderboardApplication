@@ -23,12 +23,12 @@ public class LeaderboardEvents {
 
     @ManyToMany(mappedBy = "leaderboards")
     @Builder.Default
-    private List<ScoringEvent> events = new ArrayList<>();
+    private List<LbEventType> events = new ArrayList<>();
 
     private boolean isPublic;
     private String metadata;
 
-    public void addEvent(ScoringEvent event) {
+    public void addEvent(LbEventType event) {
         events.add(event);
         event.getLeaderboards().add(this);
     }

@@ -1,5 +1,6 @@
 package com.jzargo.scoringmicroservice.config;
 
+import com.jzargo.messaging.FailedLeaderboardCreation;
 import com.jzargo.messaging.UserScoreEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -22,7 +23,8 @@ import java.util.Map;
 @EnableKafkaStreams
 public class KafkaConfig {
     public static final String COMMAND_STRING_SCORE_TOPIC = "user-string-score-command-topic";
-    public static final String DEBEZIUM_TOPIC = "pgserver.public.scoring_events";
+    public static final String DEBEZIUM_SCORING_TOPIC = "pgserver.public.scoring_events";
+    public static final String DEBEZIUM_FAILED_TOPIC = "pgserver.public.failed_create_leaderboard_events";
     public static final String USER_EVENT_SCORE_TOPIC = "user-event-score-topic";
     public static final String LEADERBOARD_EVENT_TOPIC = "leaderboard-event-topic";
     public static final String MESSAGE_ID = "message-id";
@@ -59,21 +61,21 @@ public class KafkaConfig {
 
     @Bean
     @SuppressWarnings("unchecked")
-    public KStream<String, Map<String, Object>> kStream(StreamsBuilder streamsBuilder) {
+    public KStream<String, Map<String, Object>> KScoringStream(StreamsBuilder streamsBuilder) {
 
         JsonSerde<UserScoreEvent> userScoreSerde = new JsonSerde<>(UserScoreEvent.class);
 
         KStream<String, Map<String, Object>> stream = streamsBuilder
                 .stream(
-                        DEBEZIUM_TOPIC,
-                        Consumed.with(Serdes.String(), new JsonSerde<>())
+                        DEBEZIUM_SCORING_TOPIC,
+                        Consumed.with(Serdes.String(), new JsonSerde<>(Map.class))
                         );
 
         stream
                 .peek((key, value) -> log.info(
                         "Received message in scoring microservice " +
                                 "from Debezium topic: {} with key: {}",
-                        DEBEZIUM_TOPIC, key))
+                        DEBEZIUM_SCORING_TOPIC, key))
                 .filter((key, value) -> {
                     if (value == null) return false;
                     Map<String, Object> payload = (Map<String, Object>) value.get("payload");
@@ -93,7 +95,7 @@ public class KafkaConfig {
                     String username = (String) after.get("username");
                     String region = (String) after.get("region");
                     Long userId = ((Number) after.get("user_id")).longValue();
-                    double scoreDelta = ((Number) after.get("score_change")).doubleValue();
+                    double scoreDelta = ((Number) after.get("event_score")).doubleValue();
 
                     UserScoreEvent userScoreEvent = UserScoreEvent.builder()
                             .score(scoreDelta)
@@ -112,6 +114,33 @@ public class KafkaConfig {
                                 LEADERBOARD_EVENT_TOPIC, key, value)
                 )
                 .to(LEADERBOARD_EVENT_TOPIC,  Produced.with(Serdes.String(), userScoreSerde));
+        return stream;
+    }
+
+    @Bean
+    @SuppressWarnings("unchecked")
+    public KStream<String, Map<String, Object>> KFailedLbEventsStream(StreamsBuilder streamsBuilder) {
+
+        KStream<String, Map<String, Object>> stream = streamsBuilder
+                .stream(
+                        DEBEZIUM_FAILED_TOPIC,
+                        Consumed.with(Serdes.String(), new JsonSerde<>(Map.class))
+                );
+
+        stream
+                .peek((key, value) -> log.info(
+                        "Received failed leaderboard event message with key: {} and value: {}",
+                        key, value
+                ))
+                .map((key, map) -> {
+                    Map<String, Object> payload = (Map<String, Object>) map.get("payload");
+                    String leaderboardId = (String) payload.get("leaderbaord_id");
+                    String reason = (String) payload.get("reason");
+
+                    FailedLeaderboardCreation failedLeaderboardCreation = new FailedLeaderboardCreation(leaderboardId, reason);
+                    return new KeyValue<>(leaderboardId, failedLeaderboardCreation);
+                })
+                .to(LEADERBOARD_EVENT_TOPIC, Produced.with(Serdes.String(), new JsonSerde<>(FailedLeaderboardCreation.class)));
         return stream;
     }
 }

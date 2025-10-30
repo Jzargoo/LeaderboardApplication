@@ -1,0 +1,6 @@
+ALTER TABLE scoring_events ADD COLUMN IF NOT EXISTS
+    username VARCHAR(255) NOT NULL default 'anonymous';
+ALTER TABLE scoring_events ADD COLUMN IF NOT EXISTS
+    region VARCHAR(2) NOT NULL default 'ZZ';
+ALTER TABLE scoring_events ADD COLUMN IF NOT EXISTS
+    happened_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW();

@@ -2,20 +2,13 @@ package com.jzargo.scoringmicroservice;
 
 import com.jzargo.messaging.LeaderboardEventInitialization;
 import com.jzargo.messaging.UserEventHappenedCommand;
-import com.jzargo.scoringmicroservice.config.KafkaConfig;
 import com.jzargo.scoringmicroservice.service.ScoringService;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.kafka.test.EmbeddedKafkaBroker;
-import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -30,10 +23,10 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest
@@ -98,7 +91,7 @@ public class ScoringServiceIntegrationTest {
         postgresqlContainer.start();
 
         String url = "http://" + debezium.getHost() + ":" + debezium.getMappedPort(8083) + "/connectors";
-        String body = Files.readAllBytes(Path.of("src/")).toString();
+        String body = Arrays.toString(Files.readAllBytes(Path.of("src/")));
         HttpClient.newHttpClient().send(
                 HttpRequest.newBuilder()
                         .uri(URI.create(url))

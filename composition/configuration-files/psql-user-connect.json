@@ -8,6 +8,7 @@
     "database.user": "debezium",
     "database.password": "dbz123",
     "database.dbname": "uesrsdb",
+    "decimal.handling.mode": "double",
     "topic.prefix": "pgserver",
     "table.include.list": "public.users",
     "slot.name": "usersdb_debezium",

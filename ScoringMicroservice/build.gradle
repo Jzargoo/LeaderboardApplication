@@ -1,3 +1,5 @@
+import org.springframework.boot.gradle.plugin.SpringBootPlugin
+
 plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.3.4'
@@ -26,9 +28,11 @@ repositories {
 }
 
 dependencies {
+	implementation 'com.fasterxml.jackson.core:jackson-core:2.20.0'
+	implementation 'com.fasterxml.jackson.core:jackson-databind:2.20.0'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.kafka:spring-kafka'
-	implementation 'org.springframework.kafka:spring-kafka-streams'
+	implementation 'org.apache.kafka:kafka-streams'
 	implementation 'com.jzargo:core:1.0-SNAPSHOT'
 	implementation 'org.liquibase:liquibase-core'
 	testImplementation 'org.testcontainers:junit-jupiter'

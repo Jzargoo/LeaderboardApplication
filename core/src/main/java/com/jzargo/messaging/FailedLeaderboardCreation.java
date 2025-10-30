@@ -7,5 +7,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor @AllArgsConstructor
 @Data
 public class FailedLeaderboardCreation {
+    private String lbId;
     private String reason;
 }

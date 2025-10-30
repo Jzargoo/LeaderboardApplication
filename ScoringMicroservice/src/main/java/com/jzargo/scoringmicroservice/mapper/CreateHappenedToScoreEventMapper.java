@@ -1,17 +1,18 @@
 package com.jzargo.scoringmicroservice.mapper;
 
-import com.jzargo.scoringmicroservice.entity.UserScoreEvent;
+import com.jzargo.scoringmicroservice.entity.ScoringEvent;
 import com.jzargo.mapper.Mapper;
 import com.jzargo.messaging.UserEventHappenedCommand;
 import org.springframework.stereotype.Component;
 
 @Component
-public class CreateHappenedToScoreEventMapper implements Mapper<UserEventHappenedCommand, UserScoreEvent> {
+public class CreateHappenedToScoreEventMapper implements Mapper<UserEventHappenedCommand, ScoringEvent> {
+
     @Override
-    public UserScoreEvent map(UserEventHappenedCommand from) {
-        return UserScoreEvent.builder()
+    public ScoringEvent map(UserEventHappenedCommand from) {
+        return ScoringEvent.builder()
                 .userId(from.getUserId())
-                .reason(from.getEventName())
+                .eventName(from.getEventName())
                 .lbId(from.getLbId())
                 .build();
     }

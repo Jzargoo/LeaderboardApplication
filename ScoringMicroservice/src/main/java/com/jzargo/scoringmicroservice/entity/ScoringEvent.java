@@ -6,31 +6,25 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.time.LocalDateTime;
 
 @Entity
-@Data
+@AllArgsConstructor @NoArgsConstructor
 @Builder
-@AllArgsConstructor
-@NoArgsConstructor
-@Table(name = "scoring_event")
+@Data
+@Table(name="scoring_events")
 public class ScoringEvent {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String eventName;
-    private Double score;
 
-    @ManyToMany(
-            targetEntity = LeaderboardEvents.class,
-            fetch = FetchType.LAZY,
-            cascade = {CascadeType.DETACH, CascadeType.MERGE, CascadeType.PERSIST, CascadeType.REFRESH})
-    @JoinTable(
-            name = "leaderboards_scoring_mapping",
-            joinColumns = @JoinColumn(name = "scoring_event_id", referencedColumnName = "id"),
-            inverseJoinColumns = @JoinColumn(name = "leaderboard_events_id", referencedColumnName = "id")
-    )
+    private Long userId;
+    private String lbId;
+    private String eventName;
+    @Column(name="event_score")
+    private Double scoreChange;
     @Builder.Default
-    private List<LeaderboardEvents> leaderboards = new ArrayList<>();
+    private LocalDateTime happenedAt = LocalDateTime.now();
+    private String username;
+    private String region;
 }

@@ -1,0 +1,10 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1
+      author: jzargo
+  - include:
+      file: db/changelog/changesets/create_processed_messages_table.sql
+  - include:
+      file: db/changelog/changesets/create_scoring_event.sql
+  - include:
+      file: db/changelog/changesets/create_leaderboards_events_and_mapping.sql
