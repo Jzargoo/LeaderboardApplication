@@ -12,6 +12,8 @@ public class KafkaConfig{
     public static final String LEADERBOARD_UPDATE_TOPIC = "leaderboard-update-topic";
     public static final String MESSAGE_ID = "message-id";
     public static final String USER_STATE_EVENT_TOPIC = "user-state-event-topic";
+    public static final String SAGA_CREATE_LEADERBOARD_TOPIC = "saga-create-leaderboard-topic";
+    public static final String SAGA_ID_HEADER = "saga-id";
 
     @Value("${kafka.topic.insync-replicas}")
     private int minInSyncReplicas;

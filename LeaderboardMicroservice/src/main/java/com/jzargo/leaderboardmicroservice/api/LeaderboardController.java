@@ -2,6 +2,7 @@ package com.jzargo.leaderboardmicroservice.api;
 
 import com.jzargo.leaderboardmicroservice.dto.CreateLeaderboardRequest;
 import com.jzargo.leaderboardmicroservice.dto.InitUserScoreRequest;
+import com.jzargo.leaderboardmicroservice.saga.SagaLeaderboardCreate;
 import com.jzargo.region.Regions;
 import com.jzargo.leaderboardmicroservice.service.LeaderboardService;
 import lombok.extern.slf4j.Slf4j;
@@ -18,9 +19,11 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 public class LeaderboardController {
     private final LeaderboardService leaderboardService;
+    private final SagaLeaderboardCreate sagaLeaderboardCreate;
 
-    public LeaderboardController(LeaderboardService leaderboardService) {
+    public LeaderboardController(LeaderboardService leaderboardService, SagaLeaderboardCreate sagaLeaderboardCreate) {
         this.leaderboardService = leaderboardService;
+        this.sagaLeaderboardCreate = sagaLeaderboardCreate;
     }
 
     @PostMapping
@@ -36,7 +39,7 @@ public class LeaderboardController {
                     Regions.fromStringCode(
                             jwt.getClaimAsString("region")).getCode();
 
-            leaderboardService.createLeaderboard(request, userId,preferredUsername,region);
+            sagaLeaderboardCreate.startSaga(request, userId,preferredUsername,region);
 
         } catch (Exception e) {
             log.error("creation leaderboard exit with exception: {}", String.valueOf(e));

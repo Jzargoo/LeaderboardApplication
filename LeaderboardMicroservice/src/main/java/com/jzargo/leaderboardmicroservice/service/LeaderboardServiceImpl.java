@@ -1,5 +1,6 @@
 package com.jzargo.leaderboardmicroservice.service;
 
+import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.leaderboardmicroservice.dto.CreateLeaderboardRequest;
 import com.jzargo.leaderboardmicroservice.dto.InitUserScoreRequest;
 import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
@@ -135,12 +136,11 @@ public class LeaderboardServiceImpl implements LeaderboardService{
     }
 
     @Override
-    public void createLeaderboard(CreateLeaderboardRequest request, long ownerId, String username, String region) {
+    public void createLeaderboard(InitLeaderboardCreateEvent request, String region) {
         if(request.getMaxScore() < -1 && request.getMaxScore() == request.getInitialValue()) {
             throw new IllegalArgumentException("initial value cannot be equal or greater than max score");
         }
-        userCachedCheck(ownerId, username, region);
-        request.setOwnerId(ownerId);
+        userCachedCheck(request.getOwnerId(), request.getUsername(), region);
         LeaderboardInfo map = mapperCreateLeaderboardInfo.map(request);
 
         StringBuilder builder = new StringBuilder("leaderboard:");
@@ -156,10 +156,11 @@ public class LeaderboardServiceImpl implements LeaderboardService{
                 id,
                 "leaderboard_information:" + map.getId()
         );
+        request.setLbId(map.getId());
 
         stringRedisTemplate.execute(createLeaderboardScript,
                 keys,
-                ownerId, request.getInitialValue(),
+                request.getOwnerId(), request.getInitialValue(),
                 map.getId(), request.getDescription(),
                 map.isPublic(),map.isMutable(), map.isShowTies()
         );
@@ -175,6 +176,7 @@ public class LeaderboardServiceImpl implements LeaderboardService{
                 lb.getInitialValue()
         );
     }
+
 
     @Override
     public void updateUserCache(UserUpdateEvent userUpdateEvent) {
