@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.Set;
 
 @Data
@@ -35,5 +36,5 @@ public class CreateLeaderboardRequest {
     private int maxEventsPerUser;
     private int maxEventsPerUserPerDay;
     private boolean showTies;
-
+    private Map<String, Double> events;
 }

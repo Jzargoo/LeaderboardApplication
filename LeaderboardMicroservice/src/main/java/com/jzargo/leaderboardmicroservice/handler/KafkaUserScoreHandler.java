@@ -37,9 +37,11 @@ public class KafkaUserScoreHandler {
     public void handleUserMutableChangeEvent(@Payload UserScoreEvent event,
                                               @Header (KafkaConfig.MESSAGE_ID) String messageId
                                               ) {
+        String key = "processed:" + messageId;
+
         Boolean success = stringRedisTemplate
                 .opsForValue()
-                .setIfAbsent("processed:" + messageId, "1", Duration.ofDays(7));
+                .setIfAbsent(key, "1", Duration.ofDays(7));
         if(success != null && !success) {
             log.warn("Handled processed message with id {}", messageId);
             return;
@@ -50,6 +52,7 @@ public class KafkaUserScoreHandler {
 
         } catch (Exception e) {
             log.error("Failed to process message with id {}", messageId, e);
+            stringRedisTemplate.delete(key);
         }
 
     }
@@ -59,9 +62,12 @@ public class KafkaUserScoreHandler {
     public void handleUserImmutableChangeEvent(@Payload UserScoreUploadEvent event,
                                                @Header(KafkaConfig.MESSAGE_ID) String messageId
                                                ) {
+
+        String key = "processed:" + messageId;
+
         Boolean success = stringRedisTemplate
                 .opsForValue()
-                .setIfAbsent("processed:" + messageId, "1", Duration.ofDays(7));
+                .setIfAbsent(key, "1", Duration.ofDays(7));
         if(success != null && !success) {
             log.debug("Handled processed message with id {} in immutable changes", messageId);
             return;
@@ -72,15 +78,18 @@ public class KafkaUserScoreHandler {
             log.info("Processed message with id {} in immutable changes", messageId);
         } catch (Exception e) {
             log.error("Failed to process message with id {} in immutable changes", messageId, e);
+            stringRedisTemplate.delete(key);
         }
     }
 
     @KafkaHandler
     public void handleUserUpdateEvent(@Payload UserUpdateEvent userUpdateEvent,
                               @Header(KafkaConfig.MESSAGE_ID) String messageId) {
+        String key = "processed:" + messageId;
+
         Boolean success = stringRedisTemplate
                 .opsForValue()
-                .setIfAbsent("processed:" + messageId, "1", Duration.ofDays(7));
+                .setIfAbsent(key, "1", Duration.ofDays(7));
         if(success != null && !success) {
             log.debug("Handled processed message with id {} in updating user's cache", messageId);
             return;
@@ -91,6 +100,7 @@ public class KafkaUserScoreHandler {
             log.info("Processed message with id {} in updating user's cache", messageId);
         } catch (Exception e) {
             log.error("Failed to process message with id {} in updating user's cache", messageId, e);
+            stringRedisTemplate.delete(key);
         }
 
     }

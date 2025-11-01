@@ -42,6 +42,17 @@ public class RedisConfig {
     }
 
     @Bean
+    RedisScript<String> sagaSuccessfulScript(){
+        DefaultRedisScript<String> redisScript = new DefaultRedisScript<>();
+        redisScript.setScriptSource(
+                new ResourceScriptSource(new ClassPathResource("/scripts/SagaSuccessfulStep.lua"))
+        );
+        redisScript.setResultType(String.class);
+        return redisScript;
+    }
+
+
+    @Bean
     RedisScript<String> createLeaderboardScript(){
         DefaultRedisScript<String> redisScript = new DefaultRedisScript<>();
         redisScript.setScriptSource(

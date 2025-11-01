@@ -32,6 +32,13 @@ public class LeaderboardController {
             @AuthenticationPrincipal Jwt jwt
             ) {
         try {
+            if(
+                    request.isMutable() && (
+                            request.getEvents() ==null || request.getEvents().isEmpty()
+                    )
+            ) {
+                return ResponseEntity.badRequest().body("Mutable leaderboard must contain at least 1 event");
+            }
             String preferredUsername = jwt.getClaimAsString("preferred_username");
             long userId = Long.parseLong(jwt.getSubject());
             String region = jwt.getClaimAsString("region") == null?
@@ -40,7 +47,6 @@ public class LeaderboardController {
                             jwt.getClaimAsString("region")).getCode();
 
             sagaLeaderboardCreate.startSaga(request, userId,preferredUsername,region);
-
         } catch (Exception e) {
             log.error("creation leaderboard exit with exception: {}", String.valueOf(e));
             return ResponseEntity.badRequest().build();
