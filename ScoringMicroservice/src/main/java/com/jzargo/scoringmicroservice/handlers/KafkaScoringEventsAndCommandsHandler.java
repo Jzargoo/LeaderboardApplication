@@ -17,10 +17,17 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
+import java.util.UUID;
+
 @Component
 @Slf4j
-@KafkaListener (topics = {KafkaConfig.COMMAND_STRING_SCORE_TOPIC,KafkaConfig.USER_EVENT_SCORE_TOPIC},
-                groupId = KafkaConfig.GROUP_ID
+@KafkaListener(
+        topics = {
+                KafkaConfig.COMMAND_STRING_SCORE_TOPIC,
+                KafkaConfig.USER_EVENT_SCORE_TOPIC,
+                KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC
+        },
+        groupId = KafkaConfig.GROUP_ID
 )
 public class KafkaScoringEventsAndCommandsHandler {
     private final ProcessedMessageRepository processedMessageRepository;
@@ -72,6 +79,7 @@ public class KafkaScoringEventsAndCommandsHandler {
         } catch (Exception e){
             failedCreateLeaderboardEventsRepository.save(
                     new FailedCreateLeaderboardEvents(
+                            UUID.randomUUID().toString(),
                             leaderboardEventInitialization.getLbId(), e.getMessage())
             );
         }finally {

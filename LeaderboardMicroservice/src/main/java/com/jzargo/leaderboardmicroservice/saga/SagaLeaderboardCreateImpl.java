@@ -29,7 +29,10 @@ import java.util.UUID;
 
 @Component
 @Slf4j
-@KafkaListener
+@KafkaListener(
+        topics = {KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC},
+        groupId = KafkaConfig.GROUP_ID
+)
 public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate{
     private final CreateInitialCreateLeaderboardSagaRequestMapper createInitialCreateLeaderboardSagaRequestMapper;
     private final KafkaTemplate<String, Object> kafkaTemplate;
