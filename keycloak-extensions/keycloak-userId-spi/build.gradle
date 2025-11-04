@@ -6,6 +6,7 @@ group = 'com.jzargo'
 version = '1.0-SNAPSHOT'
 
 repositories {
+    mavenLocal()
     mavenCentral()
 }
 
@@ -16,6 +17,7 @@ dependencies {
     compileOnly 'org.keycloak:keycloak-server-spi-private:26.4.0'
     implementation 'org.keycloak:keycloak-core:26.4.0'
     implementation 'org.jboss.logging:jboss-logging:3.6.1.Final'
+    implementation 'com.jzargo:core:1.0-SNAPSHOT'
     implementation 'org.keycloak:keycloak-model-jpa:26.4.0'
 }
 

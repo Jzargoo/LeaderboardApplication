@@ -16,4 +16,11 @@
         </createTable>
     </changeSet>
 
+    <changeSet id="2" author="jzargo">
+        <renameColumn tableName="incrementing_value"
+                      oldColumnName="lastValue"
+                      newColumnName="lastvalue"
+                      columnDataType="bigint"/>
+    </changeSet>
+
 </databaseChangeLog>

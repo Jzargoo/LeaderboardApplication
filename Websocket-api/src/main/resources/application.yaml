@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: Websocket-api
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8899/realms/leaderboard-security
+      client:
+        registration:
+          keycloak:
+            provider: keycloak
+            client-id: websocket-api
+            client-secret: d2PoSRPexVB51B0VvMStdUKXcpsED3gt
+            authorization-grant-type: client_credentials
+            scope: openid, profile
+        provider:
+          keycloak:
+            issuer-uri: http://localhost:8899/realms/leaderboard-security

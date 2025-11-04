@@ -1,7 +1,7 @@
 package com.jzargo.usermicroservice.mapper;
 
 import com.jzargo.mapper.Mapper;
-import com.jzargo.usermicroservice.api.UserRegisterRequest;
+import com.jzargo.messaging.UserRegisterRequest;
 import com.jzargo.usermicroservice.entity.User;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;

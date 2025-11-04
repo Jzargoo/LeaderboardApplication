@@ -1,5 +1,6 @@
 package com.jzargo.usermicroservice.api;
 
+import com.jzargo.messaging.UserRegisterRequest;
 import com.jzargo.usermicroservice.api.model.UserResponse;
 import com.jzargo.usermicroservice.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +42,7 @@ public class UserController {
         }
     }
 
-    @PostMapping
+    @PostMapping("/internal")
     public ResponseEntity<Void> registerUser(
             HttpHeaders headers,
             @RequestBody UserRegisterRequest request

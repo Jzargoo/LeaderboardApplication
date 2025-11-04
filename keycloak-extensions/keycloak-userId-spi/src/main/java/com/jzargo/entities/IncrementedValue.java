@@ -12,12 +12,15 @@ public class IncrementedValue {
     private Long id;
 
     private String name;
+    @Column(name = "lastvalue")
     private Long lastValue;
 
     public void setName(String name) {
         this.name = name;
     }
-
+    public String getName () {
+        return name;
+    }
     public void setId(Long id) {
         this.id = id;
     }
@@ -28,6 +31,12 @@ public class IncrementedValue {
 
     public Long incrementValue() {
         return ++lastValue;
+    }
+    public void initializeLastValue(long l) {
+        lastValue = l;
+    }
+    public Long getLastValue(){
+        return lastValue;
     }
 }
 

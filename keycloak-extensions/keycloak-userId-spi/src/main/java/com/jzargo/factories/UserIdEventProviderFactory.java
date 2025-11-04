@@ -8,6 +8,9 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
 
 public class UserIdEventProviderFactory implements EventListenerProviderFactory {
+
+    public static final String USER_ID_EVENT_LISTENER = "user-id-event-listener";
+
     @Override
     public EventListenerProvider create(KeycloakSession session) {
         return new UserIdEventProvider(session);
@@ -30,6 +33,6 @@ public class UserIdEventProviderFactory implements EventListenerProviderFactory 
 
     @Override
     public String getId() {
-        return "";
+        return USER_ID_EVENT_LISTENER;
     }
 }
