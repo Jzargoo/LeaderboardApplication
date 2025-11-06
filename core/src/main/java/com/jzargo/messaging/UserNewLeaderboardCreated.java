@@ -10,5 +10,4 @@ public class UserNewLeaderboardCreated {
     private String lbId;
     private String name;
     private Long userId;
-    private String description;
 }

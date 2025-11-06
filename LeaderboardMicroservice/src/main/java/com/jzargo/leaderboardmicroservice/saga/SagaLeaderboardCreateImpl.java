@@ -94,16 +94,19 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate{
             return;
         }
         try{
-            leaderboardService.createLeaderboard(event, region);
+            if (event.getEvents().isEmpty()) {
+                throw new IllegalArgumentException("Cannot events in mutable board be less than 1");
+            }
+            String leaderboardId = leaderboardService.createLeaderboard(event, region);
             stringRedisTemplate.execute(
                     sagaSuccessfulScript, List.of("saga_controlling_state"+ ":" + sagaId),
-                    event.getLbId(), SagaStep.LEADERBOARD_CREATED, SagaStep.INITIATED, ""
+                    leaderboardId, SagaStep.LEADERBOARD_CREATED, SagaStep.INITIATED, ""
             );
             ProducerRecord<String, Object> record;
             if (event.isMutable()) {
                 LeaderboardEventInitialization build =
                         LeaderboardEventInitialization.builder()
-                                .lbId(event.getLbId())
+                                .lbId(leaderboardId)
                                 .events(event.getEvents())
                                 .isPublic(event.isPublic())
                                 .metadata(
@@ -111,20 +114,21 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate{
                                 )
                                 .build();
                 record = new ProducerRecord<>(KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC,
-                        event.getLbId(), build);
+                        leaderboardId, build);
             } else {
                 UserNewLeaderboardCreated userNewLeaderboardCreated = new UserNewLeaderboardCreated(
-                        event.getLbId(), event.getNameLb(),
-                        event.getOwnerId(), event.getDescription()
+                        leaderboardId, event.getNameLb(),
+                        event.getOwnerId()
                 );
                 record = new ProducerRecord<>(KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC,
-                        event.getLbId(), userNewLeaderboardCreated);
+                        leaderboardId, userNewLeaderboardCreated);
             }
 
             record.headers()
                     .add(KafkaConfig.MESSAGE_ID, UUID.randomUUID().toString().getBytes())
                     .add(KafkaConfig.SAGA_ID_HEADER, sagaId.getBytes())
-                    .add(KafkaHeaders.RECEIVED_KEY, event.getLbId().getBytes());
+                    .add(KafkaHeaders.RECEIVED_KEY, leaderboardId.getBytes());
+            event.setLbId(leaderboardId);
             kafkaTemplate.send(record);
 
             log.info("Processed saga create leaderboard with id {}", sagaId);
@@ -133,4 +137,6 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate{
             stringRedisTemplate.delete(key);
         }
     }
+
+
 }

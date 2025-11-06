@@ -2,6 +2,7 @@ package com.jzargo.usermicroservice.service;
 
 import com.jzargo.messaging.ActiveLeaderboardEvent;
 import com.jzargo.messaging.DiedLeaderboardEvent;
+import com.jzargo.messaging.UserNewLeaderboardCreated;
 import com.jzargo.messaging.UserRegisterRequest;
 import com.jzargo.usermicroservice.api.model.UserResponse;
 import com.jzargo.usermicroservice.entity.User;
@@ -89,5 +90,13 @@ public class UserServiceImpl implements UserService{
             user.removeActiveLeaderboard(event.getLeaderboardName());
             userRepository.save(user);
         }
+    }
+
+    @Override
+    public void addCreatedLeaderboard(UserNewLeaderboardCreated userNewLeaderboardCreated) {
+        Long userId = userNewLeaderboardCreated.getUserId();
+        User user = userRepository.findById(userId)
+                .orElseThrow();
+        user.addCreatedLeaderboard(userNewLeaderboardCreated.getName(), userNewLeaderboardCreated.getLbId());
     }
 }

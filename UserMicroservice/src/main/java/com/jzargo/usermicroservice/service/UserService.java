@@ -2,6 +2,7 @@ package com.jzargo.usermicroservice.service;
 
 import com.jzargo.messaging.ActiveLeaderboardEvent;
 import com.jzargo.messaging.DiedLeaderboardEvent;
+import com.jzargo.messaging.UserNewLeaderboardCreated;
 import com.jzargo.messaging.UserRegisterRequest;
 import com.jzargo.usermicroservice.api.model.UserResponse;
 
@@ -16,7 +17,10 @@ public interface UserService {
 
     UserResponse findById(Long id);
 
+    // Method which add to profile leaderboard that has been started by a user
     void addActiveLeaderboard(ActiveLeaderboardEvent event);
-
+    // Method which remove from profile leaderboard that ended in active section, not created
     void removeLeaderboard(DiedLeaderboardEvent event);
+    // Method which add to profile leaderboard  that has been created by a user
+    void addCreatedLeaderboard(UserNewLeaderboardCreated userNewLeaderboardCreated);
 }

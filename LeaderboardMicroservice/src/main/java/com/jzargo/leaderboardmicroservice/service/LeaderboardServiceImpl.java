@@ -1,7 +1,6 @@
 package com.jzargo.leaderboardmicroservice.service;
 
 import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEvent;
-import com.jzargo.leaderboardmicroservice.dto.CreateLeaderboardRequest;
 import com.jzargo.leaderboardmicroservice.dto.InitUserScoreRequest;
 import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.entity.UserCached;
@@ -17,7 +16,6 @@ import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @Slf4j
@@ -136,7 +134,7 @@ public class LeaderboardServiceImpl implements LeaderboardService{
     }
 
     @Override
-    public void createLeaderboard(InitLeaderboardCreateEvent request, String region) {
+    public String createLeaderboard(InitLeaderboardCreateEvent request, String region) {
         if(request.getMaxScore() < -1 && request.getMaxScore() == request.getInitialValue()) {
             throw new IllegalArgumentException("initial value cannot be equal or greater than max score");
         }
@@ -156,7 +154,6 @@ public class LeaderboardServiceImpl implements LeaderboardService{
                 id,
                 "leaderboard_information:" + map.getId()
         );
-        request.setLbId(map.getId());
 
         stringRedisTemplate.execute(createLeaderboardScript,
                 keys,
@@ -164,6 +161,7 @@ public class LeaderboardServiceImpl implements LeaderboardService{
                 map.getId(), request.getDescription(),
                 map.isPublic(),map.isMutable(), map.isShowTies()
         );
+        return map.getId();
     }
 
     @Override

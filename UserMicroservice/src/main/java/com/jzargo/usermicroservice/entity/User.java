@@ -7,7 +7,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 @Table(name="users")
@@ -24,7 +26,24 @@ public class User {
     private String email;
     @Builder.Default
     private String region = Regions.GLOBAL.getCode();
+
     @ElementCollection
+    @MapKeyColumn(
+            name = "id"
+    )
+    @Column(name = "leaderboard_name")
+    @CollectionTable(
+            name = "created_leaderboards",
+            joinColumns = @JoinColumn(name = "user_id")
+    )
+    @Builder.Default
+    private Map<String, String> createdLeaderboards = new HashMap<>();
+
+    @ElementCollection
+    @MapKeyColumn(
+            name = "id"
+    )
+    @Column(name = "leaderboard_name")
     @CollectionTable(
             name = "active_leaderboards",
             joinColumns = @JoinColumn(name = "user_id")
@@ -38,5 +57,14 @@ public class User {
 
     public void removeActiveLeaderboard(String leaderboardName) {
         activeLeaderboards.remove(leaderboardName);
+    }
+
+    public void addCreatedLeaderboard(String name, String lbId) {
+        if(
+                name == null || name.isBlank() ||
+                lbId ==null || lbId.isBlank() ) {
+            return;
+        }
+        createdLeaderboards.put(name, lbId);
     }
 }

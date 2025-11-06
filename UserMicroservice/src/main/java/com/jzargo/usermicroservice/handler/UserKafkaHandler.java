@@ -2,6 +2,7 @@ package com.jzargo.usermicroservice.handler;
 
 import com.jzargo.messaging.ActiveLeaderboardEvent;
 import com.jzargo.messaging.DiedLeaderboardEvent;
+import com.jzargo.messaging.UserNewLeaderboardCreated;
 import com.jzargo.usermicroservice.config.KafkaConfig;
 import com.jzargo.usermicroservice.entity.ProcessingMessage;
 import com.jzargo.usermicroservice.repository.ProcessingMessageRepository;
@@ -16,7 +17,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @Slf4j
-@KafkaListener(topics = {KafkaConfig.PULSE_LEADERBOARD})
+@KafkaListener(
+        topics = {
+                KafkaConfig.PULSE_LEADERBOARD,
+                KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC},
+        groupId = KafkaConfig.GROUP_ID
+)
 public class UserKafkaHandler {
 
     private static final String PROCESSED_EVENT_MESSAGE = "That message already had been processed";
@@ -31,7 +37,7 @@ public class UserKafkaHandler {
     @Transactional
     @KafkaHandler
     public void activeLeaderboard(
-            @Header("message-id") String messageId,
+            @Header(KafkaConfig.MESSAGE_ID_HEADER) String messageId,
             @Payload ActiveLeaderboardEvent event){
         if(processingMessageRepository.existsById(messageId)){
             log.warn(PROCESSED_EVENT_MESSAGE);
@@ -53,7 +59,7 @@ public class UserKafkaHandler {
     @Transactional
     @KafkaHandler
     public void endLeaderboard(
-            @Header("message-id") String messageId,
+            @Header(KafkaConfig.MESSAGE_ID_HEADER) String messageId,
             @Payload DiedLeaderboardEvent event){
         if(processingMessageRepository.existsById(messageId)){
             log.warn(PROCESSED_EVENT_MESSAGE);
@@ -70,5 +76,20 @@ public class UserKafkaHandler {
             );
         }
 
+    }
+
+    @Transactional
+    @KafkaHandler
+    public void handleSaga(
+            @Payload UserNewLeaderboardCreated userNewLeaderboardCreated,
+            @Header(KafkaConfig.MESSAGE_ID_HEADER) String messageId,
+            @Header(KafkaConfig.SAGA_ID_HEADER) String sagaIdHeader
+            ) {
+
+        if (processingMessageRepository.existsById(messageId)) {
+            log.warn(PROCESSED_EVENT_MESSAGE);
+        }
+
+        userService.addCreatedLeaderboard(userNewLeaderboardCreated);
     }
 }
