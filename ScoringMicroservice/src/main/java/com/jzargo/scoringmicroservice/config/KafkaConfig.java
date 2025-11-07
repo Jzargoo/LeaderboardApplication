@@ -133,13 +133,22 @@ public class KafkaConfig {
                         "Received failed leaderboard event message with key: {} and value: {}",
                         key, value
                 ))
+                .filter((key, value) -> {
+                    if (value == null) return false;
+                    Map<String, Object> payload = (Map<String, Object>) value.get("payload");
+                    return payload != null && "c".equals(payload.get("op"));
+                })
                 .map((key, map) -> {
                     Map<String, Object> payload = (Map<String, Object>) map.get("payload");
-                    String leaderboardId = (String) payload.get("leaderbaord_id");
-                    String reason = (String) payload.get("reason");
+                    Map<String, Object> after = (Map<String, Object>) payload.get("after");
+                    String leaderboardId = (String) after.get("leaderboard_id");
+                    String reason = (String) after.get("reason");
+                    // TODO : change table  add this columns
+                    long userId = (long) after.get("user_id");
+                    String sagaId = (String) after.get("saga_id");
 
-                    FailedLeaderboardCreation failedLeaderboardCreation = new FailedLeaderboardCreation(leaderboardId, reason);
-                    return new KeyValue<>(leaderboardId, failedLeaderboardCreation);
+                    FailedLeaderboardCreation failedLeaderboardCreation = new FailedLeaderboardCreation(leaderboardId, reason, userId);
+                    return new KeyValue<>(sagaId, failedLeaderboardCreation);
                 })
                 .to(LEADERBOARD_EVENT_TOPIC, Produced.with(Serdes.String(), new JsonSerde<>(FailedLeaderboardCreation.class)));
         return stream;

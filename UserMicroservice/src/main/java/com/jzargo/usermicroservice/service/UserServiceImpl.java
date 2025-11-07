@@ -6,12 +6,15 @@ import com.jzargo.messaging.UserNewLeaderboardCreated;
 import com.jzargo.messaging.UserRegisterRequest;
 import com.jzargo.usermicroservice.api.model.UserResponse;
 import com.jzargo.usermicroservice.entity.User;
+import com.jzargo.usermicroservice.exception.UserCannotCreateLeaderboardException;
 import com.jzargo.usermicroservice.mapper.CreateRegisterUserMapper;
 import com.jzargo.usermicroservice.mapper.ReadUserMapper;
 import com.jzargo.usermicroservice.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -93,10 +96,12 @@ public class UserServiceImpl implements UserService{
     }
 
     @Override
-    public void addCreatedLeaderboard(UserNewLeaderboardCreated userNewLeaderboardCreated) {
-        Long userId = userNewLeaderboardCreated.getUserId();
+    public void addCreatedLeaderboard(UserNewLeaderboardCreated userNewLeaderboardCreated) throws UserCannotCreateLeaderboardException {
+        Long userId = Optional.ofNullable(userNewLeaderboardCreated.getUserId())
+                .orElseThrow(()-> new UserCannotCreateLeaderboardException("Incorrect owner id"));
+
         User user = userRepository.findById(userId)
-                .orElseThrow();
+                .orElseThrow(()-> new UserCannotCreateLeaderboardException("Cannot find user with id"));
         user.addCreatedLeaderboard(userNewLeaderboardCreated.getName(), userNewLeaderboardCreated.getLbId());
     }
 }

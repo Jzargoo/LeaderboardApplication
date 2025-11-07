@@ -9,4 +9,5 @@ import lombok.NoArgsConstructor;
 public class FailedLeaderboardCreation {
     private String lbId;
     private String reason;
+    private Long userId;
 }

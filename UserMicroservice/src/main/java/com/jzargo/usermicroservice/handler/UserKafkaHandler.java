@@ -4,7 +4,10 @@ import com.jzargo.messaging.ActiveLeaderboardEvent;
 import com.jzargo.messaging.DiedLeaderboardEvent;
 import com.jzargo.messaging.UserNewLeaderboardCreated;
 import com.jzargo.usermicroservice.config.KafkaConfig;
+import com.jzargo.usermicroservice.entity.FailedLeaderboardCreation;
 import com.jzargo.usermicroservice.entity.ProcessingMessage;
+import com.jzargo.usermicroservice.exception.UserCannotCreateLeaderboardException;
+import com.jzargo.usermicroservice.repository.FailedLeaderboardCreationRepository;
 import com.jzargo.usermicroservice.repository.ProcessingMessageRepository;
 import com.jzargo.usermicroservice.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -28,10 +31,12 @@ public class UserKafkaHandler {
     private static final String PROCESSED_EVENT_MESSAGE = "That message already had been processed";
     private final ProcessingMessageRepository processingMessageRepository;
     private final UserService userService;
+    private final FailedLeaderboardCreationRepository failedLeaderboardCreationRepository;
 
-    public UserKafkaHandler(ProcessingMessageRepository processingMessageRepository, UserService userService) {
+    public UserKafkaHandler(ProcessingMessageRepository processingMessageRepository, UserService userService, FailedLeaderboardCreationRepository failedLeaderboardCreationRepository) {
         this.processingMessageRepository = processingMessageRepository;
         this.userService = userService;
+        this.failedLeaderboardCreationRepository = failedLeaderboardCreationRepository;
     }
 
     @Transactional
@@ -90,6 +95,31 @@ public class UserKafkaHandler {
             log.warn(PROCESSED_EVENT_MESSAGE);
         }
 
-        userService.addCreatedLeaderboard(userNewLeaderboardCreated);
+        try{
+            userService.addCreatedLeaderboard(userNewLeaderboardCreated);
+            processingMessageRepository.save(
+                    ProcessingMessage.builder()
+                            .id(messageId)
+                            .type("Event")
+                            .build()
+            );
+
+        } catch (UserCannotCreateLeaderboardException e) {
+            failedLeaderboardCreationRepository.save(
+                    new FailedLeaderboardCreation(
+                            null,
+                            e.getMessage(),
+                            userNewLeaderboardCreated.getLbId(),
+                            userNewLeaderboardCreated.getUserId(),
+                            sagaIdHeader
+                    )
+            );
+            processingMessageRepository.save(
+                    ProcessingMessage.builder()
+                            .id(messageId)
+                            .type("Event")
+                            .build()
+            );
+        }
     }
 }

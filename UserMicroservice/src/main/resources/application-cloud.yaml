@@ -1,0 +1,29 @@
+server:
+  port: 8080
+
+spring:
+  kafka:
+    consumer:
+      bootstrap-servers: kafka1:9090,kafka2:9090
+    producer:
+      bootstrap-servers: kafka1:9090,kafka2:9090
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            provider: keycloak
+            client-id: users-api
+            client-secret: UXVg0cDfPbksgd21MKJBHOxbr6JpDe3K
+            authorization-grant-type: client_credentials
+            scope: openid, profile
+        provider:
+          keycloak:
+            issuer-uri: http://keyclaok:8080/realms/leaderboard-security
+      resourceserver:
+        jwt:
+          issuer-uri: http://keycloak:8080/realms/leaderboard-security
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka:8761

@@ -5,6 +5,7 @@ import com.jzargo.messaging.DiedLeaderboardEvent;
 import com.jzargo.messaging.UserNewLeaderboardCreated;
 import com.jzargo.messaging.UserRegisterRequest;
 import com.jzargo.usermicroservice.api.model.UserResponse;
+import com.jzargo.usermicroservice.exception.UserCannotCreateLeaderboardException;
 
 public interface UserService {
     void changeAvatar(byte[] avatar, long userId);
@@ -22,5 +23,5 @@ public interface UserService {
     // Method which remove from profile leaderboard that ended in active section, not created
     void removeLeaderboard(DiedLeaderboardEvent event);
     // Method which add to profile leaderboard  that has been created by a user
-    void addCreatedLeaderboard(UserNewLeaderboardCreated userNewLeaderboardCreated);
+    void addCreatedLeaderboard(UserNewLeaderboardCreated userNewLeaderboardCreated) throws UserCannotCreateLeaderboardException;
 }

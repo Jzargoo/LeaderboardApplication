@@ -1,24 +1,18 @@
 spring:
+  kafka:
+    consumer:
+      group-id: leaderboard-group
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        spring.json.trusted.packages: "com.jzargo.messaging"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.trusted.packages: "com.jzargo.messaging"
   application:
     name: UserMicroservice
-  security:
-    oauth2:
-      client:
-        registration:
-          keycloak:
-            provider: keycloak
-            client-id: users-api
-            client-secret: UXVg0cDfPbksgd21MKJBHOxbr6JpDe3K
-            authorization-grant-type: client_credentials
-            scope: openid, profile
-        provider:
-          keycloak:
-            issuer-uri: http://localhost:8899/realms/leaderboard-security
-      resourceserver:
-        jwt:
-          issuer-uri: http://localhost:8899/realms/leaderboard-security
-
-
 api:
   keycloak-connection-header: X-KEYCLOAK-SECRET
   secret-keycloak-connection: Gz9Tj7cE2Rk1Q4L8aXnYhP7vWb3sQ6Lf
@@ -27,3 +21,9 @@ images:
     user: ../images/user
   dump:
     user: dump.png
+kafka:
+  topic:
+    partition:
+      insync-replicas: 2
+      count: 3
+    replicas: 2

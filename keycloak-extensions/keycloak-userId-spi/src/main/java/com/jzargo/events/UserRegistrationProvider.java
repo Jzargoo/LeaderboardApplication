@@ -20,15 +20,16 @@ import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.concurrent.CompletableFuture;
 
-public class UserIdEventProvider implements EventListenerProvider {
-    private static final org.slf4j.Logger log = LoggerFactory.getLogger(UserIdEventProvider.class);
+public class UserRegistrationProvider implements EventListenerProvider {
+    private static final org.slf4j.Logger log = LoggerFactory.getLogger(UserRegistrationProvider.class);
     private final KeycloakSession session;
 
     private static final String KEYCLOAK_HEADER = "X-KEYCLOAK-SECRET";
     private static final String KEYCLOAK_VALUE = "Gz9Tj7cE2Rk1Q4L8aXnYhP7vWb3sQ6Lf";
 
-    public UserIdEventProvider(KeycloakSession session) {
+    public UserRegistrationProvider(KeycloakSession session) {
         this.session = session;
     }
 
@@ -56,7 +57,22 @@ public class UserIdEventProvider implements EventListenerProvider {
                     .uri(new URI("http://gateway:8080/api/users/internal"))
                     .headers(KEYCLOAK_HEADER, KEYCLOAK_VALUE)
                     .build();
-            build.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+            CompletableFuture<HttpResponse<String>> futureResponse =
+                    build.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+
+            futureResponse.whenComplete(
+                    (resp, e) -> {
+                        if(resp.statusCode()>= 200 && resp.statusCode() < 300) {
+                            return;
+                        } else if(e != null){
+                            log.error("Processed request with exception", e);
+                            throw new RuntimeException(e);
+                        } else{
+                            log.error("Internal error");
+                            throw new RuntimeException("Internal error");
+                        }
+                    }
+            );
         } catch (URISyntaxException e) {
             log.error("Cannot send register");
             throw new RuntimeException(e);
@@ -100,6 +116,7 @@ public class UserIdEventProvider implements EventListenerProvider {
     @Override
     public void onEvent(Event event) {
         if (event.getType() == EventType.REGISTER) {
+
             log.info("caught event register");
             long id = setIdToUser(event);
             sendToUser(event, id);
