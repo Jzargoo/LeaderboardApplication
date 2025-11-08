@@ -1,6 +1,7 @@
 package com.jzargo.scoringmicroservice.config;
 
 import com.jzargo.messaging.FailedLeaderboardCreation;
+import com.jzargo.messaging.UserAddedLeaderboard;
 import com.jzargo.messaging.UserScoreEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -10,6 +11,7 @@ import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Produced;
+import org.apache.kafka.streams.processor.api.Processor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafkaStreams;
@@ -17,6 +19,7 @@ import org.springframework.kafka.config.TopicBuilder;
 import org.springframework.kafka.support.serializer.JsonSerde;
 
 import java.util.Map;
+import java.util.UUID;
 
 @Configuration
 @Slf4j
@@ -28,8 +31,10 @@ public class KafkaConfig {
     public static final String SAGA_CREATE_LEADERBOARD_TOPIC = "saga-create-leaderboard-topic";
     public static final String USER_EVENT_SCORE_TOPIC = "user-event-score-topic";
     public static final String LEADERBOARD_EVENT_TOPIC = "leaderboard-event-topic";
-    public static final String MESSAGE_ID = "message-id";
+    public static final String MESSAGE_HEADER = "message-id";
     public static final String GROUP_ID = "scoring-group";
+    public static final String SAGA_HEADER = "saga-id";
+
     @Bean
     public NewTopic userEventScoreTopic(){
         return TopicBuilder
@@ -108,7 +113,26 @@ public class KafkaConfig {
 
                     return new KeyValue<>(userId.toString(), userScoreEvent);
                 })
-                .filter((key, value) -> value != null)
+                .filter((key, value) ->
+                        value != null &&
+                                value.getLbId() != null &&
+                                !value.getLbId().isBlank() &&
+                                value.getUsername() != null &&
+                                !value.getUsername().isBlank() &&
+                                value.getRegion() != null &&
+                                !value.getRegion().isBlank() &&
+                                value.getUserId() != null &&
+                                value.getScore() != 0
+                )
+                .process(
+                        () -> (Processor<String, UserScoreEvent, String, UserScoreEvent>)
+                                record -> {
+                                    String id = UUID.randomUUID().toString();
+                                    record.headers()
+                                            .add(SAGA_HEADER, record.key().getBytes())
+                                            .add(MESSAGE_HEADER, id.getBytes());
+                                }
+                )
                 .peek(
                         (key, value) -> log.info(
                                 "Preparing to send message to topic: {} with key: {} and Value {}",
@@ -139,17 +163,37 @@ public class KafkaConfig {
                     return payload != null && "c".equals(payload.get("op"));
                 })
                 .map((key, map) -> {
-                    Map<String, Object> payload = (Map<String, Object>) map.get("payload");
-                    Map<String, Object> after = (Map<String, Object>) payload.get("after");
+
+                    Map<String, Object> payload = (Map<String, Object>) map.getOrDefault("payload", Map.of());
+                    Map<String, Object> after = (Map<String, Object>) payload.getOrDefault("after", Map.of());
+
                     String leaderboardId = (String) after.get("leaderboard_id");
                     String reason = (String) after.get("reason");
-                    // TODO : change table  add this columns
                     long userId = (long) after.get("user_id");
+
                     String sagaId = (String) after.get("saga_id");
 
                     FailedLeaderboardCreation failedLeaderboardCreation = new FailedLeaderboardCreation(leaderboardId, reason, userId);
                     return new KeyValue<>(sagaId, failedLeaderboardCreation);
                 })
+                .filter(
+                        (k,v) ->
+                                v.getLbId() != null &&
+                                        !v.getLbId().isBlank() &&
+                                         v.getReason() !=null &&
+                                        !v.getReason().isBlank() &&
+                                         v.getUserId() != null &&
+                                         v.getUserId() > 1
+                )
+                .process(
+                        () -> (Processor<String, FailedLeaderboardCreation, String, FailedLeaderboardCreation>)
+                                record -> {
+                                    String id = UUID.randomUUID().toString();
+                                    record.headers()
+                                            .add(SAGA_HEADER, record.key().getBytes())
+                                            .add(MESSAGE_HEADER, id.getBytes());
+                                }
+                )
                 .to(LEADERBOARD_EVENT_TOPIC, Produced.with(Serdes.String(), new JsonSerde<>(FailedLeaderboardCreation.class)));
         return stream;
     }

@@ -1,6 +1,5 @@
-package com.jzargo.scoringmicroservice.entity;
+package com.jzargo.usermicroservice.entity;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
@@ -9,16 +8,15 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "failed_create_leaderboard_events")
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Data
-public class FailedCreateLeaderboardEvents {
+@Table(name = "user_added_created_leaderboard")
+public class UserAddedCreatedLeaderboard {
     @Id
     private String id;
-    @Column(name = "leaderboard_id")
-    private String lbId;
-    private String reason;
     private String sagaId;
     private long userId;
+    private String lbId;
+
 }

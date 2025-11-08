@@ -6,9 +6,12 @@ import com.jzargo.messaging.UserNewLeaderboardCreated;
 import com.jzargo.usermicroservice.config.KafkaConfig;
 import com.jzargo.usermicroservice.entity.FailedLeaderboardCreation;
 import com.jzargo.usermicroservice.entity.ProcessingMessage;
+import com.jzargo.usermicroservice.entity.UserAddCreatedLeaderboardRepository;
+import com.jzargo.usermicroservice.entity.UserAddedCreatedLeaderboard;
 import com.jzargo.usermicroservice.exception.UserCannotCreateLeaderboardException;
 import com.jzargo.usermicroservice.repository.FailedLeaderboardCreationRepository;
 import com.jzargo.usermicroservice.repository.ProcessingMessageRepository;
+import com.jzargo.usermicroservice.repository.UserAddedCreatedLeaderboardRepository;
 import com.jzargo.usermicroservice.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaHandler;
@@ -32,11 +35,13 @@ public class UserKafkaHandler {
     private final ProcessingMessageRepository processingMessageRepository;
     private final UserService userService;
     private final FailedLeaderboardCreationRepository failedLeaderboardCreationRepository;
+    private final UserAddedCreatedLeaderboardRepository userAddedCreatedLeaderboardRepository;
 
-    public UserKafkaHandler(ProcessingMessageRepository processingMessageRepository, UserService userService, FailedLeaderboardCreationRepository failedLeaderboardCreationRepository) {
+    public UserKafkaHandler(ProcessingMessageRepository processingMessageRepository, UserService userService, FailedLeaderboardCreationRepository failedLeaderboardCreationRepository, UserAddedCreatedLeaderboardRepository userAddedCreatedLeaderboardRepository) {
         this.processingMessageRepository = processingMessageRepository;
         this.userService = userService;
         this.failedLeaderboardCreationRepository = failedLeaderboardCreationRepository;
+        this.userAddedCreatedLeaderboardRepository = userAddedCreatedLeaderboardRepository;
     }
 
     @Transactional
@@ -88,7 +93,7 @@ public class UserKafkaHandler {
     public void handleSaga(
             @Payload UserNewLeaderboardCreated userNewLeaderboardCreated,
             @Header(KafkaConfig.MESSAGE_ID_HEADER) String messageId,
-            @Header(KafkaConfig.SAGA_ID_HEADER) String sagaIdHeader
+            @Header(KafkaConfig.SAGA_ID_HEADER) String sagaId
             ) {
 
         if (processingMessageRepository.existsById(messageId)) {
@@ -97,6 +102,14 @@ public class UserKafkaHandler {
 
         try{
             userService.addCreatedLeaderboard(userNewLeaderboardCreated);
+            UserAddedCreatedLeaderboard userAddedCreatedLeaderboard =
+                    new UserAddedCreatedLeaderboard(
+                            sagaId, sagaId,
+                            userNewLeaderboardCreated.getUserId(),
+                            userNewLeaderboardCreated.getLbId());
+            userAddedCreatedLeaderboardRepository.save(
+                    userAddedCreatedLeaderboard
+            );
             processingMessageRepository.save(
                     ProcessingMessage.builder()
                             .id(messageId)
@@ -111,7 +124,7 @@ public class UserKafkaHandler {
                             e.getMessage(),
                             userNewLeaderboardCreated.getLbId(),
                             userNewLeaderboardCreated.getUserId(),
-                            sagaIdHeader
+                            sagaId
                     )
             );
             processingMessageRepository.save(

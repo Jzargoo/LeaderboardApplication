@@ -8,17 +8,16 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Entity
-@Table(name = "failed_create_leaderboard_events")
-@AllArgsConstructor
-@NoArgsConstructor
 @Data
-public class FailedCreateLeaderboardEvents {
-    @Id
-    private String id;
-    @Column(name = "leaderboard_id")
-    private String lbId;
-    private String reason;
-    private String sagaId;
-    private long userId;
+@Entity
+@NoArgsConstructor
+@AllArgsConstructor
+@Table(name = "successful_events_creation")
+public class SuccessfulEventsCreation {
+        @Id
+        private String id;
+        @Column(name = "leaderboard_id")
+        private String lbId;
+        private String sagaId;
+        private long userId;
 }
