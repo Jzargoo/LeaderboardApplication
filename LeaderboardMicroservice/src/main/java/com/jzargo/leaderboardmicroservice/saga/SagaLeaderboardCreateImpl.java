@@ -10,10 +10,7 @@ import com.jzargo.leaderboardmicroservice.mapper.CreateInitialCreateLeaderboardS
 import com.jzargo.leaderboardmicroservice.repository.LeaderboardInfoRepository;
 import com.jzargo.leaderboardmicroservice.repository.sagaControllingStateRepository;
 import com.jzargo.leaderboardmicroservice.service.LeaderboardService;
-import com.jzargo.messaging.LeaderboardEventInitialization;
-import com.jzargo.messaging.SuccessfulEventInitialization;
-import com.jzargo.messaging.UserAddedLeaderboard;
-import com.jzargo.messaging.UserNewLeaderboardCreated;
+import com.jzargo.messaging.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -34,10 +31,6 @@ import java.util.UUID;
 
 @Component
 @Slf4j
-@KafkaListener(
-        topics = {KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC},
-        groupId = KafkaConfig.GROUP_ID
-)
 public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate{
 
     private final CreateInitialCreateLeaderboardSagaRequestMapper createInitialCreateLeaderboardSagaRequestMapper;
@@ -63,7 +56,6 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate{
     }
 
     @Override
-    @Transactional
     public void startSaga(CreateLeaderboardRequest request, long userId, String username, String region) {
         InitLeaderboardCreateEvent map = createInitialCreateLeaderboardSagaRequestMapper.map(request);
         map.setOwnerId(userId);
@@ -86,145 +78,114 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate{
         kafkaTemplate.send(record);
     }
 
-    @KafkaHandler
-    @Transactional
-    public void handleCreateLeaderboardSaga(InitLeaderboardCreateEvent event,
-                                            @Header(KafkaConfig.SAGA_ID_HEADER) String sagaId,
-                                            @Header(KafkaConfig.MESSAGE_ID) String messageId,
-                                            @Header(KafkaHeaders.RECEIVED_KEY) String region
-                                            ){
-        String key = "processed:" + messageId;
-        Boolean success = stringRedisTemplate
-                .opsForValue()
-                .setIfAbsent(key, "1", Duration.ofDays(7));
-        if(success != null && !success) {
-            getWarn(messageId);
-            return;
+    @Override
+    public boolean stepCreateLeaderboard(InitLeaderboardCreateEvent event, String region, String sagaId){
+        if (event.isMutable() && event.getEvents().isEmpty()) {
+            throw new IllegalArgumentException("Cannot events in mutable board be less than 1");
         }
-        try{
-            if (event.isMutable() && event.getEvents().isEmpty()) {
-                throw new IllegalArgumentException("Cannot events in mutable board be less than 1");
-            }
-            String leaderboardId = leaderboardService.createLeaderboard(event, region);
-            ProducerRecord<String, Object> record;
-            if (event.isMutable()) {
 
-                stringRedisTemplate.execute(
-                        sagaSuccessfulScript, List.of("saga_controlling_state"+ ":" + sagaId),
-                        leaderboardId, SagaStep.LEADERBOARD_CREATED, SagaStep.INITIATED, ""
-                );
+        String leaderboardId = leaderboardService.createLeaderboard(event, region);
 
-                LeaderboardEventInitialization build =
-                        LeaderboardEventInitialization.builder()
-                                .lbId(leaderboardId)
-                                .events(event.getEvents())
-                                .userId(event.getOwnerId())
-                                .isPublic(event.isPublic())
-                                .metadata(
+        SagaControllingState sagaControllingState = sagaControllingStateRepository
+                .findById(sagaId)
+                .orElseThrow();
+
+        sagaControllingState.setLeaderboardId(leaderboardId);
+        sagaControllingStateRepository.save(sagaControllingState);
+
+        ProducerRecord<String, Object> record;
+        if (event.isMutable()) {
+            stringRedisTemplate.execute(
+                    sagaSuccessfulScript, List.of("saga_controlling_state" + ":" + sagaId),
+                    leaderboardId, SagaStep.LEADERBOARD_CREATED, SagaStep.INITIATED, ""
+            );
+
+            LeaderboardEventInitialization build =
+                    LeaderboardEventInitialization.builder()
+                            .lbId(leaderboardId)
+                            .events(event.getEvents())
+                            .userId(event.getOwnerId())
+                            .isPublic(event.isPublic())
+                            .metadata(
                                     Map.of("expire_date", event.getExpireAt())
-                                )
-                                .build();
-                record = new ProducerRecord<>(KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC,
-                        leaderboardId, build);
-            } else {
-                stringRedisTemplate.execute(
-                        sagaSuccessfulScript, List.of("saga_controlling_state"+ ":" + sagaId),
-                        leaderboardId, SagaStep.OPTIONAL_EVENTS_CREATED, SagaStep.INITIATED, ""
-                );
-
-                UserNewLeaderboardCreated userNewLeaderboardCreated = new UserNewLeaderboardCreated(
-                        leaderboardId, event.getNameLb(),
-                        event.getOwnerId()
-                );
-                record = new ProducerRecord<>(KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC,
-                        leaderboardId, userNewLeaderboardCreated);
-            }
-
-            record.headers()
-                    .add(KafkaConfig.MESSAGE_ID, UUID.randomUUID().toString().getBytes())
-                    .add(KafkaConfig.SAGA_ID_HEADER, sagaId.getBytes())
-                    .add(KafkaHeaders.RECEIVED_KEY, sagaId.getBytes());
-            event.setLbId(leaderboardId);
-            kafkaTemplate.send(record);
-
-            log.info("Processed saga create leaderboard with id {}", sagaId);
-        }catch (Exception e){
-            log.error("Error while processed message {}", messageId,e);
-            stringRedisTemplate.delete(key);
-        }
-    }
-
-    @KafkaHandler
-    @Transactional
-    public void handleSuccessfulEventInitialization(
-            @Header(KafkaConfig.SAGA_ID_HEADER) String sagaId,
-            @Header(KafkaConfig.MESSAGE_ID) String messageId,
-            @Payload SuccessfulEventInitialization successfulEventInitialization
-            ){
-        String key = "processed:" + messageId;
-        Boolean success = stringRedisTemplate
-                .opsForValue()
-                .setIfAbsent(key, "1", Duration.ofDays(7));
-        if(success != null && !success) {
-            getWarn(messageId);
-            return;
-        }
-        try{
+                            )
+                            .build();
+            record = new ProducerRecord<>(KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC,
+                    leaderboardId, build);
+            return true;
+        } else {
             stringRedisTemplate.execute(
-                    sagaSuccessfulScript, List.of("saga_controlling_state"+ ":" + sagaId),
-                    successfulEventInitialization.getLbId(), SagaStep.OPTIONAL_EVENTS_CREATED,
-                    SagaStep.LEADERBOARD_CREATED, SagaStep.LEADERBOARD_CREATED
+                    sagaSuccessfulScript, List.of("saga_controlling_state" + ":" + sagaId),
+                    leaderboardId, SagaStep.OPTIONAL_EVENTS_CREATED, SagaStep.INITIATED, ""
             );
-            LeaderboardInfo byId = leaderboardInfoRepository.findById(successfulEventInitialization.getLbId())
-                    .orElseThrow(()-> new IllegalArgumentException("lb id cannot be a null"));
-            UserNewLeaderboardCreated userNewLeaderboardCreated = new UserNewLeaderboardCreated(
-                    successfulEventInitialization.getLbId(), byId.getName(),
-                    byId.getOwnerId()
-            );
-            ProducerRecord<String, Object> record = new ProducerRecord<>(KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC,
-                    byId.getId(), userNewLeaderboardCreated);
 
-            record.headers()
-                    .add(KafkaConfig.MESSAGE_ID, UUID.randomUUID().toString().getBytes())
-                    .add(KafkaConfig.SAGA_ID_HEADER, sagaId.getBytes())
-                    .add(KafkaHeaders.RECEIVED_KEY, sagaId.getBytes());
-            kafkaTemplate.send(record);
-        } catch (IllegalArgumentException e) {
-            log.error("Incorrect event without lb id");
-
-        } catch (Exception e) {
-            stringRedisTemplate.delete(key);
+            return false;
         }
+    }
+
+    @Override
+    public void stepSuccessfulEventInit(
+            SuccessfulEventInitialization successfulEventInitialization,
+            String sagaId) {
+
+        SagaControllingState sagaControllingState = sagaControllingStateRepository
+                .findById(sagaId)
+                .orElseThrow();
+
+        sagaControllingState.setStatus(SagaStep.USER_PROFILE_UPDATE);
+        sagaControllingState.setLastStepCompleted(SagaStep.OPTIONAL_EVENTS_CREATED.name());
+
+        sagaControllingStateRepository.save(sagaControllingState);
+    }
+
+    @Override
+    @Transactional
+    public void stepSagaCompleted(
+            UserAddedLeaderboard userAddedLeaderboard,
+            String sagaId
+    ) {
+        stringRedisTemplate.execute(
+                sagaSuccessfulScript, List.of("saga_controlling_state" + ":" + sagaId),
+                userAddedLeaderboard.getLbId(), SagaStep.COMPLETED,
+                SagaStep.OPTIONAL_EVENTS_CREATED, SagaStep.OPTIONAL_EVENTS_CREATED
+        );
+        LeaderboardInfo leaderboardInfo = leaderboardInfoRepository.findById(
+                userAddedLeaderboard.getLbId()
+        ).orElseThrow();
+        stringRedisTemplate.persist(leaderboardInfo.getKey());
 
     }
 
-    @KafkaHandler
     @Transactional
-    public void handleUserAddedLeaderboard(
+    @Override
+    public void handleFailedCreation(
             @Header(KafkaConfig.SAGA_ID_HEADER) String sagaId,
             @Header(KafkaConfig.MESSAGE_ID) String messageId,
-            @Payload UserAddedLeaderboard userAddedLeaderboard
+            @Payload FailedLeaderboardCreation failedLeaderboardCreation
             ) {
-        String key = "processed:" + messageId;
-        Boolean success = stringRedisTemplate
-                .opsForValue()
-                .setIfAbsent(key, "1", Duration.ofDays(7));
-        if(success != null && !success) {
-            getWarn(messageId);
-            return;
-        }
-        try {
-            stringRedisTemplate.execute(
-                    sagaSuccessfulScript, List.of("saga_controlling_state"+ ":" + sagaId),
-                    userAddedLeaderboard.getLbId(), SagaStep.COMPLETED,
-                    SagaStep.OPTIONAL_EVENTS_CREATED, SagaStep.OPTIONAL_EVENTS_CREATED
-            );
+        SagaControllingState sagaState = sagaControllingStateRepository
+                    .findById(sagaId)
+                    .orElseThrow();
+            sagaState.setStatus(SagaStep.FAILED);
 
-        } catch (Exception e) {
-            stringRedisTemplate.delete(key);
+            String leaderboardId = sagaState.getLeaderboardId();
+            LeaderboardInfo leaderboardInfo = leaderboardInfoRepository.findById(leaderboardId).orElseThrow();
+
+            ReverseUserAdding reverseUserAdding = new ReverseUserAdding(
+                    failedLeaderboardCreation.getUserId(),
+                    failedLeaderboardCreation.getLbId());
+
+            ProducerRecord<String, Object> record = new ProducerRecord<>(
+                    KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC,
+                    sagaId,
+                    reverseUserAdding);
+
+            record.headers()
+                    .add(KafkaConfig.MESSAGE_ID, UUID.randomUUID().toString().getBytes())
+                    .add(KafkaConfig.SAGA_ID_HEADER, sagaId.getBytes())
+                    .add(KafkaHeaders.RECEIVED_KEY, sagaId.getBytes());
+
+            kafkaTemplate.send(record);
         }
-    }
-    private static void getWarn(String messageId) {
-        log.warn("Handled processed message with id {}", messageId);
     }
 }

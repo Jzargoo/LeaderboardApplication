@@ -7,11 +7,13 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.redis.core.RedisHash;
+import org.springframework.data.redis.core.TimeToLive;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Data
@@ -37,6 +39,11 @@ public class LeaderboardInfo {
     @Builder.Default
     private String regions = Regions.GLOBAL.getCode();
     private int maxEventsPerUser;
+    @Builder.Default
+    private boolean isActive = false;
+    @TimeToLive
+    @Builder.Default
+    long ttl = 86400L;
     private int maxEventsPerUserPerDay;
     private boolean showTies;
 
