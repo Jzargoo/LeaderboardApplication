@@ -173,14 +173,14 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate {
             sagaState.setLastStepCompleted(sagaState.getStatus().name());
             sagaState.setStatus(SagaStep.COMPENSATE_USER_PROFILE);
 
-            CompensateOptionalEventsCommand compensateOptionalEventsCommand =
-                    new CompensateOptionalEventsCommand(sagaId, failedLeaderboardCreation.getLbId());
+            LeaderboardEventDeletion leaderboardEventDeletion =
+                    new LeaderboardEventDeletion(failedLeaderboardCreation.getLbId());
 
             ProducerRecord<String, Object> record =
                     SagaUtils.createRecord(
                             KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC,
                             sagaId,
-                            compensateOptionalEventsCommand
+                            leaderboardEventDeletion
                     );
             String s = SagaUtils.newMessageId();
             SagaUtils.addSagaHeaders(record, sagaId,s,sagaId);
@@ -206,8 +206,7 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate {
                 return;
             }
 
-            CompensateOptionalEventsCommand cmd = new CompensateOptionalEventsCommand(
-                    sagaId,
+            LeaderboardEventDeletion cmd = new LeaderboardEventDeletion(
                     leaderboardId
             );
 

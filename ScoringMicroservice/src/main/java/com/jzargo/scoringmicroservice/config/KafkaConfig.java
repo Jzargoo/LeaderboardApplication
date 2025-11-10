@@ -1,7 +1,7 @@
 package com.jzargo.scoringmicroservice.config;
 
 import com.jzargo.messaging.FailedLeaderboardCreation;
-import com.jzargo.messaging.UserAddedLeaderboard;
+import com.jzargo.messaging.LeaderboardEventDeletion;
 import com.jzargo.messaging.UserScoreEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -26,8 +26,9 @@ import java.util.UUID;
 @EnableKafkaStreams
 public class KafkaConfig {
     public static final String COMMAND_STRING_SCORE_TOPIC = "user-string-score-command-topic";
-    public static final String DEBEZIUM_SCORING_TOPIC = "pgserver.public.scoring_events";
-    public static final String DEBEZIUM_FAILED_TOPIC = "pgserver.public.failed_create_leaderboard_events";
+    private static final String DEBEZIUM_SCORING_TOPIC = "pgserver.public.scoring_events";
+    private static final String DEBEZIUM_FAILED_TOPIC = "pgserver.public.failed_create_leaderboard_events";
+    private static final String DEBEZIUM_DELETED_EVENT_TOPIC = "pgserver.public.deleted_events";
     public static final String SAGA_CREATE_LEADERBOARD_TOPIC = "saga-create-leaderboard-topic";
     public static final String USER_EVENT_SCORE_TOPIC = "user-event-score-topic";
     public static final String LEADERBOARD_EVENT_TOPIC = "leaderboard-event-topic";
@@ -173,7 +174,8 @@ public class KafkaConfig {
 
                     String sagaId = (String) after.get("saga_id");
 
-                    FailedLeaderboardCreation failedLeaderboardCreation = new FailedLeaderboardCreation(leaderboardId, reason, userId);
+                    FailedLeaderboardCreation failedLeaderboardCreation = new FailedLeaderboardCreation(
+                            leaderboardId, reason, userId, FailedLeaderboardCreation.SourceOfFail.EVENTS);
                     return new KeyValue<>(sagaId, failedLeaderboardCreation);
                 })
                 .filter(
@@ -197,4 +199,54 @@ public class KafkaConfig {
                 .to(LEADERBOARD_EVENT_TOPIC, Produced.with(Serdes.String(), new JsonSerde<>(FailedLeaderboardCreation.class)));
         return stream;
     }
+    @Bean
+    @SuppressWarnings("unchecked")
+    public KStream<String, Map<String, Object>> KDeletedEvents(StreamsBuilder streamsBuilder) {
+
+        KStream<String, Map<String, Object>> stream = streamsBuilder
+                .stream(
+                        DEBEZIUM_DELETED_EVENT_TOPIC,
+                        Consumed.with(Serdes.String(), new JsonSerde<>(Map.class))
+                );
+
+        stream
+                .peek((key, value) -> log.info(
+                        "Received failed leaderboard event message with key: {}",
+                        key
+                ))
+                .filter((key, value) -> {
+                    if (value == null) return false;
+                    Map<String, Object> payload = (Map<String, Object>) value.get("payload");
+                    return payload != null && "c".equals(payload.get("op"));
+                })
+                .map((key, map) -> {
+
+                    Map<String, Object> payload = (Map<String, Object>) map.getOrDefault("payload", Map.of());
+                    Map<String, Object> after = (Map<String, Object>) payload.getOrDefault("after", Map.of());
+
+                    String leaderboardId = (String) after.get("leaderboard_id");
+                    String sagaId = (String) after.get("saga_id");
+
+                    LeaderboardEventDeletion failedLeaderboardCreation =
+                            new LeaderboardEventDeletion(leaderboardId);
+                    return new KeyValue<>(sagaId, failedLeaderboardCreation);
+                })
+                .filter(
+                        (k,v) ->
+                                v.getLbId() != null &&
+                                        k != null
+                )
+                .process(
+                        () -> (Processor<String, LeaderboardEventDeletion, String, LeaderboardEventDeletion>)
+                                record -> {
+                                    String id = UUID.randomUUID().toString();
+                                    record.headers()
+                                            .add(SAGA_HEADER, record.key().getBytes())
+                                            .add(MESSAGE_HEADER, id.getBytes());
+                                }
+                )
+                .to(LEADERBOARD_EVENT_TOPIC, Produced.with(Serdes.String(), new JsonSerde<>(LeaderboardEventDeletion.class)));
+        return stream;
+    }
+
 }

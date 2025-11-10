@@ -235,4 +235,6 @@ public class KafkaSagaLeaderboardCreationHandler {
 
         log.info("Sent delete leaderboard compensation for {} (saga {})", leaderboardId, sagaId);
     }
+
+
 }
