@@ -41,9 +41,6 @@ public class LeaderboardInfo {
     private int maxEventsPerUser;
     @Builder.Default
     private boolean isActive = false;
-    @TimeToLive
-    @Builder.Default
-    long ttl = 86400L;
     private int maxEventsPerUserPerDay;
     private boolean showTies;
 
@@ -62,4 +59,13 @@ public class LeaderboardInfo {
                         ":immutable"
         );
     }
+
+    public String getInfoKey() {
+        return "leaderboard_information:" + id;
+    }
+
+    public String getSignalKey() {
+        return "leaderboard_signal:" + id;
+    }
+
 }

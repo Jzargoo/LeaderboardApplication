@@ -1,5 +1,8 @@
 -- KEYS[1] = leaderboard:{id}:mutable/immutable
 -- KEYS[2] = leaderboard_information:{id}
+-- KEYS[3]= leaderboard_signal:{id}
+
+
 -- ARGV[1] = ownerId
 -- ARGV[2] = initialValue
 -- ARGV[3] = id
@@ -14,6 +17,8 @@
 -- ARGV[12] = regions
 -- ARGV[13] = maxEventsPerUser
 -- ARGV[14] = maxEventsPerUserPerDay
+-- ARGV[15] = TTL
+
 
 redis.call("ZADD", KEYS[1], ARGV[2], ARGV[1])
 
@@ -34,5 +39,8 @@ redis.call("HMSET", KEYS[2],
 	"maxEventsPerUserPerDay", ARGV[14],
 	"maxScore", ARGV[11]
 )
+
+
+redis.call("SET", KEYS[3], "signal", "PX", ARGV[15])
 
 return "OK"

@@ -7,7 +7,6 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class ReverseUserAdding {
-    private Long userId;
+public class DeleteLbEvent {
     private String lbId;
 }

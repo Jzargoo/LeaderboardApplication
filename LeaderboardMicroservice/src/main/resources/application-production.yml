@@ -17,13 +17,15 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       properties:
-        spring.json.trusted.packages: "com.jzargo.messaging"
+        spring.json.trusted.packages: "com.jzargo.messaging,
+        com.jzargo.leaderboardmicroservice.core.messaging"
     producer:
       bootstrap-servers: localhost:9090,localhost:9092
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
-        spring.json.trusted.packages: "com.jzargo.messaging"
+        spring.json.trusted.packages: "com.jzargo.messaging,
+        com.jzargo.leaderboardmicroservice.core.messaging"
   security:
     oauth2:
       resourceserver:

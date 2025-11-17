@@ -2,9 +2,7 @@ package com.jzargo.leaderboardmicroservice.saga;
 
 import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.leaderboardmicroservice.dto.CreateLeaderboardRequest;
-import com.jzargo.messaging.FailedLeaderboardCreation;
-import com.jzargo.messaging.SuccessfulEventInitialization;
-import com.jzargo.messaging.UserAddedLeaderboard;
+import com.jzargo.messaging.*;
 
 public interface SagaLeaderboardCreate {
     void startSaga(CreateLeaderboardRequest request, long userId, String username, String region);
@@ -22,4 +20,10 @@ public interface SagaLeaderboardCreate {
             String sagaId,
             FailedLeaderboardCreation failedLeaderboardCreation
     );
+    void compensateStepOptionalEvent(
+            String sagaId,
+            LeaderboardEventDeletion leaderboardEventDeletion
+    );
+
+    void stepCompensateLeaderboard(DeleteLbEvent dle, String sagaId);
 }

@@ -15,16 +15,19 @@ public class MapperCreateLeaderboardInfo implements Mapper<InitLeaderboardCreate
     public LeaderboardInfo map(InitLeaderboardCreateEvent from) {
         UUID uuid = UUID.randomUUID();
         LeaderboardInfo build = LeaderboardInfo.builder()
-                .description(uuid.toString())
+                .id(uuid.toString())
+                .description(from.getDescription())
                 .name(from.getNameLb())
                 .description(from.getDescription())
                 .initialValue(from.getInitialValue())
                 .isPublic(from.isPublic())
                 .globalRange(from.getGlobalRange())
+                .expireAt(from.getExpireAt())
                 .maxEventsPerUser(from.getMaxEventsPerUser())
                 .maxEventsPerUserPerDay(from.getMaxEventsPerUserPerDay())
                 .maxScore(from.getMaxScore())
                 .isMutable(from.isMutable())
+                .showTies(from.isShowTies())
                 .build();
         if(from.getRegions() !=null) {
             build.setRegions(from.getRegions());

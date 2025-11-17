@@ -248,5 +248,4 @@ public class KafkaConfig {
                 .to(LEADERBOARD_EVENT_TOPIC, Produced.with(Serdes.String(), new JsonSerde<>(LeaderboardEventDeletion.class)));
         return stream;
     }
-
 }

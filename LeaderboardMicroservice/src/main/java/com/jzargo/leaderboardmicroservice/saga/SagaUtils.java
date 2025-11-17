@@ -1,5 +1,6 @@
 package com.jzargo.leaderboardmicroservice.saga;
 
+import com.jzargo.leaderboardmicroservice.config.KafkaConfig;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.kafka.support.KafkaHeaders;
@@ -11,11 +12,11 @@ import java.util.UUID;
 public class SagaUtils {
     private SagaUtils() {}
 
-    public static final Duration DEFAULT_IDEMPOTENCY_TTL = Duration.ofDays(7);
+    public static final Duration DEFAULT_IDEMPOTENCY_TTL = Duration.ofDays(6);
 
     public static boolean tryAcquireProcessingLock(StringRedisTemplate redis, String messageId, Duration ttl) {
         String key = "processed:" + messageId;
-        Boolean res = redis.opsForValue().setIfAbsent(key, "1", ttl);
+        Boolean res = redis.opsForValue().setIfAbsent(key, "0", ttl);
         return Boolean.TRUE.equals(res);
     }
 
@@ -36,8 +37,8 @@ public class SagaUtils {
                                       String messageId,
                                       String partitionKey) {
         record.headers()
-                .add("message_id", messageId.getBytes(StandardCharsets.UTF_8))
-                .add("saga_id", sagaId.getBytes(StandardCharsets.UTF_8))
+                .add(KafkaConfig.MESSAGE_ID, messageId.getBytes(StandardCharsets.UTF_8))
+                .add(KafkaConfig.SAGA_ID_HEADER, sagaId.getBytes(StandardCharsets.UTF_8))
                 .add(KafkaHeaders.RECEIVED_KEY, (partitionKey != null ? partitionKey : sagaId).getBytes(StandardCharsets.UTF_8));
     }
 

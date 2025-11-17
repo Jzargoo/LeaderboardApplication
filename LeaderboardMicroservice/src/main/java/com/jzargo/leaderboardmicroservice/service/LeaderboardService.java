@@ -9,7 +9,14 @@ import com.jzargo.messaging.UserUpdateEvent;
 public interface LeaderboardService {
     void increaseUserScore(UserScoreEvent changeEvent);
     void addNewScore(UserScoreUploadEvent uploadEvent);
-    String createLeaderboard(InitLeaderboardCreateEvent initLeaderboardCreateEvent, String region);
-    void initUserScore(InitUserScoreRequest request, String username, long userId, String region);
+    String createLeaderboard(
+            InitLeaderboardCreateEvent initLeaderboardCreateEvent,
+            String region);
+    void initUserScore(
+            InitUserScoreRequest request,
+            String username, long userId, String region);
     void updateUserCache(UserUpdateEvent userUpdateEvent);
+    void deleteLeaderboard(String lbId);
+
+    void confirmLbCreation();
 }

@@ -5,14 +5,16 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
-        spring.json.trusted.packages: "com.jzargo.messaging"
+        spring.json.trusted.packages: "com.jzargo.messaging,
+        com.jzargo.leaderboardmicroservice.core.messaging"
 
     consumer:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       auto-offset-reset: earliest
       properties:
-        spring.json.trusted.packages: "com.jzargo.messaging"
+        spring.json.trusted.packages: "com.jzargo.messaging,
+        com.jzargo.leaderboardmicroservice.core.messaging"
 
   embedded:
     kafka:

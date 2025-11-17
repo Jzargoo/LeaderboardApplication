@@ -10,7 +10,10 @@ public class CreateInitialCreateLeaderboardSagaRequestMapper implements Mapper<C
     @Override
     public InitLeaderboardCreateEvent map(CreateLeaderboardRequest from) {
         return InitLeaderboardCreateEvent.builder()
+                .regions(from.getRegions())
                 .initialValue(from.getInitialValue())
+                .events(from.getEvents())
+                .expireAt(from.getExpireAt())
                 .description(from.getDescription())
                 .expireAt(from.getExpireAt())
                 .globalRange(from.getGlobalRange())

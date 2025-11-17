@@ -12,7 +12,7 @@
 -- ARGV[5] = allowedRegion
 -- ARGV[6] = countGlobalTop
 -- ARGV[7] = lbId
-
+-- ARGV[8] =
 -- daily attempts
 local daily = tonumber(redis.call("HGET", KEYS[1], "__init__") or "0")
 
@@ -29,7 +29,7 @@ end
 
 -- check region
 local leaderboardRegion = ARGV[5]
-local userRegion = ARGV[6]
+local userRegion = ARGV[8]
 
 if leaderboardRegion ~= "ZZ" and not string.find(leaderboardRegion, userRegion, 1, true) then
   return "Region mismatch"
@@ -61,22 +61,25 @@ for i=1,#range_result,2 do
   })
 end
 
+
 local payload = cjson.encode({
   lbKey = KEYS[3],
   lbId = ARGV[7],
   maxTop = tonumber(ARGV[6])
 })
 
-local oldRankValue = ARGV[3] or -1
+local oldRankValue = oldRank or -1
 
 redis.call("XADD", KEYS[6], "*",
-  "oldRank", oldRankValue,
+  "oldRank", tostring(oldRankValue),
   "userId", ARGV[1],
   "leaderboardKey", KEYS[3],
   "lbId", ARGV[7]
 )
+
+local newRank = redis.call("ZREVRANK", KEYS[3], ARGV[1])
 -- publish to streams
-if oldRank ~= nil and tonumber(oldRank) < tonumber(ARGV[6]) then
+if tonumber(newRank) < tonumber(ARGV[6]) then
   redis.call("XADD", KEYS[5], "*", "payload", payload)
   end
 

@@ -28,7 +28,7 @@ end
 
 -- Region check
 local leaderboardRegion = ARGV[5]
-local userRegion = ARGV[6]
+local userRegion = ARGV[8]
 
 if leaderboardRegion ~= "ZZ" and not string.find(leaderboardRegion, userRegion, 1, true) then
 	return "Region mismatch"
@@ -71,7 +71,7 @@ local payload = cjson.encode({
 
 -- Local stream event
 redis.call("XADD", KEYS[6], "*",
-	"oldRank", oldRank or -1,
+	"oldRank", tostring (oldRank or -1),
 	"userId", ARGV[1],
 	"leaderboardKey", KEYS[3],
 	"lbId", ARGV[8]

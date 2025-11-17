@@ -4,6 +4,7 @@ import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.stream.ReadOffset;
 import org.springframework.data.redis.connection.stream.StreamRecords;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -29,15 +30,24 @@ public class RedisGroupInitializer {
 
     private void createGroupIfNotExists(String streamKey, String groupName) {
         try {
-            if (!stringRedisTemplate.hasKey(streamKey)) {
-                stringRedisTemplate.opsForStream().add(
-                        StreamRecords.newRecord()
-                                .in(streamKey)
-                                .ofObject(Collections.singletonMap("init", "true"))
-                );
-            }
-            stringRedisTemplate.opsForStream()
-                    .createGroup(groupName, ReadOffset.from("0-0"), streamKey);
+            stringRedisTemplate.execute((RedisCallback<Boolean>) connection -> {
+                try {
+                    connection.streamCommands()
+                            .xGroupCreate(
+                                    streamKey.getBytes(),
+                                    groupName,
+                                    ReadOffset.from("0-0"),
+                                    true
+                            );
+                } catch (Exception e) {
+                    if(e.getMessage() != null && e.getMessage().contains("BUSYGROUP")) {
+                        log.debug("Consumer group {} for stream {} already exists", groupName, streamKey);
+                    } else {
+                        log.error("Could not create consumer group {} for stream {}", groupName, streamKey, e);
+                    }
+                }
+                return true;
+            });
             log.info("Created consumer group {} for stream {}", groupName, streamKey);
         } catch (Exception e) {
             if(e.getMessage() != null && e.getMessage().contains("BUSYGROUP")){

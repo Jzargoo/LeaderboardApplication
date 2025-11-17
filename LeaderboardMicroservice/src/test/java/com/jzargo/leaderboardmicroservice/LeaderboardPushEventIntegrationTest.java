@@ -134,7 +134,9 @@ class LeaderboardPushEventIntegrationTest {
 
     @Test
     public void handleSuccessfulUserMutableChangeEvent() {
+
         UserScoreEvent userScoreEvent = new UserScoreEvent();
+
         userScoreEvent.setUserId(USER_ID);
         userScoreEvent.setScore(10.0);
         userScoreEvent.setRegion(CODE);

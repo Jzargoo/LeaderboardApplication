@@ -16,7 +16,6 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,6 +44,7 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate {
             StringRedisTemplate stringRedisTemplate,
             RedisScript<String> sagaSuccessfulScript,
             LeaderboardInfoRepository leaderboardInfoRepository) {
+
         this.createInitialCreateLeaderboardSagaRequestMapper = createInitialCreateLeaderboardSagaRequestMapper;
         this.kafkaTemplate = kafkaTemplate;
         this.sagaControllingStateRepository = sagaControllingStateRepository;
@@ -59,72 +59,57 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate {
         InitLeaderboardCreateEvent map = createInitialCreateLeaderboardSagaRequestMapper.map(request);
         map.setOwnerId(userId);
         map.setUsername(username);
+
         SagaControllingState build = SagaControllingState.builder()
                 .id(UUID.randomUUID().toString())
-                .status(SagaStep.INITIATED)
-                .lastStepCompleted("")
+                .status(SagaStep.LEADERBOARD_CREATE)
+                .lastStepCompleted(SagaStep.INITIATED.name())
                 .build();
 
         sagaControllingStateRepository.save(build);
 
-        ProducerRecord<String, Object> record = new ProducerRecord<>(KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC, region, map);
+        ProducerRecord<String, Object> record =
+                SagaUtils.createRecord(
+                        KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC,
+                        region,
+                        map);
 
-        record.headers()
-                .add(KafkaConfig.MESSAGE_ID, SagaUtils.newMessageId().getBytes())
-                .add(KafkaConfig.SAGA_ID_HEADER, build.getId().getBytes())
-                .add(KafkaHeaders.RECEIVED_KEY, region.getBytes());
+        String messageId = SagaUtils.newMessageId();
+        SagaUtils.addSagaHeaders(record, build.getId(), messageId, region);
 
         kafkaTemplate.send(record);
     }
 
     @Override
+    @Transactional
     public boolean stepCreateLeaderboard(InitLeaderboardCreateEvent event, String region, String sagaId) {
         if (event.isMutable() && (event.getEvents() == null || event.getEvents().isEmpty())) {
             throw new IllegalArgumentException("Mutable leaderboard must have at least one event");
         }
 
-        String leaderboardId = leaderboardService.createLeaderboard(event, region);
-
         SagaControllingState sagaControllingState = sagaControllingStateRepository.findById(sagaId).orElseThrow();
+        log.info("stepCreateLeaderboard: event.isMutable() = {}", event.isMutable());
+        if (sagaControllingState.getStatus() != SagaStep.LEADERBOARD_CREATE){
+            log.warn("Saga cannot process event");
+            return false;
+        }
+
+        String leaderboardId = leaderboardService.createLeaderboard(event, region);
+        event.setLbId(leaderboardId);
+
 
         sagaControllingState.setLeaderboardId(leaderboardId);
+        sagaControllingState.setStatus(SagaStep.OPTIONAL_EVENTS_CREATE);
+        sagaControllingState.setLastStepCompleted(SagaStep.LEADERBOARD_CREATE.name());
         sagaControllingStateRepository.save(sagaControllingState);
 
         if (event.isMutable()) {
-            try {
-                stringRedisTemplate.execute(
-                        sagaSuccessfulScript,
-                        List.of("saga_controlling_state" + ":" + sagaId),
-                        leaderboardId, SagaStep.LEADERBOARD_CREATED.name(), SagaStep.INITIATED.name(), ""
-                );
-            } catch (Exception e) {
-                log.error("Error executing saga lua script for saga {}", sagaId, e);
-            }
-
-            LeaderboardEventInitialization build = LeaderboardEventInitialization.builder()
-                    .lbId(leaderboardId)
-                    .events(event.getEvents())
-                    .userId(event.getOwnerId())
-                    .isPublic(event.isPublic())
-                    .metadata(Map.of("expire_date", event.getExpireAt()))
-                    .build();
-
-            ProducerRecord<String, Object> record = new ProducerRecord<>(KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC,
-                    leaderboardId, build);
-            record.headers()
-                    .add(KafkaConfig.MESSAGE_ID, SagaUtils.newMessageId().getBytes())
-                    .add(KafkaConfig.SAGA_ID_HEADER, sagaId.getBytes())
-                    .add(KafkaHeaders.RECEIVED_KEY, leaderboardId.getBytes());
-
-            kafkaTemplate.send(record);
+            sentEventCreate(sagaId, event);
             return true;
         } else {
             try {
-                stringRedisTemplate.execute(
-                        sagaSuccessfulScript,
-                        List.of("saga_controlling_state" + ":" + sagaId),
-                        leaderboardId, SagaStep.OPTIONAL_EVENTS_CREATED.name(), SagaStep.INITIATED.name(), ""
-                );
+                sentToUserProfile(sagaId, event.getLbId(), event.getNameLb(), event.getOwnerId());
+                return true;
             } catch (Exception e) {
                 log.error("Error executing saga lua script for saga {}", sagaId, e);
             }
@@ -132,31 +117,26 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate {
         }
     }
 
+
     @Override
     public void stepSuccessfulEventInit(SuccessfulEventInitialization successfulEventInitialization, String sagaId) {
-        SagaControllingState sagaControllingState = sagaControllingStateRepository.findById(sagaId).orElseThrow();
+        LeaderboardInfo leaderboardInfo = leaderboardInfoRepository
+                .findById(successfulEventInitialization.getLbId())
+                .orElseThrow();
 
-        sagaControllingState.setStatus(SagaStep.USER_PROFILE_UPDATE);
-        sagaControllingState.setLastStepCompleted(SagaStep.OPTIONAL_EVENTS_CREATED.name());
-
-        sagaControllingStateRepository.save(sagaControllingState);
+        sentToUserProfile(sagaId, successfulEventInitialization.getLbId(), leaderboardInfo.getName(), leaderboardInfo.getOwnerId());
     }
 
     @Override
     @Transactional
     public void stepSagaCompleted(UserAddedLeaderboard userAddedLeaderboard, String sagaId) {
-        LeaderboardInfo leaderboardInfo = leaderboardInfoRepository.findById(userAddedLeaderboard.getLbId())
-                .orElseThrow(() -> new IllegalArgumentException("Leaderboard not found: " + userAddedLeaderboard.getLbId()));
-
         stringRedisTemplate.execute(
                 sagaSuccessfulScript, List.of("saga_controlling_state" + ":" + sagaId),
-                userAddedLeaderboard.getLbId(), SagaStep.COMPLETED.name(),
-                SagaStep.OPTIONAL_EVENTS_CREATED.name(), SagaStep.OPTIONAL_EVENTS_CREATED.name()
+                userAddedLeaderboard.getLbId(), SagaStep.COMPLETE.name(),
+                SagaStep.USER_PROFILE_UPDATE.name()
         );
 
-        stringRedisTemplate.persist(leaderboardInfo.getKey());
-        leaderboardInfo.setActive(true);
-        leaderboardInfoRepository.save(leaderboardInfo);
+        leaderboardService.confirmLbCreation();
     }
 
     @Transactional
@@ -167,8 +147,9 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate {
         LeaderboardInfo leaderboardInfo = leaderboardInfoRepository.findById(leaderboardId).orElseThrow();
 
         if (!leaderboardInfo.isMutable()) {
-            sagaState.setStatus(SagaStep.FAILED);
+            sagaState.setStatus(SagaStep.COMPENSATE_LEADERBOARD);
             sagaState.setLastStepCompleted(SagaStep.COMPENSATE_USER_PROFILE.name());
+
         } else {
             sagaState.setLastStepCompleted(sagaState.getStatus().name());
             sagaState.setStatus(SagaStep.COMPENSATE_USER_PROFILE);
@@ -204,29 +185,128 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate {
                 sagaState.setStatus(SagaStep.FAILED);
                 sagaControllingStateRepository.save(sagaState);
                 return;
+            } else if (!sagaState.getStatus().equals(SagaStep.OPTIONAL_EVENTS_CREATE) ) {
+                log.warn("Cannot compensate because of saga state");
+                return;
             }
 
-            LeaderboardEventDeletion cmd = new LeaderboardEventDeletion(
-                    leaderboardId
-            );
-
-            ProducerRecord<String, Object> record =
-                    new ProducerRecord<>(KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC,
-                            leaderboardId,
-                            cmd);
-
-            SagaUtils.addSagaHeaders(record, sagaId, SagaUtils.newMessageId(), leaderboardId);
-
-            kafkaTemplate.send(record);
-
             log.info("Sent CompensateOptionalEventsCommand for saga {}", sagaId);
-
-            sagaState.setStatus(SagaStep.FAILED);
-            sagaState.setLastStepCompleted(SagaStep.OPTIONAL_EVENTS_CREATED.name());
+            sagaState.setStatus(SagaStep.COMPENSATE_LEADERBOARD);
+            sagaState.setLastStepCompleted(SagaStep.COMPENSATE_OPTIONAL_EVENT.name());
             sagaControllingStateRepository.save(sagaState);
 
         } catch (Exception e) {
             log.error("Error during compensateStepOptionalEvent for saga {}", sagaId, e);
         }
     }
+
+    @Override
+    public void compensateStepOptionalEvent(String sagaId, LeaderboardEventDeletion leaderboardEventDeletion) {
+        try {
+            SagaControllingState sagaState = sagaControllingStateRepository
+                    .findById(sagaId)
+                    .orElseThrow(() -> new IllegalArgumentException("Saga not found " + sagaId));
+
+            String leaderboardId = sagaState.getLeaderboardId();
+            if (leaderboardId == null) {
+                log.warn("Cannot compensate mutable events — no leaderboardId for saga {}", sagaId);
+                sagaState.setStatus(SagaStep.FAILED);
+                sagaControllingStateRepository.save(sagaState);
+                return;
+            }
+
+            log.info("Sent compensate for saga step leaderboard {}", sagaId);
+
+            sagaState.setStatus(SagaStep.COMPENSATE_LEADERBOARD);
+            sagaState.setLastStepCompleted(SagaStep.COMPENSATE_OPTIONAL_EVENT.name());
+            sagaControllingStateRepository.save(sagaState);
+            sentLeaderboardDeletion(sagaId, leaderboardEventDeletion.getLbId());
+        } catch (Exception e) {
+            log.error("Error during compensateStepOptionalEvent for saga {}", sagaId, e);
+        }
+    }
+
+    @Override
+    public void stepCompensateLeaderboard(DeleteLbEvent dle, String sagaId) {
+        SagaControllingState sagaState = sagaControllingStateRepository.findById(sagaId)
+                .orElseThrow();
+
+        if (dle.getLbId() == null) {
+            log.warn("Cannot compensate leaderboard step — no leaderboardId for saga {}", sagaId);
+            sagaState.setStatus(SagaStep.FAILED);
+            sagaControllingStateRepository.save(sagaState);
+            return;
+        } else if (sagaState.getStatus() != SagaStep.COMPENSATE_LEADERBOARD) {
+            log.warn("cannot compensate because status equals {}", sagaState.getStatus());
+            return;
+        }
+        leaderboardService.deleteLeaderboard(dle.getLbId());
+
+    }
+
+    private void sentLeaderboardDeletion(String sagaId,String lbId){
+        ProducerRecord<String, Object> record =
+                SagaUtils.createRecord(
+                        KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC,
+                        sagaId,
+                        new DeleteLbEvent(lbId)
+                );
+        String s = SagaUtils.newMessageId();
+        SagaUtils.addSagaHeaders(record, sagaId,s,sagaId);
+        kafkaTemplate.send(record);
+    }
+    private void sentToUserProfile(String sagaId, String leaderboardId, String nameLb, long ownerId) {
+        stringRedisTemplate.execute(
+                sagaSuccessfulScript,
+                List.of("saga_controlling_state" + ":" + sagaId),
+                leaderboardId, SagaStep.USER_PROFILE_UPDATE.name(), SagaStep.OPTIONAL_EVENTS_CREATE.name()
+        );
+
+        UserNewLeaderboardCreated userNewLeaderboardCreated = new UserNewLeaderboardCreated(leaderboardId, nameLb, ownerId);
+
+        ProducerRecord<String, Object> record =
+                SagaUtils.createRecord(
+                        KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC,
+                        sagaId,
+                        userNewLeaderboardCreated);
+
+        String messageId = SagaUtils.newMessageId();
+        SagaUtils.addSagaHeaders(record, sagaId, messageId, sagaId);
+        kafkaTemplate.send(record);
+
+    }
+    private void sentEventCreate(String sagaId, InitLeaderboardCreateEvent event) {
+        try {
+            stringRedisTemplate.execute(
+                    sagaSuccessfulScript,
+                    List.of("saga_controlling_state" + ":" + sagaId),
+                    event.getLbId(),
+                    SagaStep.OPTIONAL_EVENTS_CREATE.name(),
+                    SagaStep.LEADERBOARD_CREATE.name()
+            );
+        } catch (Exception e) {
+            log.error("Error executing saga lua script for saga {}", sagaId, e);
+        }
+
+        LeaderboardEventInitialization build = LeaderboardEventInitialization.builder()
+                .lbId(event.getLbId())
+                .events(event.getEvents())
+                .userId(event.getOwnerId())
+                .isPublic(event.isPublic())
+                .metadata(Map.of("expire_date", event.getExpireAt()))
+                .build();
+
+        ProducerRecord<String, Object> record =
+                SagaUtils.createRecord(
+                        KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC,
+                        sagaId,
+                        build);
+
+        String messageId = SagaUtils.newMessageId();
+        SagaUtils.addSagaHeaders(record, sagaId, messageId, sagaId);
+
+        kafkaTemplate.send(record);
+
+    }
+
 }

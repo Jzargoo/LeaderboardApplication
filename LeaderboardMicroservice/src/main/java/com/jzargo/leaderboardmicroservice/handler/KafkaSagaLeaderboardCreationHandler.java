@@ -28,8 +28,10 @@ import java.util.Optional;
 @Component
 @KafkaListener(topics = {
         KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC,
-        KafkaConfig.GROUP_ID
-})
+        KafkaConfig.LEADERBOARD_EVENT_TOPIC
+},
+        groupId = KafkaConfig.GROUP_ID
+)
 @Slf4j
 public class KafkaSagaLeaderboardCreationHandler {
 
@@ -61,59 +63,18 @@ public class KafkaSagaLeaderboardCreationHandler {
                                             @Header(KafkaConfig.MESSAGE_ID) String messageId,
                                             @Header(KafkaHeaders.RECEIVED_KEY) String region
     ){
+        log.info("The body is {}", event);
         if (!SagaUtils.tryAcquireProcessingLock(stringRedisTemplate, messageId)) {
             getWarn(messageId);
             return;
         }
-
         try {
-            SagaControllingState sagaControllingState = sagaControllingStateRepository.findById(sagaId)
-                    .orElseThrow(() -> new IllegalArgumentException("Saga state not found: " + sagaId));
-
-            boolean isMutable = sagaLeaderboardCreate.stepCreateLeaderboard(event, region, sagaId);
-
-            ProducerRecord<String, Object> record;
-            String partitionKey = sagaControllingState.getLeaderboardId();
-
-            if (isMutable) {
-                LeaderboardEventInitialization build = LeaderboardEventInitialization.builder()
-                        .lbId(sagaControllingState.getLeaderboardId())
-                        .events(event.getEvents())
-                        .userId(event.getOwnerId())
-                        .isPublic(event.isPublic())
-                        .metadata(Map.of("expire_date", event.getExpireAt()))
-                        .build();
-
-                record = SagaUtils.createRecord(KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC, partitionKey, build);
-            } else {
-                UserNewLeaderboardCreated userNewLeaderboardCreated = new UserNewLeaderboardCreated(
-                        sagaControllingState.getLeaderboardId(),
-                        event.getNameLb(),
-                        event.getOwnerId()
-                );
-                record = SagaUtils.createRecord(KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC, partitionKey, userNewLeaderboardCreated);
+            boolean b = sagaLeaderboardCreate.stepCreateLeaderboard(event, region, sagaId);
+            if (!b) {
+                log.error("Error while processing create leaderboard message {}", messageId);
             }
-
-            SagaUtils.addSagaHeaders(record, sagaId, SagaUtils.newMessageId(), partitionKey);
-            kafkaTemplate.send(record);
-
-            log.info("Processed saga create leaderboard (sagaId={})", sagaId);
-
         } catch (Exception e) {
             log.error("Error while processing create leaderboard message {}", messageId, e);
-
-            try {
-                Optional<SagaControllingState> maybe = sagaControllingStateRepository.findById(sagaId);
-                if (maybe.isEmpty() || maybe.get().getLeaderboardId() == null) {
-                    SagaUtils.releaseProcessingLock(stringRedisTemplate, messageId);
-                } else {
-                    SagaControllingState s = maybe.get();
-                    s.setStatus(SagaStep.FAILED);
-                    sagaControllingStateRepository.save(s);
-                }
-            } catch (Exception ex) {
-                log.error("Error while trying to cleanup idempotency lock for message {}", messageId, ex);
-            }
         }
     }
 
@@ -193,21 +154,16 @@ public class KafkaSagaLeaderboardCreationHandler {
 
         try {
             FailedLeaderboardCreation.SourceOfFail source = failed.getSourceOfFail();
-            String leaderboardId = failed.getLbId();
 
             if (source == FailedLeaderboardCreation.SourceOfFail.EVENTS) {
                 log.info("Saga {} failed at OPTIONAL EVENTS step", sagaId);
 
                 sagaLeaderboardCreate.compensateStepOptionalEvent(sagaId, failed);
 
-                sendCompensateDeleteLeaderboard(leaderboardId, sagaId);
-
             }else if (source == FailedLeaderboardCreation.SourceOfFail.USER_PROFILE) {
                 log.info("Saga {} failed at USER PROFILE step", sagaId);
 
                 sagaLeaderboardCreate.compensateStepUserProfile(sagaId, failed);
-
-                sendCompensateDeleteLeaderboard(leaderboardId, sagaId);
 
             }
             log.info("Compensation workflow started for saga {}", sagaId);
@@ -216,25 +172,39 @@ public class KafkaSagaLeaderboardCreationHandler {
         }
     }
 
-    private void sendCompensateDeleteLeaderboard(String leaderboardId, String sagaId) {
-        if (leaderboardId == null) {
-            log.info("Saga {}: no leaderboard created yet — skip delete compensation", sagaId);
+    @KafkaHandler
+    public void handleDeletedEvents(
+            @Header(KafkaConfig.SAGA_ID_HEADER) String sagaId,
+            @Header(KafkaConfig.MESSAGE_ID) String messageId,
+            @Payload LeaderboardEventDeletion led
+    ){
+        if (!SagaUtils.tryAcquireProcessingLock(stringRedisTemplate, messageId)) {
+            getWarn(messageId);
             return;
         }
-
-        CompensateDeleteLeaderboardEvent comp = new CompensateDeleteLeaderboardEvent(leaderboardId);
-        ProducerRecord<String, Object> rec =
-                SagaUtils.createRecord(
-                        KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC,
-                        leaderboardId,
-                        comp
-                );
-
-        SagaUtils.addSagaHeaders(rec, sagaId, SagaUtils.newMessageId(), leaderboardId);
-        kafkaTemplate.send(rec);
-
-        log.info("Sent delete leaderboard compensation for {} (saga {})", leaderboardId, sagaId);
+        try {
+            sagaLeaderboardCreate.compensateStepOptionalEvent(sagaId, led);
+        } catch (Exception e) {
+            log.error("Error while processing deletion events {}", led.getLbId(), e);
+        }
     }
 
+
+    @KafkaHandler
+    public void handleDeleteLbEvent(
+            @Header(KafkaConfig.SAGA_ID_HEADER) String sagaId,
+            @Header(KafkaConfig.MESSAGE_ID) String messageId,
+            @Payload DeleteLbEvent dle
+    ){
+        if (!SagaUtils.tryAcquireProcessingLock(stringRedisTemplate, messageId)) {
+            getWarn(messageId);
+            return;
+        }
+        try {
+            sagaLeaderboardCreate.stepCompensateLeaderboard(dle, sagaId);
+        } catch (Exception e) {
+            log.error("Error while processing deletion events {}", dle.getLbId(), e);
+        }
+    }
 
 }

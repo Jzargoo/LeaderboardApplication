@@ -1,5 +1,6 @@
 package com.jzargo.leaderboardmicroservice.service;
 
+import com.jzargo.leaderboardmicroservice.config.RedisConfig;
 import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.leaderboardmicroservice.dto.InitUserScoreRequest;
 import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
@@ -11,11 +12,20 @@ import com.jzargo.messaging.UserScoreEvent;
 import com.jzargo.messaging.UserScoreUploadEvent;
 import com.jzargo.messaging.UserUpdateEvent;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
+import org.springframework.data.redis.connection.RedisConnection;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -29,11 +39,13 @@ public class LeaderboardServiceImpl implements LeaderboardService{
     private final MapperCreateLeaderboardInfo mapperCreateLeaderboardInfo;
     private final CachedUserRepository cachedUserRepository;
     private final RedisScript<String> createUserCachedScript;
+    private final MappingJackson2HttpMessageConverter mappingJackson2HttpMessageConverter;
+    private final RedisScript<String> deleteLeaderboardScript;
 
     public LeaderboardServiceImpl(StringRedisTemplate stringRedisTemplate, LeaderboardInfoRepository LeaderboardInfoRepository,
                                   RedisScript<String> mutableLeaderboardScript, RedisScript<String> immutableLeaderboardScript,
                                   MapperCreateLeaderboardInfo mapperCreateLeaderboardInfo, RedisScript<String> createLeaderboardScript,
-                                  CachedUserRepository cachedUserRepository, RedisScript<String> createUserCachedScript) {
+                                  CachedUserRepository cachedUserRepository, RedisScript<String> createUserCachedScript, MappingJackson2HttpMessageConverter mappingJackson2HttpMessageConverter, RedisScript<String> deleteLeaderboardScript) {
 
         this.stringRedisTemplate = stringRedisTemplate;
         this.leaderboardInfoRepository = LeaderboardInfoRepository;
@@ -43,9 +55,12 @@ public class LeaderboardServiceImpl implements LeaderboardService{
         this.createLeaderboardScript = createLeaderboardScript;
         this.cachedUserRepository = cachedUserRepository;
         this.createUserCachedScript = createUserCachedScript;
+        this.mappingJackson2HttpMessageConverter = mappingJackson2HttpMessageConverter;
+        this.deleteLeaderboardScript = deleteLeaderboardScript;
     }
 
     @Override
+    @Transactional
     public void increaseUserScore(UserScoreEvent changeEvent) {
 
         userCachedCheck(changeEvent.getUserId(), changeEvent.getUsername(), changeEvent.getRegion());
@@ -78,6 +93,7 @@ public class LeaderboardServiceImpl implements LeaderboardService{
     }
 
     @Override
+    @Transactional
     public void addNewScore(UserScoreUploadEvent uploadEvent) {
         userCachedCheck(uploadEvent.getUserId(), uploadEvent.getUsername(), uploadEvent.getRegion());
         executeScoreChange(
@@ -101,7 +117,14 @@ public class LeaderboardServiceImpl implements LeaderboardService{
         );
 
         List<String> keys = getStrings(userId, lbId, info.getGlobalRange(), isMutable);
-
+        System.out.println("KEYS: " + keys);
+        System.out.println(userId +
+                String.valueOf(scoreDelta)+
+                info.getMaxEventsPerUser() +
+                info.getMaxEventsPerUserPerDay() +
+                cached.getRegion()+
+                info.getGlobalRange()
+        );
         String execute = stringRedisTemplate.execute(
                 isMutable? mutableLeaderboardScript : immutableLeaderboardScript,
                 keys,
@@ -109,10 +132,11 @@ public class LeaderboardServiceImpl implements LeaderboardService{
                 String.valueOf(scoreDelta),
                 String.valueOf(info.getMaxEventsPerUser()),
                 String.valueOf(info.getMaxEventsPerUserPerDay()),
-                cached.getRegion(),
-                String.valueOf(info.getGlobalRange())
+                info.getRegions().toString(),
+                String.valueOf(info.getGlobalRange()),
+                lbId,
+                cached.getRegion()
         );
-
         if (!"success".equals(execute)) {
             throw new IllegalStateException("Failed to update score for user " + userId + ": " + execute);
         }
@@ -127,13 +151,14 @@ public class LeaderboardServiceImpl implements LeaderboardService{
                 ":immutable");
 
         String uhk = "user_cached:" + userId;
-        String globalLbk = "leaderboard-cache:" + lbId + ":top" + globalRange + "Leaderboard";
-        String localLbk = "leaderboard-cache:" + lbId + ":userId:" + userId + ":local-leaderboard-update";
+        String globalLbk = RedisConfig.GLOBAL_STREAM_KEY;
+        String localLbk = RedisConfig.LOCAL_STREAM_KEY;
 
         return List.of(daily, ttla, lbk, uhk, globalLbk, localLbk);
     }
 
     @Override
+    @Transactional
     public String createLeaderboard(InitLeaderboardCreateEvent request, String region) {
         if(request.getMaxScore() < -1 && request.getMaxScore() == request.getInitialValue()) {
             throw new IllegalArgumentException("initial value cannot be equal or greater than max score");
@@ -152,19 +177,32 @@ public class LeaderboardServiceImpl implements LeaderboardService{
 
         List<String> keys = List.of(
                 id,
-                "leaderboard_information:" + map.getId()
+                "leaderboard_information:" + map.getId(),
+                "leaderboard_signal:" + map.getId()
         );
 
         stringRedisTemplate.execute(createLeaderboardScript,
                 keys,
-                request.getOwnerId(), request.getInitialValue(),
-                map.getId(), request.getDescription(),
-                map.isPublic(),map.isMutable(), map.isShowTies()
+                String.valueOf(map.getOwnerId()),
+                String.valueOf(map.getInitialValue()),
+                map.getId(), map.getDescription(),
+                String.valueOf(map.isPublic()),
+                String.valueOf(map.isMutable()),
+                String.valueOf(map.isShowTies()),
+                String.valueOf(map.getGlobalRange()),
+                LocalDateTime.now().toString(),
+                map.getExpireAt().toString(),
+                String.valueOf(map.getMaxScore()),
+                map.getRegions().toString(),
+                String.valueOf(map.getMaxEventsPerUser()),
+                String.valueOf(map.getMaxEventsPerUserPerDay()),
+                Duration.ofDays(1).toMillis()
         );
         return map.getId();
     }
 
     @Override
+    @Transactional
     public void initUserScore(InitUserScoreRequest request, String username, long userId, String region) {
         LeaderboardInfo lb = leaderboardInfoRepository.findById(request.getLeaderboardId())
                 .orElseThrow();
@@ -177,6 +215,7 @@ public class LeaderboardServiceImpl implements LeaderboardService{
 
 
     @Override
+    @Transactional
     public void updateUserCache(UserUpdateEvent userUpdateEvent) {
         UserCached userCached = cachedUserRepository.findById(userUpdateEvent.getId()).orElseThrow();
         userCached.setUsername(userUpdateEvent.getName());
@@ -184,5 +223,24 @@ public class LeaderboardServiceImpl implements LeaderboardService{
                 userUpdateEvent
                         .getRegion().getCode());
         cachedUserRepository.save(userCached);
+    }
+
+    @Override
+    @Transactional
+    public void deleteLeaderboard(String lbId) {
+        LeaderboardInfo byId =
+                leaderboardInfoRepository.findById(lbId).orElseThrow();
+        stringRedisTemplate.execute(deleteLeaderboardScript,
+                List.of(
+                        byId.getKey(),
+                        byId.getInfoKey(),
+                        byId.getSignalKey())
+        );
+    }
+
+    @Transactional
+    @Override
+    public void confirmLbCreation() {
+
     }
 }

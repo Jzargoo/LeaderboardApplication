@@ -1,11 +1,14 @@
 package com.jzargo.leaderboardmicroservice.config;
 
+import com.jzargo.leaderboardmicroservice.handler.ExpirationLeaderboardPubSubHandler;
 import com.jzargo.leaderboardmicroservice.handler.RedisGlobalLeaderboardUpdateHandler;
 import com.jzargo.leaderboardmicroservice.handler.RedisLocalLeaderboardHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.stream.Consumer;
 import org.springframework.data.redis.connection.stream.MapRecord;
@@ -13,16 +16,21 @@ import org.springframework.data.redis.connection.stream.ReadOffset;
 import org.springframework.data.redis.connection.stream.StreamOffset;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.data.redis.core.script.RedisScript;
+import org.springframework.data.redis.listener.ChannelTopic;
+import org.springframework.data.redis.listener.PatternTopic;
 import org.springframework.data.redis.listener.RedisMessageListenerContainer;
+import org.springframework.data.redis.listener.adapter.MessageListenerAdapter;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer.StreamMessageListenerContainerOptions;
 import org.springframework.scripting.support.ResourceScriptSource;
 
 import java.time.Duration;
 
+import static org.springframework.data.redis.listener.Topic.pattern;
 import static org.springframework.data.redis.stream.StreamMessageListenerContainer.*;
 
 @Configuration
+@Import(RedisLuaScriptsConfig.class)
 @Slf4j
 public class RedisConfig {
 
@@ -32,56 +40,33 @@ public class RedisConfig {
     public static final String LOCAL_GROUP_NAME = "local-consumer-group";
 
     @Bean
-    RedisScript<String> mutableLeaderboardScript(){
-        DefaultRedisScript<String> redisScript = new DefaultRedisScript<>();
-        redisScript.setScriptSource(
-                new ResourceScriptSource(new ClassPathResource("/scripts/increase_user_score.lua"))
-        );
-        redisScript.setResultType(String.class);
-        return redisScript;
+    public RedisMessageListenerContainer redisMessageListenerContainer(
+            RedisConnectionFactory redisConnectionFactory,
+            MessageListenerAdapter messageListenerAdapter
+            ){
+
+        redisConnectionFactory.getConnection()
+                .serverCommands().setConfig("notify-keyspace-events", "Ex");
+
+        RedisMessageListenerContainer redisMessageListenerContainer
+                = new RedisMessageListenerContainer();
+        redisMessageListenerContainer.setConnectionFactory(redisConnectionFactory);
+
+        for(short db = 0; db < 16; db++) {
+            redisMessageListenerContainer.addMessageListener(
+                    messageListenerAdapter,
+                    new PatternTopic(
+                            "__keyevent@" + db + "__:expired")
+            );
+        }
+
+        return redisMessageListenerContainer;
     }
 
     @Bean
-    RedisScript<String> sagaSuccessfulScript(){
-        DefaultRedisScript<String> redisScript = new DefaultRedisScript<>();
-        redisScript.setScriptSource(
-                new ResourceScriptSource(new ClassPathResource("/scripts/SagaSuccessfulStep.lua"))
-        );
-        redisScript.setResultType(String.class);
-        return redisScript;
+    public MessageListenerAdapter messageListenerAdapter(ExpirationLeaderboardPubSubHandler subscriber){
+        return new MessageListenerAdapter(subscriber, "onMessage");
     }
-
-
-    @Bean
-    RedisScript<String> createLeaderboardScript(){
-        DefaultRedisScript<String> redisScript = new DefaultRedisScript<>();
-        redisScript.setScriptSource(
-                new ResourceScriptSource(new ClassPathResource("/scripts/create_leaderboard.lua"))
-        );
-        redisScript.setResultType(String.class);
-        return redisScript;
-    }
-
-    @Bean
-    RedisScript<String> createUserCachedScript(){
-        DefaultRedisScript<String> redisScript = new DefaultRedisScript<>();
-        redisScript.setScriptSource(
-                new ResourceScriptSource(new ClassPathResource("/scripts/create_user_cached.lua"))
-        );
-        redisScript.setResultType(String.class);
-        return redisScript;
-    }
-
-    @Bean
-    RedisScript<String> immutableLeaderboardScript(){
-        DefaultRedisScript<String> redisScript = new DefaultRedisScript<>();
-        redisScript.setScriptSource(
-                new ResourceScriptSource(new ClassPathResource("/scripts/update_user_score.lua"))
-        );
-        redisScript.setResultType(String.class);
-        return redisScript;
-    }
-
 
     @Bean
     public StreamMessageListenerContainer<String, MapRecord<String, String, String>> streamMessageListenerContainer(
