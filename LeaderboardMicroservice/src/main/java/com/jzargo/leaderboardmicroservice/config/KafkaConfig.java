@@ -8,10 +8,13 @@ import org.springframework.kafka.config.TopicBuilder;
 
 @Configuration
 public class KafkaConfig{
+    //Consume push events
     public static final String LEADERBOARD_EVENT_TOPIC = "leaderboard-event-topic";
     public static final String LEADERBOARD_UPDATE_TOPIC = "leaderboard-update-topic";
     public static final String MESSAGE_ID = "message-id";
+    //Updating cached user
     public static final String USER_STATE_EVENT_TOPIC = "user-state-event-topic";
+    // Consume and produce events of create leaderboard
     public static final String SAGA_CREATE_LEADERBOARD_TOPIC = "saga-create-leaderboard-topic";
     public static final String SAGA_ID_HEADER = "saga-id";
     public static final String GROUP_ID = "leaderboard-group";

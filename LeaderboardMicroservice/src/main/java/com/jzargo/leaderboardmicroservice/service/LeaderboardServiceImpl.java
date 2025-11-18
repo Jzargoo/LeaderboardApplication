@@ -12,20 +12,16 @@ import com.jzargo.messaging.UserScoreEvent;
 import com.jzargo.messaging.UserScoreUploadEvent;
 import com.jzargo.messaging.UserUpdateEvent;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataAccessException;
-import org.springframework.data.redis.connection.RedisConnection;
-import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.Arrays;
+import java.time.ZoneId;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @Slf4j
@@ -39,13 +35,13 @@ public class LeaderboardServiceImpl implements LeaderboardService{
     private final MapperCreateLeaderboardInfo mapperCreateLeaderboardInfo;
     private final CachedUserRepository cachedUserRepository;
     private final RedisScript<String> createUserCachedScript;
-    private final MappingJackson2HttpMessageConverter mappingJackson2HttpMessageConverter;
     private final RedisScript<String> deleteLeaderboardScript;
+    private final RedisScript<String> confirmLbCreationScript;
 
     public LeaderboardServiceImpl(StringRedisTemplate stringRedisTemplate, LeaderboardInfoRepository LeaderboardInfoRepository,
                                   RedisScript<String> mutableLeaderboardScript, RedisScript<String> immutableLeaderboardScript,
                                   MapperCreateLeaderboardInfo mapperCreateLeaderboardInfo, RedisScript<String> createLeaderboardScript,
-                                  CachedUserRepository cachedUserRepository, RedisScript<String> createUserCachedScript, MappingJackson2HttpMessageConverter mappingJackson2HttpMessageConverter, RedisScript<String> deleteLeaderboardScript) {
+                                  CachedUserRepository cachedUserRepository, RedisScript<String> createUserCachedScript, RedisScript<String> deleteLeaderboardScript, RedisScript<String> confirmLbCreationScript, RedisScript<String> confirmLbCreationScript1) {
 
         this.stringRedisTemplate = stringRedisTemplate;
         this.leaderboardInfoRepository = LeaderboardInfoRepository;
@@ -55,8 +51,8 @@ public class LeaderboardServiceImpl implements LeaderboardService{
         this.createLeaderboardScript = createLeaderboardScript;
         this.cachedUserRepository = cachedUserRepository;
         this.createUserCachedScript = createUserCachedScript;
-        this.mappingJackson2HttpMessageConverter = mappingJackson2HttpMessageConverter;
         this.deleteLeaderboardScript = deleteLeaderboardScript;
+        this.confirmLbCreationScript = confirmLbCreationScript1;
     }
 
     @Override
@@ -116,7 +112,7 @@ public class LeaderboardServiceImpl implements LeaderboardService{
                         new IllegalArgumentException("Leaderboard with id " + lbId + " does not exist")
         );
 
-        List<String> keys = getStrings(userId, lbId, info.getGlobalRange(), isMutable);
+        List<String> keys = getStrings(userId, lbId, isMutable);
         System.out.println("KEYS: " + keys);
         System.out.println(userId +
                 String.valueOf(scoreDelta)+
@@ -142,7 +138,7 @@ public class LeaderboardServiceImpl implements LeaderboardService{
         }
     }
 
-    private static List<String> getStrings(Long userId, String lbId, int globalRange, boolean isMutable) {
+    private static List<String> getStrings(Long userId, String lbId, boolean isMutable) {
         String daily = "user_cached:" + userId + ":dailyAttempts";
         String ttla = "user_cached:" + userId + ":totalAttempts";
 
@@ -166,19 +162,13 @@ public class LeaderboardServiceImpl implements LeaderboardService{
         userCachedCheck(request.getOwnerId(), request.getUsername(), region);
         LeaderboardInfo map = mapperCreateLeaderboardInfo.map(request);
 
-        StringBuilder builder = new StringBuilder("leaderboard:");
-        builder.append(map.getId())
-                .append(":")
-                .append(map.isMutable()?
-                        "mutable":
-                        "immutable");
 
-        String id = builder.toString();
+        String id = map.getKey();
 
         List<String> keys = List.of(
                 id,
-                "leaderboard_information:" + map.getId(),
-                "leaderboard_signal:" + map.getId()
+                map.getInfoKey(),
+                map.getSignalKey()
         );
 
         stringRedisTemplate.execute(createLeaderboardScript,
@@ -240,7 +230,20 @@ public class LeaderboardServiceImpl implements LeaderboardService{
 
     @Transactional
     @Override
-    public void confirmLbCreation() {
+    public void confirmLbCreation(String lbId) {
+        LeaderboardInfo byId =
+                leaderboardInfoRepository.findById(lbId).orElseThrow();
 
+        long milli = Duration.between(
+                Instant.now().atZone(ZoneId.systemDefault()),
+                byId.getExpireAt().atZone(ZoneId.systemDefault()).toInstant()
+        ).toMillis();
+
+        stringRedisTemplate.execute(confirmLbCreationScript,
+                List.of(byId.getInfoKey(),
+                        byId.getSignalKey()),
+                milli
+        );
     }
+
 }

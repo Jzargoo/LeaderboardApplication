@@ -70,4 +70,14 @@ public class RedisLuaScriptsConfig {
         return redisScript;
     }
 
+    @Bean
+    RedisScript<String> confirmLbCreationScript(){
+        DefaultRedisScript<String> redisScript = new DefaultRedisScript<>();
+        redisScript.setScriptSource(
+                new ResourceScriptSource(new ClassPathResource("/scripts/confirm_leaderboard_creation.lua"))
+        );
+        redisScript.setResultType(String.class);
+        return redisScript;
+    }
+
 }

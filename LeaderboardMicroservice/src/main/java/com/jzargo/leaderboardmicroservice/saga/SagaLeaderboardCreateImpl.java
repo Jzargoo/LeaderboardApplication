@@ -136,7 +136,7 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate {
                 SagaStep.USER_PROFILE_UPDATE.name()
         );
 
-        leaderboardService.confirmLbCreation();
+        leaderboardService.confirmLbCreation(userAddedLeaderboard.getLbId());
     }
 
     @Transactional

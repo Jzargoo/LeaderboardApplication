@@ -5,6 +5,7 @@ import com.jzargo.leaderboardmicroservice.dto.InitUserScoreRequest;
 import com.jzargo.messaging.UserScoreEvent;
 import com.jzargo.messaging.UserScoreUploadEvent;
 import com.jzargo.messaging.UserUpdateEvent;
+import org.springframework.transaction.annotation.Transactional;
 
 public interface LeaderboardService {
     void increaseUserScore(UserScoreEvent changeEvent);
@@ -17,6 +18,5 @@ public interface LeaderboardService {
             String username, long userId, String region);
     void updateUserCache(UserUpdateEvent userUpdateEvent);
     void deleteLeaderboard(String lbId);
-
-    void confirmLbCreation();
+    void confirmLbCreation(String lbId);
 }

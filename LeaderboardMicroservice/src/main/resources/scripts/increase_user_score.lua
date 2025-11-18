@@ -12,7 +12,7 @@
 -- ARGV[5] = allowedRegion
 -- ARGV[6] = countGlobalTop
 -- ARGV[7] = lbId
--- ARGV[8] =
+-- ARGV[8] = userRegion
 -- daily attempts
 local daily = tonumber(redis.call("HGET", KEYS[1], "__init__") or "0")
 
