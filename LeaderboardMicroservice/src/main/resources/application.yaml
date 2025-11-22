@@ -1,3 +1,6 @@
 spring:
   application:
     name: LeaderboardMicroservice
+leaderboard:
+  max:
+    durationForInactiveState: 86400000

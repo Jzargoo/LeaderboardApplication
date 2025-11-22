@@ -1,5 +1,6 @@
 package com.jzargo.leaderboardmicroservice;
 
+import com.jzargo.leaderboardmicroservice.exceptions.CannotCreateCachedUserException;
 import com.jzargo.leaderboardmicroservice.handler.KafkaUserScoreHandler;
 import com.jzargo.leaderboardmicroservice.handler.RedisGlobalLeaderboardUpdateHandler;
 import com.jzargo.leaderboardmicroservice.handler.RedisLocalLeaderboardHandler;
@@ -88,11 +89,15 @@ public class KafkaLeaderboardIntegrationTest {
                 LEADERBOARD_ID,
                 new HashMap<>()
         );
-        doNothing()
-                .when(leaderboardService)
-                .increaseUserScore(
-                    any(UserScoreEvent.class)
-                );
+        try {
+            doNothing()
+                    .when(leaderboardService)
+                    .increaseUserScore(
+                        any(UserScoreEvent.class)
+                    );
+        } catch (CannotCreateCachedUserException e) {
+            throw new RuntimeException(e);
+        }
         String messageId = UUID.randomUUID().toString();
         ProducerRecord<String, UserScoreEvent> pr =
                 new ProducerRecord<>(LEADERBOARD_EVENT_TOPIC, String.valueOf(USER_ID) ,userScoreEvent);

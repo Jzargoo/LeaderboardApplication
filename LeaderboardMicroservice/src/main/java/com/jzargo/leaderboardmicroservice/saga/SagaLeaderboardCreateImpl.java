@@ -171,6 +171,7 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate {
 
     }
 
+    //Compensates caught event from event micros and means events are not created
     @Transactional
     @Override
     public void compensateStepOptionalEvent(String sagaId, FailedLeaderboardCreation failedLeaderboardCreation) {
@@ -200,6 +201,7 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate {
         }
     }
 
+    //Compensates while creating was successful but there are external factors
     @Override
     public void compensateStepOptionalEvent(String sagaId, LeaderboardEventDeletion leaderboardEventDeletion) {
         try {
@@ -240,8 +242,45 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate {
             log.warn("cannot compensate because status equals {}", sagaState.getStatus());
             return;
         }
-        leaderboardService.deleteLeaderboard(dle.getLbId());
+        leaderboardService.deleteLeaderboard(dle.getLbId(), sagaId);
 
+    }
+
+    @Override
+    public boolean stepOutOfTime(String lbId) {
+        List<SagaControllingState> sagas = sagaControllingStateRepository.findByLeaderboardId(lbId);
+        if (sagas == null) {
+            log.error("No sagas found for lbId {}", lbId);
+            return true;
+        }
+        if (sagas.size() != 1) {
+            log.error("Multiple sagas found for lbId {}", lbId);
+            sagas.forEach(saga -> {
+                saga.setStatus(SagaStep.FAILED);
+                sagaControllingStateRepository.save(saga);
+            });
+            return true;
+        }
+
+        SagaControllingState saga = sagas.getFirst();
+
+        switch (saga.getStatus()) {
+            case LEADERBOARD_CREATE -> stepCompensateLeaderboard(
+                    new DeleteLbEvent(lbId), saga.getId()
+            );
+            case OPTIONAL_EVENTS_CREATE -> compensateStepOptionalEvent(
+                    saga.getId(), new LeaderboardEventDeletion(lbId));
+            case USER_PROFILE_UPDATE -> {} //TODO: realize sending to user profile event due to the fact that step which compensate for user profile does not exist
+            case COMPLETE -> {
+                log.warn("Saga was completed but in some reasons it does not confirmed");
+                leaderboardService.confirmLbCreation(lbId);
+                return false;
+            }
+            case FAILED -> leaderboardService.deleteLeaderboard(lbId, saga.getId());
+            case null, default -> log.warn("Saga either does not have status or it has already compensated");
+
+        }
+        return true;
     }
 
     private void sentLeaderboardDeletion(String sagaId,String lbId){

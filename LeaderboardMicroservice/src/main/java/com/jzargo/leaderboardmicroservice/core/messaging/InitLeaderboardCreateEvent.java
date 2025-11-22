@@ -22,7 +22,7 @@ public class InitLeaderboardCreateEvent {
     private int globalRange;
     private String lbId;
     private String nameLb;
-    private int initialValue;
+    private double initialValue;
     private boolean isPublic;
     private boolean isMutable;
     private LocalDateTime expireAt;

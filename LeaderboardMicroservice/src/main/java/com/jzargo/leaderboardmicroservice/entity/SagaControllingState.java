@@ -26,4 +26,8 @@ public class SagaControllingState {
     @Builder.Default
     private LocalDateTime updatedAt = LocalDateTime.now();
     private SagaStep status;
+
+    public String getKey() {
+        return "saga_controlling_state:" + id;
+    }
 }

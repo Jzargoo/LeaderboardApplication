@@ -4,23 +4,25 @@ import com.jzargo.leaderboardmicroservice.config.RedisConfig;
 import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.leaderboardmicroservice.dto.InitUserScoreRequest;
 import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
+import com.jzargo.leaderboardmicroservice.entity.SagaControllingState;
 import com.jzargo.leaderboardmicroservice.entity.UserCached;
+import com.jzargo.leaderboardmicroservice.exceptions.CannotCreateCachedUserException;
 import com.jzargo.leaderboardmicroservice.mapper.MapperCreateLeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.repository.CachedUserRepository;
 import com.jzargo.leaderboardmicroservice.repository.LeaderboardInfoRepository;
+import com.jzargo.leaderboardmicroservice.repository.SagaControllingStateRepository;
 import com.jzargo.messaging.UserScoreEvent;
 import com.jzargo.messaging.UserScoreUploadEvent;
 import com.jzargo.messaging.UserUpdateEvent;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.*;
 import java.util.List;
 
 @Service
@@ -37,11 +39,19 @@ public class LeaderboardServiceImpl implements LeaderboardService{
     private final RedisScript<String> createUserCachedScript;
     private final RedisScript<String> deleteLeaderboardScript;
     private final RedisScript<String> confirmLbCreationScript;
+    private final SagaControllingStateRepository sagaControllingStateRepository;
+
+    //  Values which are lesser than 0 mean absence of timer
+    @Value("${leaderboard.max.durationForInactiveState:86400000}")
+    private Long maxDurationForInactiveState;
 
     public LeaderboardServiceImpl(StringRedisTemplate stringRedisTemplate, LeaderboardInfoRepository LeaderboardInfoRepository,
                                   RedisScript<String> mutableLeaderboardScript, RedisScript<String> immutableLeaderboardScript,
                                   MapperCreateLeaderboardInfo mapperCreateLeaderboardInfo, RedisScript<String> createLeaderboardScript,
-                                  CachedUserRepository cachedUserRepository, RedisScript<String> createUserCachedScript, RedisScript<String> deleteLeaderboardScript, RedisScript<String> confirmLbCreationScript, RedisScript<String> confirmLbCreationScript1) {
+                                  CachedUserRepository cachedUserRepository, RedisScript<String> createUserCachedScript,
+                                  RedisScript<String> deleteLeaderboardScript,
+                                  RedisScript<String> confirmLbCreationScript,
+                                  SagaControllingStateRepository sagaControllingStateRepository) {
 
         this.stringRedisTemplate = stringRedisTemplate;
         this.leaderboardInfoRepository = LeaderboardInfoRepository;
@@ -52,12 +62,12 @@ public class LeaderboardServiceImpl implements LeaderboardService{
         this.cachedUserRepository = cachedUserRepository;
         this.createUserCachedScript = createUserCachedScript;
         this.deleteLeaderboardScript = deleteLeaderboardScript;
-        this.confirmLbCreationScript = confirmLbCreationScript1;
+        this.confirmLbCreationScript = confirmLbCreationScript;
+        this.sagaControllingStateRepository = sagaControllingStateRepository;
     }
 
     @Override
-    @Transactional
-    public void increaseUserScore(UserScoreEvent changeEvent) {
+    public void increaseUserScore(UserScoreEvent changeEvent) throws CannotCreateCachedUserException {
 
         userCachedCheck(changeEvent.getUserId(), changeEvent.getUsername(), changeEvent.getRegion());
         executeScoreChange(
@@ -69,25 +79,30 @@ public class LeaderboardServiceImpl implements LeaderboardService{
         log.info("incremented score for user: " + changeEvent.getUserId());
     }
 
-    private void userCachedCheck(Long userId, String username, String region) {
+    private void userCachedCheck(Long userId, String username, String region) throws CannotCreateCachedUserException {
         if (cachedUserRepository.existsById(userId)) {
             return;
         }
 
-        String execute = stringRedisTemplate.execute(createUserCachedScript,
-                List.of("user_cached:" + userId,
-                        "user_cached:" + userId + ":daily_attempts",
-                        "user_cached:" + userId + ":total_attempts"
-                ),
+        List<String> keys = List.of("user_cached:" + userId,
+                "user_cached:" + userId + ":daily_attempts",
+                "user_cached:" + userId + ":total_attempts"
+        );
+
+        String execute = stringRedisTemplate.execute(
+                createUserCachedScript,
+                keys,
                 userId.toString(), username, region
         );
+
         if(!execute.equals("OK")) {
             log.error("Adding new user failed with id {} and name {}", userId, username);
-            throw new IllegalStateException("Cannot create user cached version");
+            throw new CannotCreateCachedUserException("Cannot create user cached version");
         }
         log.info("Adding new user ended successfully for username {}",username);
     }
 
+    @SneakyThrows
     @Override
     @Transactional
     public void addNewScore(UserScoreUploadEvent uploadEvent) {
@@ -153,6 +168,7 @@ public class LeaderboardServiceImpl implements LeaderboardService{
         return List.of(daily, ttla, lbk, uhk, globalLbk, localLbk);
     }
 
+    @SneakyThrows
     @Override
     @Transactional
     public String createLeaderboard(InitLeaderboardCreateEvent request, String region) {
@@ -186,11 +202,12 @@ public class LeaderboardServiceImpl implements LeaderboardService{
                 map.getRegions().toString(),
                 String.valueOf(map.getMaxEventsPerUser()),
                 String.valueOf(map.getMaxEventsPerUserPerDay()),
-                Duration.ofDays(1).toMillis()
+                maxDurationForInactiveState
         );
         return map.getId();
     }
 
+    @SneakyThrows
     @Override
     @Transactional
     public void initUserScore(InitUserScoreRequest request, String username, long userId, String region) {
@@ -217,14 +234,21 @@ public class LeaderboardServiceImpl implements LeaderboardService{
 
     @Override
     @Transactional
-    public void deleteLeaderboard(String lbId) {
+    public void deleteLeaderboard(String lbId, String sagaId) {
+
         LeaderboardInfo byId =
                 leaderboardInfoRepository.findById(lbId).orElseThrow();
+
+        SagaControllingState sagaControllingState = sagaControllingStateRepository
+                .findById(sagaId).orElseThrow();
+
         stringRedisTemplate.execute(deleteLeaderboardScript,
                 List.of(
                         byId.getKey(),
                         byId.getInfoKey(),
-                        byId.getSignalKey())
+                        byId.getSignalKey(),
+                        sagaControllingState.getKey()
+                        )
         );
     }
 
@@ -235,8 +259,8 @@ public class LeaderboardServiceImpl implements LeaderboardService{
                 leaderboardInfoRepository.findById(lbId).orElseThrow();
 
         long milli = Duration.between(
-                Instant.now().atZone(ZoneId.systemDefault()),
-                byId.getExpireAt().atZone(ZoneId.systemDefault()).toInstant()
+                Instant.now(),
+                byId.getExpireAt().toInstant(ZoneOffset.UTC)
         ).toMillis();
 
         stringRedisTemplate.execute(confirmLbCreationScript,

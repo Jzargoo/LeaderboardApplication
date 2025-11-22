@@ -12,7 +12,6 @@ import java.util.Map;
 @AllArgsConstructor
 @Data
 public class UserScoreEvent {
-
     private double score;
     private String username;
     private Long userId;

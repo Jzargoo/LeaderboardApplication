@@ -1,6 +1,7 @@
 package com.jzargo.leaderboardmicroservice;
 
 import com.jzargo.leaderboardmicroservice.config.KafkaConfig;
+import com.jzargo.leaderboardmicroservice.exceptions.CannotCreateCachedUserException;
 import com.jzargo.leaderboardmicroservice.handler.RedisGlobalLeaderboardUpdateHandler;
 import com.jzargo.leaderboardmicroservice.handler.RedisLocalLeaderboardHandler;
 import com.jzargo.leaderboardmicroservice.repository.CachedUserRepository;
@@ -143,7 +144,11 @@ class LeaderboardPushEventIntegrationTest {
         userScoreEvent.setUsername(USERNAME);
         userScoreEvent.setLbId(MUTABLE_LEADERBOARD_ID.toString());
 
-        leaderboardService.increaseUserScore(userScoreEvent);
+        try {
+            leaderboardService.increaseUserScore(userScoreEvent);
+        } catch (CannotCreateCachedUserException e) {
+            throw new RuntimeException(e);
+        }
 
         assertLeaderboardState(
                 MUTABLE_LEADERBOARD_ID,

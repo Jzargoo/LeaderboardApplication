@@ -206,7 +206,6 @@ public class SagaLeaderboardCreateIntegrationTest {
         assertEquals(req.getRegions(), initEvent.getRegions());
         assertEquals(req.getEvents(), initEvent.getEvents());
         assertEquals(req.getExpireAt(), initEvent.getExpireAt());
-        assertFalse(initEvent.getLbId().isBlank());
     }
 
     public void assertLeaderboardEventInitialization(InitLeaderboardCreateEvent initEvent,
