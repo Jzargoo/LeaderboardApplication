@@ -1,4 +1,4 @@
-package com.jzargo.leaderboardmicroservice;
+package com.jzargo.leaderboardmicroservice.integration;
 
 import com.jzargo.leaderboardmicroservice.config.KafkaConfig;
 import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEvent;
@@ -31,9 +31,11 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
+
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.awaitility.Awaitility.await;

@@ -1,0 +1,17 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1
+      author: jzargo
+
+  - include:
+      file: db/changelog/change-sets/create_user_table.sql
+  - include:
+      file: db/changelog/change-sets/create_failed_leaderboard_creation_table.sql
+  - include:
+      file: db/changelog/change-sets/create_processing_messages_table.sql
+  - include:
+      file: db/changelog/change-sets/create_user_added_created_lb.sql
+  - include:
+      file: db/changelog/change-sets/create_active_leaderboards_table.sql
+  - include:
+      file: db/changelog/change-sets/create_created_leaderboard_table.sql

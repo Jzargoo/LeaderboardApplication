@@ -5,7 +5,6 @@ import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.repository.LeaderboardInfoRepository;
 import com.jzargo.leaderboardmicroservice.saga.SagaLeaderboardCreate;
 import com.jzargo.leaderboardmicroservice.saga.SagaUtils;
-import com.jzargo.leaderboardmicroservice.service.LeaderboardService;
 import com.jzargo.messaging.DiedLeaderboardEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -16,10 +15,10 @@ import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 
 @Component
@@ -72,29 +71,31 @@ public class ExpirationLeaderboardPubSubHandler implements MessageListener {
             Set<ZSetOperations.TypedTuple<String>> typedTuples = stringRedisTemplate.opsForZSet()
                     .reverseRangeWithScores(byId.getKey(), 0, -1);
 
-            Map<Long, Double> collected = Map.of();
+            Map<Long, Double> collected = new LinkedHashMap<>();
 
             if (typedTuples != null) {
-                collected = typedTuples.stream().map(
-                        tuple ->
-                                Map.entry(
-                                        Long.valueOf(
-                                                Objects.requireNonNull(tuple.getValue())
-                                        ),
-                                        Objects.requireNonNull(tuple.getScore()))
-                ).collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue
-                ));
+                for(ZSetOperations.TypedTuple<String> typedTuple :typedTuples){
+                    collected.put(
+                            Long.valueOf(
+                                    Objects.requireNonNull(
+                                        typedTuple.getValue()
+                                    )
+                            ),
+                            typedTuple.getScore());
+                }
             } else{
                 log.warn("Empty leaderboard");
             }
-            sendKafkaMessage(byId.getId(), byId.getName(), byId.getDescription(), collected);
+            sendKafkaMessage(byId.getId(), byId.getName(), byId.getDescription(), collected, byId.getOwnerId());
         }
     }
 
-    private void sendKafkaMessage(String lbId, String lbName, String lbDescription, Map<Long, Double> collected) {
-        DiedLeaderboardEvent diedLeaderboardEvent = new DiedLeaderboardEvent(lbName, lbDescription, collected);
+    private void sendKafkaMessage(String lbId, String lbName, String lbDescription, Map<Long, Double> collected, Long ownerId) {
+        DiedLeaderboardEvent diedLeaderboardEvent = new DiedLeaderboardEvent(
+                lbName,
+                ownerId,
+                lbDescription,
+                collected);
 
         ProducerRecord<String, Object> record = SagaUtils.createRecord(
                 KafkaConfig.LEADERBOARD_UPDATE_TOPIC,

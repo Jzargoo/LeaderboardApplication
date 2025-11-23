@@ -1,4 +1,4 @@
-package com.jzargo.leaderboardmicroservice;
+package com.jzargo.leaderboardmicroservice.integration;
 
 import com.jzargo.leaderboardmicroservice.config.KafkaConfig;
 import com.jzargo.leaderboardmicroservice.exceptions.CannotCreateCachedUserException;
@@ -30,10 +30,11 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-import java.util.*;
+import java.util.Objects;
+import java.util.Set;
 
+import static com.jzargo.leaderboardmicroservice.integration.IntegrationTestHelper.*;
 import static org.junit.jupiter.api.Assertions.*;
-import static com.jzargo.leaderboardmicroservice.IntegrationTestHelper.*;
 
 @Testcontainers
 @EnableAutoConfiguration(exclude = { KafkaAutoConfiguration.class })

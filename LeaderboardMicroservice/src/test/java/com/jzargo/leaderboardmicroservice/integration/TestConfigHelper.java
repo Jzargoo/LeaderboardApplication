@@ -1,4 +1,4 @@
-package com.jzargo.leaderboardmicroservice;
+package com.jzargo.leaderboardmicroservice.integration;
 
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -9,7 +9,7 @@ import org.springframework.data.redis.core.script.RedisScript;
 public class TestConfigHelper {
     @Bean
     public IntegrationTestHelper integrationTestHelper(StringRedisTemplate stringRedisTemplate,
-                                                       RedisScript<String>createLeaderboardScript) {
+                                                       RedisScript<String> createLeaderboardScript) {
         return new IntegrationTestHelper(stringRedisTemplate, createLeaderboardScript);
     }
 

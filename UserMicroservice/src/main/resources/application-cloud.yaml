@@ -2,6 +2,8 @@ server:
   port: 8080
 
 spring:
+  datasource:
+    url: db
   kafka:
     consumer:
       bootstrap-servers: kafka1:9090,kafka2:9090
@@ -26,4 +28,4 @@ spring:
 eureka:
   client:
     service-url:
-      defaultZone: http://eureka:8761
+      defaultZone: http://eureka:8761/eureka

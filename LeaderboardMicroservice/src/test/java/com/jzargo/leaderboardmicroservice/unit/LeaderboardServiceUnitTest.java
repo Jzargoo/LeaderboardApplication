@@ -15,15 +15,14 @@ import com.jzargo.messaging.UserScoreEvent;
 import com.jzargo.messaging.UserScoreUploadEvent;
 import com.jzargo.messaging.UserUpdateEvent;
 import com.jzargo.region.Regions;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 
@@ -35,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-
+@MockitoSettings(strictness = Strictness.LENIENT)
 @ExtendWith(MockitoExtension.class)
 public class LeaderboardServiceUnitTest {
 
@@ -130,15 +129,15 @@ public class LeaderboardServiceUnitTest {
                         .execute(
                                 eq(mutableLeaderboardScript),
                                 anyList(),
-                                any(Object[].class))
-        ).thenReturn("success");
+                                argThat(args -> true)
+                        )
+        ).thenAnswer(invocation -> "success");
 
         leaderboardService.increaseUserScore(userScoreEvent);
 
         verify(stringRedisTemplate, times(1))
-                .execute(eq(mutableLeaderboardScript), anyList(), any(Object[].class));
+                .execute(eq(mutableLeaderboardScript), anyList(),argThat(args -> true));
     }
-
     @Test
     public void increaseUserScore_UserNotCached_CreationFails() {
         when(cachedUserRepository.existsById(anyLong())).thenReturn(false);
@@ -163,11 +162,11 @@ public class LeaderboardServiceUnitTest {
         when(cachedUserRepository.existsById(anyLong())).thenReturn(true);
         when(leaderboardInfoRepository.findById(anyString())).thenReturn(Optional.of(testLeaderboardInfo));
         when(cachedUserRepository.findById(anyLong())).thenReturn(Optional.of(userCached));
-        when(stringRedisTemplate.execute(eq(mutableLeaderboardScript), anyList(), any(Object[].class))).thenReturn("success");
+        when(stringRedisTemplate.execute(eq(immutableLeaderboardScript), anyList(), any(Object[].class))).thenReturn("success");
 
         leaderboardService.addNewScore(uploadEvent);
 
-        verify(stringRedisTemplate, times(1)).execute(eq(mutableLeaderboardScript), anyList(), any(Object[].class));
+        verify(stringRedisTemplate, times(1)).execute(eq(immutableLeaderboardScript), anyList(), any(Object[].class));
     }
 
     @Test

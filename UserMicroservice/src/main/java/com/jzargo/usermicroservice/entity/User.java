@@ -1,5 +1,7 @@
 package com.jzargo.usermicroservice.entity;
 
+import com.jzargo.messaging.OutOfTimeEvent;
+import com.jzargo.messaging.UserNewLeaderboardCreated;
 import com.jzargo.region.Regions;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -59,12 +61,20 @@ public class User {
         activeLeaderboards.remove(leaderboardName);
     }
 
-    public void addCreatedLeaderboard(String name, String lbId) {
+    public void addCreatedLeaderboard(UserNewLeaderboardCreated userNewLeaderboardCreated) {
         if(
-                name == null || name.isBlank() ||
-                lbId ==null || lbId.isBlank() ) {
+                userNewLeaderboardCreated.getName() == null || userNewLeaderboardCreated.getName().isBlank() ||
+                userNewLeaderboardCreated.getLbId() ==null || userNewLeaderboardCreated.getLbId().isBlank() ) {
             return;
         }
-        createdLeaderboards.put(name, lbId);
+        createdLeaderboards.put(userNewLeaderboardCreated.getLbId(), userNewLeaderboardCreated.getName());
+    }
+
+    public void removeCreatedLeaderboard(OutOfTimeEvent event) {
+      if (event.getLeaderboardId() ==null || event.getLeaderboardId().isBlank()) {
+          return;
+      }
+
+      createdLeaderboards.remove(event.getLeaderboardId());
     }
 }

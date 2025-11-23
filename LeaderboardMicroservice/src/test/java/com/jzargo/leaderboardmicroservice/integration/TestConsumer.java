@@ -1,4 +1,4 @@
-package com.jzargo.leaderboardmicroservice;
+package com.jzargo.leaderboardmicroservice.integration;
 
 import com.jzargo.leaderboardmicroservice.config.KafkaConfig;
 import com.jzargo.messaging.GlobalLeaderboardEvent;

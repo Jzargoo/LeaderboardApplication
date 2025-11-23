@@ -1,9 +1,6 @@
 package com.jzargo.usermicroservice.service;
 
-import com.jzargo.messaging.ActiveLeaderboardEvent;
-import com.jzargo.messaging.DiedLeaderboardEvent;
-import com.jzargo.messaging.UserNewLeaderboardCreated;
-import com.jzargo.messaging.UserRegisterRequest;
+import com.jzargo.messaging.*;
 import com.jzargo.usermicroservice.api.model.UserResponse;
 import com.jzargo.usermicroservice.entity.User;
 import com.jzargo.usermicroservice.exception.UserCannotCreateLeaderboardException;
@@ -14,6 +11,7 @@ import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -86,12 +84,15 @@ public class UserServiceImpl implements UserService{
 
     @Override
     public void removeLeaderboard(DiedLeaderboardEvent event) {
-        for(Long userId : event.getUserIds()){
-            User user = userRepository.findById(userId)
+        for(Map.Entry<Long, Double> user :
+                event.getLeaderboardFinalState()
+                        .entrySet()){
+
+            User FoundUser = userRepository.findById(user.getKey())
                     .orElseThrow();
 
-            user.removeActiveLeaderboard(event.getLeaderboardName());
-            userRepository.save(user);
+            FoundUser.removeActiveLeaderboard(event.getLeaderboardName());
+            userRepository.save(FoundUser);
         }
     }
 
@@ -102,6 +103,15 @@ public class UserServiceImpl implements UserService{
 
         User user = userRepository.findById(userId)
                 .orElseThrow(()-> new UserCannotCreateLeaderboardException("Cannot find user with id"));
-        user.addCreatedLeaderboard(userNewLeaderboardCreated.getName(), userNewLeaderboardCreated.getLbId());
+        user.addCreatedLeaderboard(userNewLeaderboardCreated);
+    }
+
+    @Override
+    public void removeCreatedLeaderboard(OutOfTimeEvent outOfTimeEvent) {
+        User user = userRepository
+                .findById(outOfTimeEvent.getOwnerId())
+                .orElseThrow();
+        user.removeCreatedLeaderboard(outOfTimeEvent);
+        userRepository.save(user);
     }
 }

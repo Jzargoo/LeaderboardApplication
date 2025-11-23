@@ -18,5 +18,4 @@ public class UserAddedCreatedLeaderboard {
     private String sagaId;
     private long userId;
     private String lbId;
-
 }

@@ -25,8 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.*;
 import java.util.List;
 
-@Service
 @Slf4j
+@Service
 public class LeaderboardServiceImpl implements LeaderboardService{
 
     private final StringRedisTemplate stringRedisTemplate;
@@ -252,7 +252,6 @@ public class LeaderboardServiceImpl implements LeaderboardService{
         );
     }
 
-    @Transactional
     @Override
     public void confirmLbCreation(String lbId) {
         LeaderboardInfo byId =
@@ -263,11 +262,19 @@ public class LeaderboardServiceImpl implements LeaderboardService{
                 byId.getExpireAt().toInstant(ZoneOffset.UTC)
         ).toMillis();
 
-        stringRedisTemplate.execute(confirmLbCreationScript,
-                List.of(byId.getInfoKey(),
-                        byId.getSignalKey()),
-                milli
+        List<String> keys = List.of(
+                byId.getInfoKey(),
+                byId.getSignalKey());
+
+        String execute = stringRedisTemplate.execute(confirmLbCreationScript,
+                keys,
+                milli + ""
         );
+
+        if("OK".equals(execute)) {
+            log.error("Cannot create leaderboard");
+            throw new IllegalStateException();
+        }
     }
 
 }

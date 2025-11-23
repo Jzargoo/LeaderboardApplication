@@ -1,7 +1,6 @@
-package com.jzargo.leaderboardmicroservice;
+package com.jzargo.leaderboardmicroservice.integration;
 
 import com.jzargo.leaderboardmicroservice.config.KafkaConfig;
-import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.messaging.LeaderboardEventInitialization;
 import com.jzargo.messaging.UserNewLeaderboardCreated;
 import org.springframework.kafka.annotation.KafkaHandler;

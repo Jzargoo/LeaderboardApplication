@@ -1,9 +1,6 @@
 package com.jzargo.usermicroservice.service;
 
-import com.jzargo.messaging.ActiveLeaderboardEvent;
-import com.jzargo.messaging.DiedLeaderboardEvent;
-import com.jzargo.messaging.UserNewLeaderboardCreated;
-import com.jzargo.messaging.UserRegisterRequest;
+import com.jzargo.messaging.*;
 import com.jzargo.usermicroservice.api.model.UserResponse;
 import com.jzargo.usermicroservice.exception.UserCannotCreateLeaderboardException;
 
@@ -24,4 +21,6 @@ public interface UserService {
     void removeLeaderboard(DiedLeaderboardEvent event);
     // Method which add to profile leaderboard  that has been created by a user
     void addCreatedLeaderboard(UserNewLeaderboardCreated userNewLeaderboardCreated) throws UserCannotCreateLeaderboardException;
+
+    void removeCreatedLeaderboard(OutOfTimeEvent outOfTimeEvent );
 }

@@ -14,7 +14,8 @@ import java.time.LocalDateTime;
 
 @Data
 @Entity
-@AllArgsConstructor @NoArgsConstructor
+@AllArgsConstructor
+@NoArgsConstructor
 @Builder
 @Table(name = "processing_messages")
 public class ProcessingMessage {

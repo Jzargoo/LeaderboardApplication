@@ -1,7 +1,7 @@
-package com.jzargo.leaderboardmicroservice;
+package com.jzargo.leaderboardmicroservice.integration;
 
-import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.config.KafkaConfig;
+import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.repository.LeaderboardInfoRepository;
 import com.jzargo.messaging.GlobalLeaderboardEvent;
 import com.jzargo.messaging.UserLocalUpdateEvent;
@@ -27,10 +27,12 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-import static com.jzargo.leaderboardmicroservice.IntegrationTestHelper.*;
+import static com.jzargo.leaderboardmicroservice.integration.IntegrationTestHelper.*;
 import static com.jzargo.leaderboardmicroservice.config.RedisConfig.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -44,7 +46,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Import(TestConfigHelper.class)
 @EmbeddedKafka(partitions = 3,brokerProperties = "num.brokers=3", topics = {KafkaConfig.LEADERBOARD_UPDATE_TOPIC})
 @SpringBootTest(properties = "spring.kafka.producer.bootstrap-servers=${spring.embedded.kafka.brokers}")
-
 class LeaderboardRedisStreamsIntegrationTest {
 
     @Container

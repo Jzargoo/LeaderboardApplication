@@ -251,7 +251,7 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate {
         List<SagaControllingState> sagas = sagaControllingStateRepository.findByLeaderboardId(lbId);
         if (sagas == null) {
             log.error("No sagas found for lbId {}", lbId);
-            return true;
+            return false;
         }
         if (sagas.size() != 1) {
             log.error("Multiple sagas found for lbId {}", lbId);
@@ -259,27 +259,26 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate {
                 saga.setStatus(SagaStep.FAILED);
                 sagaControllingStateRepository.save(saga);
             });
-            return true;
+            return false;
         }
+
+        LeaderboardInfo leaderboardInfo = leaderboardInfoRepository
+                .findById(lbId)
+                .orElseThrow();
 
         SagaControllingState saga = sagas.getFirst();
+        leaderboardService.deleteLeaderboard(lbId, saga.getId());
 
-        switch (saga.getStatus()) {
-            case LEADERBOARD_CREATE -> stepCompensateLeaderboard(
-                    new DeleteLbEvent(lbId), saga.getId()
-            );
-            case OPTIONAL_EVENTS_CREATE -> compensateStepOptionalEvent(
-                    saga.getId(), new LeaderboardEventDeletion(lbId));
-            case USER_PROFILE_UPDATE -> {} //TODO: realize sending to user profile event due to the fact that step which compensate for user profile does not exist
-            case COMPLETE -> {
-                log.warn("Saga was completed but in some reasons it does not confirmed");
-                leaderboardService.confirmLbCreation(lbId);
-                return false;
-            }
-            case FAILED -> leaderboardService.deleteLeaderboard(lbId, saga.getId());
-            case null, default -> log.warn("Saga either does not have status or it has already compensated");
+        ProducerRecord<String, Object> record =
+                SagaUtils.createRecord(
+                        KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC,
+                        saga.getId(),
+                        new OutOfTimeEvent(lbId, leaderboardInfo.getOwnerId())
+                );
 
-        }
+        SagaUtils.addSagaHeaders(record, saga.getId(), SagaUtils.newMessageId(), saga.getId());
+
+        kafkaTemplate.send(record);
         return true;
     }
 

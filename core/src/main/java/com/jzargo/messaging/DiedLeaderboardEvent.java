@@ -10,6 +10,7 @@ import java.util.Map;
 @AllArgsConstructor @NoArgsConstructor
 public class DiedLeaderboardEvent {
     String leaderboardName;
+    Long ownerId;
     String description;
-    Map<Long, Double> leaderboardFinalState; //TODO: now that it have map, the way of consuming in user microservice is deprecated.
+    Map<Long, Double> leaderboardFinalState;
 }

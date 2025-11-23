@@ -1,4 +1,4 @@
-package com.jzargo.leaderboardmicroservice;
+package com.jzargo.leaderboardmicroservice.integration;
 
 import com.jzargo.leaderboardmicroservice.exceptions.CannotCreateCachedUserException;
 import com.jzargo.leaderboardmicroservice.handler.KafkaUserScoreHandler;
@@ -32,7 +32,8 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.UUID;
 
-import static com.jzargo.leaderboardmicroservice.config.KafkaConfig.*;
+import static com.jzargo.leaderboardmicroservice.config.KafkaConfig.LEADERBOARD_EVENT_TOPIC;
+import static com.jzargo.leaderboardmicroservice.config.KafkaConfig.MESSAGE_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;

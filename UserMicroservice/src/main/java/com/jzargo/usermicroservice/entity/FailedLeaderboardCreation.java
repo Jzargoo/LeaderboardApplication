@@ -7,7 +7,6 @@ import lombok.NoArgsConstructor;
 
 @Data
 @Entity
-
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "failed_leaderboard_creation")

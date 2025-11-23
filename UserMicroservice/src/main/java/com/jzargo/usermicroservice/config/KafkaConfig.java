@@ -11,7 +11,6 @@ import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.processor.api.Processor;
-import org.apache.kafka.streams.processor.api.Record;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -92,14 +91,14 @@ public class KafkaConfig {
                                 throw new RuntimeException("Incorrect message in debezium topic");
                             }
 
-                            String leaderboardId = (String) after.get("leaderbaord_id");
+                            String leaderboardId = (String) after.get("leaderboard_id");
                             String reason = (String) after.get("reason");
                             long userId = (long) after.get("user_id");
                             String sagaId = (String) after.get("saga_id");
 
 
                             FailedLeaderboardCreation failedLeaderboardCreation =
-                                    new FailedLeaderboardCreation(leaderboardId, reason, userId);
+                                    new FailedLeaderboardCreation(leaderboardId, reason, userId, FailedLeaderboardCreation.SourceOfFail.USER_PROFILE);
 
                             return KeyValue.pair(sagaId,failedLeaderboardCreation);
                         }
