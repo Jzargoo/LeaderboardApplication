@@ -17,3 +17,7 @@ spring:
         provider:
           keycloak:
             issuer-uri: http://localhost:8899/realms/leaderboard-security
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:6371/eureka

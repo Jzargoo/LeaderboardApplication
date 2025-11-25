@@ -1,5 +1,6 @@
 package com.jzargo.leaderboardmicroservice.service;
 
+import com.jzargo.dto.LeaderboardResponse;
 import com.jzargo.leaderboardmicroservice.config.RedisConfig;
 import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.leaderboardmicroservice.dto.InitUserScoreRequest;
@@ -7,6 +8,7 @@ import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.entity.SagaControllingState;
 import com.jzargo.leaderboardmicroservice.entity.UserCached;
 import com.jzargo.leaderboardmicroservice.exceptions.CannotCreateCachedUserException;
+import com.jzargo.leaderboardmicroservice.mapper.LeaderboardToResponseReadMapper;
 import com.jzargo.leaderboardmicroservice.mapper.MapperCreateLeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.repository.CachedUserRepository;
 import com.jzargo.leaderboardmicroservice.repository.LeaderboardInfoRepository;
@@ -24,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.*;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -44,6 +47,7 @@ public class LeaderboardServiceImpl implements LeaderboardService{
     //  Values which are lesser than 0 mean absence of timer
     @Value("${leaderboard.max.durationForInactiveState:86400000}")
     private Long maxDurationForInactiveState;
+    private final LeaderboardToResponseReadMapper leaderboardToResponseReadMapper;
 
     public LeaderboardServiceImpl(StringRedisTemplate stringRedisTemplate, LeaderboardInfoRepository LeaderboardInfoRepository,
                                   RedisScript<String> mutableLeaderboardScript, RedisScript<String> immutableLeaderboardScript,
@@ -51,7 +55,7 @@ public class LeaderboardServiceImpl implements LeaderboardService{
                                   CachedUserRepository cachedUserRepository, RedisScript<String> createUserCachedScript,
                                   RedisScript<String> deleteLeaderboardScript,
                                   RedisScript<String> confirmLbCreationScript,
-                                  SagaControllingStateRepository sagaControllingStateRepository) {
+                                  SagaControllingStateRepository sagaControllingStateRepository, LeaderboardToResponseReadMapper leaderboardToResponseReadMapper) {
 
         this.stringRedisTemplate = stringRedisTemplate;
         this.leaderboardInfoRepository = LeaderboardInfoRepository;
@@ -64,6 +68,7 @@ public class LeaderboardServiceImpl implements LeaderboardService{
         this.deleteLeaderboardScript = deleteLeaderboardScript;
         this.confirmLbCreationScript = confirmLbCreationScript;
         this.sagaControllingStateRepository = sagaControllingStateRepository;
+        this.leaderboardToResponseReadMapper = leaderboardToResponseReadMapper;
     }
 
     @Override
@@ -211,13 +216,20 @@ public class LeaderboardServiceImpl implements LeaderboardService{
     @Override
     @Transactional
     public void initUserScore(InitUserScoreRequest request, String username, long userId, String region) {
+
         LeaderboardInfo lb = leaderboardInfoRepository.findById(request.getLeaderboardId())
                 .orElseThrow();
         userCachedCheck(userId, username, region);
+
+        if(!lb.isPublic()){
+            throw new IllegalArgumentException("cannot join to private leaderboard");
+        }
+
         stringRedisTemplate.opsForZSet().add(lb.getKey(),
                 String.valueOf(userId),
                 lb.getInitialValue()
         );
+
     }
 
 
@@ -271,10 +283,33 @@ public class LeaderboardServiceImpl implements LeaderboardService{
                 milli + ""
         );
 
-        if("OK".equals(execute)) {
+        if(!"OK".equals(execute)) {
             log.error("Cannot create leaderboard");
             throw new IllegalStateException();
         }
+    }
+
+    @Override
+    public LeaderboardResponse getLeaderboard(String id) {
+
+        return leaderboardInfoRepository
+                .findById(id)
+                .map(leaderboardToResponseReadMapper::map)
+                .orElseThrow();
+
+    }
+
+    @Override
+    public boolean userExistsById(Long id, String lbId) {
+
+        Optional<Long> rank = Optional.ofNullable(
+                stringRedisTemplate.opsForZSet()
+                        .rank(lbId, id.toString())
+        );
+
+        return rank.isPresent();
+
+
     }
 
 }

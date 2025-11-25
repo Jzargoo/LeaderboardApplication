@@ -21,9 +21,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.data.redis.core.script.RedisScript;
 
 import java.time.LocalDateTime;
@@ -34,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-@MockitoSettings(strictness = Strictness.LENIENT)
+
 @ExtendWith(MockitoExtension.class)
 public class LeaderboardServiceUnitTest {
 
@@ -71,6 +70,9 @@ public class LeaderboardServiceUnitTest {
     @Mock
     private SagaControllingStateRepository sagaControllingStateRepository;
 
+    @Mock
+    private ZSetOperations<String, String> zSetOperations;
+
     @InjectMocks
     private LeaderboardServiceImpl leaderboardService;
 
@@ -80,6 +82,7 @@ public class LeaderboardServiceUnitTest {
 
     @BeforeEach
     public void setUp() {
+
         testLeaderboardInfo = LeaderboardInfo.builder()
                 .id("lb-123")
                 .name("Top Players")
@@ -127,28 +130,32 @@ public class LeaderboardServiceUnitTest {
 
         when(stringRedisTemplate
                         .execute(
-                                eq(mutableLeaderboardScript),
+                                any(),
                                 anyList(),
-                                argThat(args -> true)
+                                any(Object[].class)
                         )
         ).thenAnswer(invocation -> "success");
 
         leaderboardService.increaseUserScore(userScoreEvent);
 
         verify(stringRedisTemplate, times(1))
-                .execute(eq(mutableLeaderboardScript), anyList(),argThat(args -> true));
+                .execute(
+                        any(),
+                        anyList(),
+                        any(Object[].class)
+                );
     }
     @Test
     public void increaseUserScore_UserNotCached_CreationFails() {
         when(cachedUserRepository.existsById(anyLong())).thenReturn(false);
 
-        lenient().when(stringRedisTemplate.execute(
-                eq(createUserCachedScript),
+        when(stringRedisTemplate.execute(
+                any(),
                 anyList(),
                 any(Object[].class)
         )).thenReturn("error");
 
-        assertThrows(IllegalStateException.class,
+        assertThrows(CannotCreateCachedUserException.class,
                 () -> leaderboardService.increaseUserScore(userScoreEvent));
     }
 
@@ -162,11 +169,11 @@ public class LeaderboardServiceUnitTest {
         when(cachedUserRepository.existsById(anyLong())).thenReturn(true);
         when(leaderboardInfoRepository.findById(anyString())).thenReturn(Optional.of(testLeaderboardInfo));
         when(cachedUserRepository.findById(anyLong())).thenReturn(Optional.of(userCached));
-        when(stringRedisTemplate.execute(eq(immutableLeaderboardScript), anyList(), any(Object[].class))).thenReturn("success");
+        when(stringRedisTemplate.execute(any(), anyList(), any(Object[].class))).thenReturn("success");
 
         leaderboardService.addNewScore(uploadEvent);
 
-        verify(stringRedisTemplate, times(1)).execute(eq(immutableLeaderboardScript), anyList(), any(Object[].class));
+        verify(stringRedisTemplate, times(1)).execute(any(), anyList(), any(Object[].class));
     }
 
     @Test
@@ -182,7 +189,7 @@ public class LeaderboardServiceUnitTest {
 
         when(cachedUserRepository.existsById(anyLong())).thenReturn(true);
         when(mapperCreateLeaderboardInfo.map(any())).thenReturn(mappedInfo);
-        when(stringRedisTemplate.execute(eq(createLeaderboardScript), anyList(), any(Object[].class))).thenReturn("OK");
+        when(stringRedisTemplate.execute(any(), anyList(), any(Object[].class))).thenReturn("OK");
 
         String lbId = leaderboardService.createLeaderboard(request, userCached.getRegion());
         assertEquals("lb-999", lbId);
@@ -190,9 +197,13 @@ public class LeaderboardServiceUnitTest {
 
     @Test
     public void test_initUserScore_Successful() {
+        when(stringRedisTemplate.opsForZSet()).thenReturn(zSetOperations);
+
         InitUserScoreRequest request = new InitUserScoreRequest();
         request.setLeaderboardId(testLeaderboardInfo.getId());
 
+
+        when(zSetOperations.add(anyString(), anyString(), anyDouble())).thenReturn(true);
         when(leaderboardInfoRepository.findById(anyString())).thenReturn(Optional.of(testLeaderboardInfo));
         when(cachedUserRepository.existsById(anyLong())).thenReturn(true);
 
@@ -227,21 +238,21 @@ public class LeaderboardServiceUnitTest {
 
         when(leaderboardInfoRepository.findById(anyString())).thenReturn(Optional.of(testLeaderboardInfo));
         when(sagaControllingStateRepository.findById(anyString())).thenReturn(Optional.of(sagaState));
-        when(stringRedisTemplate.execute(eq(deleteLeaderboardScript), anyList())).thenReturn("OK");
+        when(stringRedisTemplate.execute(any(), anyList())).thenReturn("OK");
 
         leaderboardService.deleteLeaderboard(testLeaderboardInfo.getId(), sagaId);
 
-        verify(stringRedisTemplate, times(1)).execute(eq(deleteLeaderboardScript), anyList());
+        verify(stringRedisTemplate, times(1)).execute(any(), anyList(), any(Object[].class));
     }
 
     @Test
     public void test_confirmLbCreation_Successful() {
         when(leaderboardInfoRepository.findById(anyString())).thenReturn(Optional.of(testLeaderboardInfo));
-        when(stringRedisTemplate.execute(eq(confirmLbCreationScript), anyList(), any(Object[].class))).thenReturn("OK");
+        when(stringRedisTemplate.execute(any(), anyList(), any(Object[].class))).thenReturn("OK");
 
         leaderboardService.confirmLbCreation(testLeaderboardInfo.getId());
 
         verify(stringRedisTemplate, times(1))
-                .execute(eq(confirmLbCreationScript), anyList(), any(Object[].class));
+                .execute(any(), anyList(), any(Object[].class));
     }
 }

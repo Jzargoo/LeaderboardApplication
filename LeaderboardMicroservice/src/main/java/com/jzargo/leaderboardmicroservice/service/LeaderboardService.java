@@ -1,5 +1,6 @@
 package com.jzargo.leaderboardmicroservice.service;
 
+import com.jzargo.dto.LeaderboardResponse;
 import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.leaderboardmicroservice.dto.InitUserScoreRequest;
 import com.jzargo.leaderboardmicroservice.exceptions.CannotCreateCachedUserException;
@@ -20,4 +21,6 @@ public interface LeaderboardService {
     void updateUserCache(UserUpdateEvent userUpdateEvent);
     void deleteLeaderboard(String lbId, String sagaId);
     void confirmLbCreation(String lbId);
+    LeaderboardResponse getLeaderboard(String id);
+    boolean userExistsById(Long id, String ldId);
 }

@@ -3,7 +3,7 @@ server:
 
 spring:
   datasource:
-    url: db
+    url: jdbc:postgresql://generaldb:5432/usersdb
   kafka:
     consumer:
       bootstrap-servers: kafka1:9090,kafka2:9090
