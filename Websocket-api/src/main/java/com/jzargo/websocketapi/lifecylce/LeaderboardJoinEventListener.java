@@ -1,13 +1,41 @@
 package com.jzargo.websocketapi.lifecylce;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jzargo.dto.LeaderboardResponse;
+import com.jzargo.websocketapi.service.LeaderboardWebClient;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.event.EventListener;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Component;
-import org.springframework.web.socket.messaging.SessionConnectEvent;
+import org.springframework.web.socket.messaging.SessionConnectedEvent;
+
+import java.util.Objects;
 
 @Component
+@RequiredArgsConstructor
 public class LeaderboardJoinEventListener {
-    @EventListener
-    public void handleConnectRequest(SessionConnectEvent event) {
 
+    private final LeaderboardWebClient leaderboardWebClient;
+    private final SimpMessagingTemplate simpMessagingTemplate;
+    private final ObjectMapper objectMapper;
+
+    @EventListener
+    public void handleConnectRequest(SessionConnectedEvent event) throws JsonProcessingException {
+        StompHeaderAccessor stompHeaderAccessor = StompHeaderAccessor.wrap(event.getMessage());
+        String lbId = (String) Objects.requireNonNull(stompHeaderAccessor
+                        .getSessionAttributes())
+                .get(CheckLeaderboardIdInterceptor.LEADERBOARD_ATTRIBUTE);
+
+        LeaderboardResponse leaderboard = leaderboardWebClient.getLeaderboard(lbId);
+
+        simpMessagingTemplate.convertAndSendToUser(
+                Objects.requireNonNull(
+                        stompHeaderAccessor.getSessionId()
+                ),
+                "/queue/connected",
+                objectMapper.writeValueAsString(leaderboard)
+        );
     }
 }
