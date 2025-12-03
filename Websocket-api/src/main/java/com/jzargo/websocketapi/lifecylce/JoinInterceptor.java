@@ -89,5 +89,6 @@ public class JoinInterceptor implements HandshakeInterceptor {
 
     @Override
     public void afterHandshake(ServerHttpRequest request, ServerHttpResponse response, WebSocketHandler wsHandler, Exception exception) {
+        log.debug("User successfully passed JoinInterceptor");
     }
 }

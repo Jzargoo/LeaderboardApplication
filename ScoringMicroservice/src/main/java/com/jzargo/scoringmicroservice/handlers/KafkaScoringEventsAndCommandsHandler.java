@@ -72,7 +72,7 @@ public class KafkaScoringEventsAndCommandsHandler {
 
     @KafkaHandler
     @Transactional
-    public void handleCreateLeaderboardEvents(@Payload LeaderboardEventInitialization leaderboardEventInitialization,
+    public void handleCreateLeaderboardEvents (@Payload LeaderboardEventInitialization leaderboardEventInitialization,
                                               @Header(KafkaConfig.SAGA_HEADER) String sagaId,
                                               @Header(KafkaConfig.MESSAGE_HEADER) String messageId){
         if (processedMessageRepository.existsById(messageId)) {

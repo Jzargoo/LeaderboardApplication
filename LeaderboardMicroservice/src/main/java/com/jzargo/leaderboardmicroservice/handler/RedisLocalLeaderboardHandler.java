@@ -1,6 +1,7 @@
 package com.jzargo.leaderboardmicroservice.handler;
 
 import com.jzargo.leaderboardmicroservice.config.KafkaConfig;
+import com.jzargo.leaderboardmicroservice.saga.SagaUtils;
 import lombok.extern.slf4j.Slf4j;
 import com.jzargo.messaging.UserLocalUpdateEvent;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -19,12 +20,12 @@ import static org.springframework.kafka.support.KafkaHeaders.RECEIVED_KEY;
 @Component
 @Slf4j
 public class RedisLocalLeaderboardHandler implements StreamListener<String, MapRecord<String, String, String>> {
-    private final KafkaTemplate<String, UserLocalUpdateEvent> kafkaTemplate;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
     private final StringRedisTemplate stringRedisTemplate;
 
 
     public RedisLocalLeaderboardHandler(
-            KafkaTemplate<String, UserLocalUpdateEvent> kafkaTemplate,
+            KafkaTemplate<String, Object> kafkaTemplate,
             StringRedisTemplate stringRedisTemplate) {
         this.kafkaTemplate = kafkaTemplate;
         this.stringRedisTemplate = stringRedisTemplate;
@@ -45,7 +46,9 @@ public class RedisLocalLeaderboardHandler implements StreamListener<String, MapR
         }
 
         Set<String> range = stringRedisTemplate.opsForZSet().range(leaderboardKey, oldRank, l - 1);
-        ArrayList<UserLocalUpdateEvent.UserLocalEntry> list = new ArrayList<>(range.stream().map(
+        ArrayList<UserLocalUpdateEvent.UserLocalEntry> list = new ArrayList<>(
+                Objects.requireNonNull(range)
+                        .stream().map(
                 el -> {
                     Long rank = stringRedisTemplate.opsForZSet().rank(leaderboardKey, el);
                     return new UserLocalUpdateEvent.UserLocalEntry(Long.parseLong(el), null, rank);
@@ -62,12 +65,15 @@ public class RedisLocalLeaderboardHandler implements StreamListener<String, MapR
             });
         }
 
-        String messageId = UUID.randomUUID().toString();
-        ProducerRecord<String, UserLocalUpdateEvent> record = new ProducerRecord<>(
-                KafkaConfig.LEADERBOARD_UPDATE_TOPIC,leaderboardId, new UserLocalUpdateEvent(leaderboardKey, list)
-        );
+        String messageId = SagaUtils.newMessageId();
+        ProducerRecord<String, Object> record =
+                SagaUtils.createRecord(
+                        KafkaConfig.LEADERBOARD_UPDATE_TOPIC,
+                        leaderboardId,
+                        new UserLocalUpdateEvent(leaderboardKey, list));
+
         record.headers()
-                .add("message-id", messageId.getBytes())
+                .add(KafkaConfig.MESSAGE_ID, messageId.getBytes())
                 .add(RECEIVED_KEY, leaderboardId.getBytes());
 
         kafkaTemplate.send(record);

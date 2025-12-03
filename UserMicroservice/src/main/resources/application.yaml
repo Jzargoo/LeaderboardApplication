@@ -5,16 +5,17 @@ spring:
     password: root333
   kafka:
     consumer:
-      group-id: leaderboard-group
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      group-id: user-group
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       properties:
-        spring.json.trusted.packages: "com.jzargo.messaging"
+        spring.deserializer.value.delegate.class:  org.apache.kafka.common.serialization.JsonDeserializer
+        spring.json.trusted.packages: "com.jzargo.messaging.*"
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
-        spring.json.trusted.packages: "com.jzargo.messaging"
+        spring.json.trusted.packages: "com.jzargo.messaging.*"
   application:
     name: UserMicroservice
 api:

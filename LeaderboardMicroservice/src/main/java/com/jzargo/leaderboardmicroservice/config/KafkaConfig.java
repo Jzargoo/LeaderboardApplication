@@ -19,10 +19,10 @@ public class KafkaConfig{
     public static final String SAGA_ID_HEADER = "saga-id";
     public static final String GROUP_ID = "leaderboard-group";
 
-    @Value("${kafka.topic.insync-replicas}")
+    @Value("${kafka.topic.insync-replicas:2}")
     private int minInSyncReplicas;
 
-    @Value("${kafka.topic.replicas}")
+    @Value("${kafka.topic.replicas:2}")
     private int replicas;
 
     @Bean

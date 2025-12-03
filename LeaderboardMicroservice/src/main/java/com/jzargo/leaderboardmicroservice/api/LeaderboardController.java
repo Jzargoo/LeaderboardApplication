@@ -7,7 +7,6 @@ import com.jzargo.leaderboardmicroservice.saga.SagaLeaderboardCreate;
 import com.jzargo.region.Regions;
 import com.jzargo.leaderboardmicroservice.service.LeaderboardService;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.shaded.io.opentelemetry.proto.trace.v1.Status;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -28,7 +27,7 @@ public class LeaderboardController {
         this.sagaLeaderboardCreate = sagaLeaderboardCreate;
     }
 
-    @PostMapping
+    @PostMapping("/create")
     public ResponseEntity<String> createLeaderboard(
             @RequestBody @Validated CreateLeaderboardRequest request,
             @AuthenticationPrincipal Jwt jwt

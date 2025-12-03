@@ -4,11 +4,9 @@ server:
 spring:
   data:
     redis:
-      host: localhost
+      password: masterRedisPassword
       port: 6379
-      password: rootRedisPassword
-      cluster:
-        nodes: localhost:6379,localhost:6380
+      host: localhost
   kafka:
     consumer:
 
@@ -35,3 +33,4 @@ kafka:
     topic:
       insync-replicas: 2
       replicas: 2
+

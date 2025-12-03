@@ -53,17 +53,12 @@ class LeaderboardRedisStreamsIntegrationTest {
             "redis:latest"
     ).withExposedPorts(6379);
 
-    static {
-        redisContainer.start();
-    }
-
-
     @DynamicPropertySource
     static void setProperties(DynamicPropertyRegistry registry) {
         System.out.println(">>> Redis test container host=" + redisContainer.getHost());
         System.out.println(">>> Redis test container port=" + redisContainer.getFirstMappedPort());
         registry.add("spring.data.redis.host", redisContainer::getHost);
-        registry.add("spring.data.redis.port", () -> redisContainer.getFirstMappedPort().toString());
+        registry.add("spring.data.redis.port", redisContainer::getFirstMappedPort);
     }
 
 

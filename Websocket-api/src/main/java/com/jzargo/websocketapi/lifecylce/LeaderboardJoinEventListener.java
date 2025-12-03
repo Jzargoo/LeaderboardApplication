@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jzargo.dto.LeaderboardResponse;
 import com.jzargo.websocketapi.service.LeaderboardWebClient;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
@@ -13,6 +14,7 @@ import org.springframework.web.socket.messaging.SessionConnectedEvent;
 
 import java.util.Objects;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class LeaderboardJoinEventListener {
@@ -37,5 +39,7 @@ public class LeaderboardJoinEventListener {
                 "/queue/connected",
                 objectMapper.writeValueAsString(leaderboard)
         );
+
+        log.info("Sent leaderboard data to user for leaderboard id: {}", lbId);
     }
 }

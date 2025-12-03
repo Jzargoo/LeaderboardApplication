@@ -23,6 +23,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.test.context.EmbeddedKafka;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -68,6 +69,8 @@ public class KafkaLeaderboardIntegrationTest {
     private KafkaTemplate<String, UserScoreUploadEvent> immutableKafkaTemplate;
     @MockitoSpyBean
     private KafkaUserScoreHandler kafkaUserScoreHandler;
+    @MockitoBean
+    private JwtDecoder jwtDecoder;
 
     @BeforeEach
     void mockingBeans(){

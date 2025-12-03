@@ -1,4 +1,4 @@
-package com.jzargo.websocketapi.service;
+package com.jzargo.websocketapi.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
