@@ -21,9 +21,9 @@ public class SecurityConfig {
                 .sessionManagement((session) ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests((register) ->
-                    register
-                            .requestMatchers(regexMatcher("/api/users/[0-9]+")).permitAll()
-                            .anyRequest().authenticated()
+                        register
+                                .requestMatchers(regexMatcher("/api/users/[0-9]+")).permitAll()
+                                .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 ->
                         oauth2.jwt(Customizer.withDefaults())
