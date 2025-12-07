@@ -1,0 +1,17 @@
+server:
+  port: 0
+
+spring:
+  autoconfigure:
+    exclude:
+    # Redis
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+    # Kafka
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true

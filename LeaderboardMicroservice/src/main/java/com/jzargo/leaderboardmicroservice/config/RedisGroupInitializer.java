@@ -12,7 +12,6 @@ import java.util.Collections;
 
 import static com.jzargo.leaderboardmicroservice.config.RedisConfig.*;
 
-@Component
 @Slf4j
 public class RedisGroupInitializer {
     private final StringRedisTemplate stringRedisTemplate;

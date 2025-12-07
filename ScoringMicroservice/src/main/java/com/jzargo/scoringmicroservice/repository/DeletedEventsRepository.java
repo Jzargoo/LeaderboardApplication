@@ -6,5 +6,4 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface DeletedEventsRepository extends JpaRepository<DeletedEvents, Integer> {
-    void save(DeletedEvents deletedEvents);
 }

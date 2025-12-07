@@ -1,27 +1,28 @@
 server:
-  port: 8080
+  port: 0
 
 spring:
-  datasource:
-    username: jzargo
-    password: root333
-    driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://generaldb:5432/usersdb
   kafka:
+
     consumer:
+
       group-id: user-group
       value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       properties:
         spring.deserializer.value.delegate.class: org.apache.kafka.common.serialization.JsonDeserializer
         spring.json.trusted.packages: "com.jzargo.messaging.*"
-      bootstrap-servers: kafka1:9090,kafka2:9090
+
+      bootstrap-servers: localhost:9092
+
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
         spring.json.trusted.packages: "com.jzargo.messaging.*"
-      bootstrap-servers: kafka1:9090,kafka2:9090
+
+        bootstrap-servers: localhost:9092
+
   security:
     oauth2:
       client:
@@ -34,18 +35,17 @@ spring:
             scope: openid, profile
         provider:
           keycloak:
-            issuer-uri: http://keyclaok:8080/realms/leaderboard-security
+            issuer-uri: http://localhost:8899/realms/leaderboard-security
       resourceserver:
         jwt:
-          issuer-uri: http://keycloak:8080/realms/leaderboard-security
+          issuer-uri: http://localhost:8899/realms/leaderboard-security
 eureka:
   client:
     service-url:
-      defaultZone: http://eureka:8761/eureka
-
+      defaultZone: http://localhost:8761/
 kafka:
   topic:
     partition:
-      insync-replicas: 2
-      count: 3
-    replicas: 2
+      insync-replicas: 1
+      count: 1
+    replicas: 1

@@ -2,6 +2,7 @@ package com.jzargo.leaderboardmicroservice.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -19,6 +20,7 @@ import java.util.stream.Stream;
 
 import static org.springframework.security.web.util.matcher.RegexRequestMatcher.regexMatcher;
 
+@Profile("!standalone")
 @EnableWebSecurity
 @Configuration
 public class SecurityConfig {

@@ -15,7 +15,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("/api/v1/leaderboard")
 @Slf4j
 public class LeaderboardController {
 
@@ -103,7 +103,7 @@ public class LeaderboardController {
         }
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/view/{id}")
     public ResponseEntity<LeaderboardResponse> getLeaderboard(@PathVariable String id) {
 
         try {

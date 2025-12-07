@@ -5,8 +5,6 @@ services:
   scoresdb:
     image: bitnami/postgresql:latest
     container_name: scores-db
-    profiles:
-      - "isolated-db"
     environment:
       POSTGRES_USER: jzargo
       POSTGRES_PASSWORD: root333
@@ -16,8 +14,6 @@ services:
   usersdb:
     image: bitnami/postgresql:latest
     container_name: users-db
-    profiles:
-      - "isolated-db"
     environment:
       POSTGRES_USER: jzargo
       POSTGRES_PASSWORD: root333
@@ -27,8 +23,6 @@ services:
   analyticsdb:
     image: bitnami/postgresql:latest
     container_name: analytics-db
-    profiles:
-      - "isolated-db"
     environment:
       POSTGRES_USER: jzargo
       POSTGRES_PASSWORD: root333
@@ -129,8 +123,6 @@ services:
       - ./redis-master-data:/data
   redis-slave-1:
     image: redis:latest
-    profiles:
-      - "fault-tolerant-redis"
     container_name: redis-slave-1
     depends_on:
       - redis-master
@@ -148,8 +140,6 @@ services:
       - ./redis-slave-1-data:/data
   redis-slave-2:
     image: redis:latest
-    profiles:
-      - "fault-tolerant-redis"
     container_name: redis-slave-2
     depends_on:
       - redis-master

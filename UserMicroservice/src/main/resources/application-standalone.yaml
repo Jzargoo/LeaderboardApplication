@@ -1,28 +1,17 @@
 server:
-  port: 8081
+  port: 0
 
 spring:
-  kafka:
-    consumer:
-      bootstrap-servers: localhost:9090,localhost:9092
-    producer:
-      bootstrap-servers: localhost:9090,localhost:9092
-  security:
-    oauth2:
-      client:
-        registration:
-          keycloak:
-            provider: keycloak
-            client-id: users-api
-            client-secret: UXVg0cDfPbksgd21MKJBHOxbr6JpDe3K
-            authorization-grant-type: client_credentials
-            scope: openid, profile
-        provider:
-          keycloak:
-            issuer-uri: http://localhost:8899/realms/leaderboard-security
-      resourceserver:
-        jwt:
-          issuer-uri: http://localhost:8899/realms/leaderboard-security
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    show-sql: true
+  liquibase:
+    enabled: true
+
 eureka:
   client:
     service-url:

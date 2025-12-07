@@ -1,23 +1,6 @@
 spring:
   application:
     name: user-microservice
-  datasource:
-    driver-class-name: org.postgresql.Driver
-    username: jzargo
-    password: root333
-  kafka:
-    consumer:
-      group-id: user-group
-      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      properties:
-        spring.deserializer.value.delegate.class:  org.apache.kafka.common.serialization.JsonDeserializer
-        spring.json.trusted.packages: "com.jzargo.messaging.*"
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-      properties:
-        spring.json.trusted.packages: "com.jzargo.messaging.*"
 api:
   keycloak-connection-header: X-KEYCLOAK-SECRET
   secret-keycloak-connection: Gz9Tj7cE2Rk1Q4L8aXnYhP7vWb3sQ6Lf
@@ -26,9 +9,3 @@ images:
     user: ../images/user
   dump:
     user: dump.png
-kafka:
-  topic:
-    partition:
-      insync-replicas: 2
-      count: 3
-    replicas: 2

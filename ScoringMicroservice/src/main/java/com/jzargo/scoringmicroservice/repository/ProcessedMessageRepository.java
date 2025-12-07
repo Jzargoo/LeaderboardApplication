@@ -6,7 +6,4 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ProcessedMessageRepository extends JpaRepository<ProcessedMessage, String> {
-    boolean existsById(String messageId);
-
-    void save(ProcessedMessage command);
 }
