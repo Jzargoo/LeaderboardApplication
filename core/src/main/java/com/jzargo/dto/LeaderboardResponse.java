@@ -13,4 +13,5 @@ public class LeaderboardResponse {
     Map<Long, Double> leaderboard;
     String description;
     String name;
+    String leaderboardId;
 }

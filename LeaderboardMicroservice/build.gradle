@@ -1,7 +1,10 @@
+import org.springframework.cloud.contract.verifier.config.TestMode
+
 plugins {
     id 'java'
     id 'org.springframework.boot' version '3.5.6'
     id 'io.spring.dependency-management' version '1.1.7'
+    id("org.springframework.cloud.contract") version "4.0.0"
 }
 ext {
     springCloudVersion = "2025.0.0"
@@ -17,6 +20,14 @@ java {
     }
 }
 
+contracts {
+    testMode.set(TestMode.EXPLICIT)
+    baseClassForTests.set("ContractVerifierBase")
+    packageWithBaseClasses.set("com.jzargo")
+}
+tasks.withType(Test) {
+    systemProperty 'spring.profiles.active', 'contract-test'
+}
 configurations {
     compileOnly {
         extendsFrom annotationProcessor
@@ -41,6 +52,7 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok'
     compileOnly 'org.projectlombok:lombok'
 
+    testImplementation 'org.springframework.cloud:spring-cloud-starter-contract-verifier'
     testImplementation platform ("org.testcontainers:testcontainers-bom:1.20.1")
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'

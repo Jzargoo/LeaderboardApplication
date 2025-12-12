@@ -6,8 +6,6 @@ import com.jzargo.leaderboardmicroservice.dto.InitUserScoreRequest;
 import com.jzargo.leaderboardmicroservice.exceptions.CannotCreateCachedUserException;
 import com.jzargo.messaging.UserScoreEvent;
 import com.jzargo.messaging.UserScoreUploadEvent;
-import com.jzargo.messaging.UserUpdateEvent;
-import org.springframework.transaction.annotation.Transactional;
 
 public interface LeaderboardService {
     void increaseUserScore(UserScoreEvent changeEvent) throws CannotCreateCachedUserException;
@@ -17,8 +15,7 @@ public interface LeaderboardService {
             String region);
     void initUserScore(
             InitUserScoreRequest request,
-            String username, long userId, String region);
-    void updateUserCache(UserUpdateEvent userUpdateEvent);
+            long userId);
     void deleteLeaderboard(String lbId, String sagaId);
     void confirmLbCreation(String lbId);
     LeaderboardResponse getLeaderboard(String id);

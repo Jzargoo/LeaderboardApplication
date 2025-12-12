@@ -9,7 +9,6 @@ import com.jzargo.leaderboardmicroservice.dto.CreateLeaderboardRequest;
 import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.entity.SagaControllingState;
 import com.jzargo.leaderboardmicroservice.entity.SagaStep;
-import com.jzargo.leaderboardmicroservice.entity.UserCached;
 import com.jzargo.leaderboardmicroservice.mapper.CreateInitialCreateLeaderboardSagaRequestMapper;
 import com.jzargo.leaderboardmicroservice.repository.LeaderboardInfoRepository;
 import com.jzargo.leaderboardmicroservice.repository.SagaControllingStateRepository;

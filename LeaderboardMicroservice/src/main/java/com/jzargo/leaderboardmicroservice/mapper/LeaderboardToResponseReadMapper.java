@@ -24,14 +24,20 @@ public class LeaderboardToResponseReadMapper implements Mapper<LeaderboardInfo, 
     public LeaderboardResponse map(LeaderboardInfo from) {
         Map<Long, Double> leaderboard = Objects.requireNonNull(stringRedisTemplate
                         .opsForZSet()
-                        .rangeWithScores(from.getKey(), 0, -1))
+                        .rangeWithScores(from.getKey(), 0, from.getGlobalRange()))
                 .stream()
                 .collect(Collectors.toMap(
-                        tuple -> Long.valueOf(tuple.getValue()),
+                        tuple -> Long.valueOf(
+                                Objects.requireNonNull(tuple.getValue())
+                        ),
                         ZSetOperations.TypedTuple::getScore,
                         (a,b) -> a,
                         LinkedHashMap::new
                 ));
-        return new LeaderboardResponse(leaderboard, from.getDescription(), from.getName());
+        return new LeaderboardResponse(leaderboard,
+                from.getDescription(),
+                from.getName(),
+                from.getId()
+                );
     }
 }

@@ -13,9 +13,7 @@ import java.util.Map;
 @Data
 public class UserScoreEvent {
     private double score;
-    private String username;
     private Long userId;
-    private String region;
     private String lbId;
     private Map<String, Object> metadata;
 }

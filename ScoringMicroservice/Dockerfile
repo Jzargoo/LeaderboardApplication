@@ -1,4 +1,4 @@
-FROM gradle:8.4.1-jdk17 AS build
+FROM gradle:8-jdk17 AS build
 LABEL authors="jzargo"
 
 WORKDIR /home/scoresService

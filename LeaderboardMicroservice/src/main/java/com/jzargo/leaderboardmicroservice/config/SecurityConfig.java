@@ -12,8 +12,10 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
@@ -52,18 +54,21 @@ public class SecurityConfig {
         JwtAuthenticationConverter jwtAuthenticationConverter =
                 new JwtAuthenticationConverter();
 
+
         jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(
                 oauth2Token -> {
                     List<String> roles = (List<String>) oauth2Token
                             .getClaimAsMap("realm_access")
                             .get("roles");
 
-                    AbstractAuthenticationToken authorities= jwtAuthenticationConverter.convert(oauth2Token);
+                    Collection<GrantedAuthority> authorities= new JwtGrantedAuthoritiesConverter()
+                            .convert(oauth2Token);
+
                     if (roles == null) {
                         return Collections.emptyList();
                     }
                     return Stream
-                            .concat(authorities.getAuthorities().stream(),
+                            .concat(authorities.stream(),
                                     roles.stream()
                                             .filter(role -> role.startsWith("ROLE_"))
                                             .map(SimpleGrantedAuthority::new)

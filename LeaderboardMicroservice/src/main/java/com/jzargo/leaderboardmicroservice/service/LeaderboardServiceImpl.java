@@ -6,7 +6,6 @@ import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEv
 import com.jzargo.leaderboardmicroservice.dto.InitUserScoreRequest;
 import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.entity.SagaControllingState;
-import com.jzargo.leaderboardmicroservice.entity.UserCached;
 import com.jzargo.leaderboardmicroservice.exceptions.CannotCreateCachedUserException;
 import com.jzargo.leaderboardmicroservice.mapper.LeaderboardToResponseReadMapper;
 import com.jzargo.leaderboardmicroservice.mapper.MapperCreateLeaderboardInfo;
@@ -15,7 +14,6 @@ import com.jzargo.leaderboardmicroservice.repository.LeaderboardInfoRepository;
 import com.jzargo.leaderboardmicroservice.repository.SagaControllingStateRepository;
 import com.jzargo.messaging.UserScoreEvent;
 import com.jzargo.messaging.UserScoreUploadEvent;
-import com.jzargo.messaging.UserUpdateEvent;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,6 +45,7 @@ public class LeaderboardServiceImpl implements LeaderboardService{
     //  Values which are lesser than 0 mean absence of timer
     @Value("${leaderboard.max.durationForInactiveState:86400000}")
     private Long maxDurationForInactiveState;
+
     private final LeaderboardToResponseReadMapper leaderboardToResponseReadMapper;
 
     public LeaderboardServiceImpl(StringRedisTemplate stringRedisTemplate, LeaderboardInfoRepository LeaderboardInfoRepository,
@@ -74,17 +73,17 @@ public class LeaderboardServiceImpl implements LeaderboardService{
     @Override
     public void increaseUserScore(UserScoreEvent changeEvent) throws CannotCreateCachedUserException {
 
-        userCachedCheck(changeEvent.getUserId(), changeEvent.getUsername(), changeEvent.getRegion());
+        userCachedCheck(changeEvent.getUserId());
         executeScoreChange(
                 changeEvent.getLbId(),
                 changeEvent.getUserId(),
                 changeEvent.getScore(),
                 true
         );
-        log.info("incremented score for user: " + changeEvent.getUserId());
+        log.info("incremented score for user: {}", changeEvent.getUserId());
     }
 
-    private void userCachedCheck(Long userId, String username, String region) throws CannotCreateCachedUserException {
+    private void userCachedCheck(Long userId) throws CannotCreateCachedUserException {
         if (cachedUserRepository.existsById(userId)) {
             return;
         }
@@ -97,21 +96,21 @@ public class LeaderboardServiceImpl implements LeaderboardService{
         String execute = stringRedisTemplate.execute(
                 createUserCachedScript,
                 keys,
-                userId.toString(), username, region
+                userId.toString()
         );
 
         if(!execute.equals("OK")) {
-            log.error("Adding new user failed with id {} and name {}", userId, username);
+            log.error("Adding new user failed with id {}", userId);
             throw new CannotCreateCachedUserException("Cannot create user cached version");
         }
-        log.info("Adding new user ended successfully for username {}",username);
+        log.info("Adding new user ended successfully for id {}", userId);
     }
 
     @SneakyThrows
     @Override
     @Transactional
     public void addNewScore(UserScoreUploadEvent uploadEvent) {
-        userCachedCheck(uploadEvent.getUserId(), uploadEvent.getUsername(), uploadEvent.getRegion());
+        userCachedCheck(uploadEvent.getUserId());
         executeScoreChange(
 
                 uploadEvent.getLbId(),
@@ -119,7 +118,7 @@ public class LeaderboardServiceImpl implements LeaderboardService{
                 uploadEvent.getScore(),
                 false
         );
-        log.info("added score for user: " + uploadEvent.getUserId());
+        log.info("added score for user: {}", uploadEvent.getUserId());
     }
 
     private void executeScoreChange(String lbId, Long userId, double scoreDelta, boolean isMutable) {
@@ -128,19 +127,8 @@ public class LeaderboardServiceImpl implements LeaderboardService{
                         new IllegalArgumentException("Leaderboard with id " + lbId + " does not exist")
                 );
 
-        UserCached cached = cachedUserRepository.findById(userId).orElseThrow(() ->
-                        new IllegalArgumentException("Leaderboard with id " + lbId + " does not exist")
-        );
 
         List<String> keys = getStrings(userId, lbId, isMutable);
-        System.out.println("KEYS: " + keys);
-        System.out.println(userId +
-                String.valueOf(scoreDelta)+
-                info.getMaxEventsPerUser() +
-                info.getMaxEventsPerUserPerDay() +
-                cached.getRegion()+
-                info.getGlobalRange()
-        );
         String execute = stringRedisTemplate.execute(
                 isMutable? mutableLeaderboardScript : immutableLeaderboardScript,
                 keys,
@@ -150,8 +138,7 @@ public class LeaderboardServiceImpl implements LeaderboardService{
                 String.valueOf(info.getMaxEventsPerUserPerDay()),
                 info.getRegions().toString(),
                 String.valueOf(info.getGlobalRange()),
-                lbId,
-                cached.getRegion()
+                lbId
         );
         if (!"success".equals(execute)) {
             throw new IllegalStateException("Failed to update score for user " + userId + ": " + execute);
@@ -180,7 +167,7 @@ public class LeaderboardServiceImpl implements LeaderboardService{
         if(request.getMaxScore() < -1 && request.getMaxScore() == request.getInitialValue()) {
             throw new IllegalArgumentException("initial value cannot be equal or greater than max score");
         }
-        userCachedCheck(request.getOwnerId(), request.getUsername(), region);
+        userCachedCheck(request.getOwnerId());
         LeaderboardInfo map = mapperCreateLeaderboardInfo.map(request);
 
 
@@ -212,14 +199,14 @@ public class LeaderboardServiceImpl implements LeaderboardService{
         return map.getId();
     }
 
-    @SneakyThrows
     @Override
+    @SneakyThrows
     @Transactional
-    public void initUserScore(InitUserScoreRequest request, String username, long userId, String region) {
+    public void initUserScore(InitUserScoreRequest request, long userId) {
 
         LeaderboardInfo lb = leaderboardInfoRepository.findById(request.getLeaderboardId())
                 .orElseThrow();
-        userCachedCheck(userId, username, region);
+        userCachedCheck(userId);
 
         if(!lb.isPublic()){
             throw new IllegalArgumentException("cannot join to private leaderboard");
@@ -233,16 +220,6 @@ public class LeaderboardServiceImpl implements LeaderboardService{
     }
 
 
-    @Override
-    @Transactional
-    public void updateUserCache(UserUpdateEvent userUpdateEvent) {
-        UserCached userCached = cachedUserRepository.findById(userUpdateEvent.getId()).orElseThrow();
-        userCached.setUsername(userUpdateEvent.getName());
-        userCached.setRegion(
-                userUpdateEvent
-                        .getRegion().getCode());
-        cachedUserRepository.save(userCached);
-    }
 
     @Override
     @Transactional
@@ -308,7 +285,6 @@ public class LeaderboardServiceImpl implements LeaderboardService{
         );
 
         return rank.isPresent();
-
 
     }
 

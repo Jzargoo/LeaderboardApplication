@@ -2,7 +2,6 @@ package com.jzargo.leaderboardmicroservice.handler;
 
 import com.jzargo.leaderboardmicroservice.config.KafkaConfig;
 import com.jzargo.leaderboardmicroservice.service.LeaderboardService;
-import com.jzargo.messaging.UserUpdateEvent;
 import lombok.extern.slf4j.Slf4j;
 import com.jzargo.messaging.UserScoreEvent;
 import com.jzargo.messaging.UserScoreUploadEvent;
@@ -12,7 +11,6 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 
@@ -82,26 +80,4 @@ public class KafkaUserScoreHandler {
         }
     }
 
-    @KafkaHandler
-    public void handleUserUpdateEvent(@Payload UserUpdateEvent userUpdateEvent,
-                              @Header(KafkaConfig.MESSAGE_ID) String messageId) {
-        String key = "processed:" + messageId;
-
-        Boolean success = stringRedisTemplate
-                .opsForValue()
-                .setIfAbsent(key, "1", Duration.ofDays(7));
-        if(success != null && !success) {
-            log.debug("Handled processed message with id {} in updating user's cache", messageId);
-            return;
-        }
-
-        try {
-            leaderboardService.updateUserCache(userUpdateEvent);
-            log.info("Processed message with id {} in updating user's cache", messageId);
-        } catch (Exception e) {
-            log.error("Failed to process message with id {} in updating user's cache", messageId, e);
-            stringRedisTemplate.delete(key);
-        }
-
-    }
 }

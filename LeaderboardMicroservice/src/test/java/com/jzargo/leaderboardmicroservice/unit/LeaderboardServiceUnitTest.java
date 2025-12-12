@@ -4,7 +4,6 @@ import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEv
 import com.jzargo.leaderboardmicroservice.dto.InitUserScoreRequest;
 import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.entity.SagaControllingState;
-import com.jzargo.leaderboardmicroservice.entity.UserCached;
 import com.jzargo.leaderboardmicroservice.exceptions.CannotCreateCachedUserException;
 import com.jzargo.leaderboardmicroservice.mapper.MapperCreateLeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.repository.CachedUserRepository;
@@ -13,7 +12,6 @@ import com.jzargo.leaderboardmicroservice.repository.SagaControllingStateReposit
 import com.jzargo.leaderboardmicroservice.service.LeaderboardServiceImpl;
 import com.jzargo.messaging.UserScoreEvent;
 import com.jzargo.messaging.UserScoreUploadEvent;
-import com.jzargo.messaging.UserUpdateEvent;
 import com.jzargo.region.Regions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -77,7 +75,6 @@ public class LeaderboardServiceUnitTest {
     private LeaderboardServiceImpl leaderboardService;
 
     private LeaderboardInfo testLeaderboardInfo;
-    private UserCached userCached;
     private UserScoreEvent userScoreEvent;
 
     @BeforeEach
@@ -102,13 +99,9 @@ public class LeaderboardServiceUnitTest {
                 .showTies(true)
                 .build();
 
-        userCached = new UserCached(11L, "user", Map.of(), Regions.GLOBAL.getCode());
 
         userScoreEvent = new UserScoreEvent(
                 10.0,
-                userCached.getUsername(),
-                userCached.getId(),
-                userCached.getRegion(),
                 testLeaderboardInfo.getId(),
                 Map.of()
         );
@@ -207,27 +200,10 @@ public class LeaderboardServiceUnitTest {
         when(leaderboardInfoRepository.findById(anyString())).thenReturn(Optional.of(testLeaderboardInfo));
         when(cachedUserRepository.existsById(anyLong())).thenReturn(true);
 
-        leaderboardService.initUserScore(request, userCached.getUsername(), userCached.getId(), userCached.getRegion());
+        leaderboardService.initUserScore(request, userCached.getId());
 
         verify(stringRedisTemplate.opsForZSet(), times(1))
                 .add(eq(testLeaderboardInfo.getKey()), eq(String.valueOf(userCached.getId())), eq(testLeaderboardInfo.getInitialValue()));
-    }
-
-    @Test
-    public void test_updateUserCache_Successful() {
-        UserUpdateEvent updateEvent = new UserUpdateEvent();
-        updateEvent.setId(userCached.getId());
-        updateEvent.setName("newName");
-        updateEvent.setRegion(Regions.GLOBAL);
-
-        when(cachedUserRepository.findById(anyLong())).thenReturn(Optional.of(userCached));
-        when(cachedUserRepository.save(any())).thenReturn(userCached);
-
-        leaderboardService.updateUserCache(updateEvent);
-
-        assertEquals("newName", userCached.getUsername());
-        assertEquals(Regions.GLOBAL.getCode(), userCached.getRegion());
-        verify(cachedUserRepository, times(1)).save(userCached);
     }
 
     @Test

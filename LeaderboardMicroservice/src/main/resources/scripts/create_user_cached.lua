@@ -5,13 +5,6 @@
 -- ARGV[2] = username
 -- ARGV[3] = region
 
-redis.call("HMSET", KEYS[1],
-	"id", ARGV[1],
-	"username", ARGV[2],
-	"region", ARGV[3],
-	"active", "true"
-)
-
 redis.call("HSET", KEYS[3], "__init__", "0")
 
 redis.call("HSET", KEYS[2], "__init__", "0")

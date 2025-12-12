@@ -46,7 +46,7 @@ public class LeaderboardController {
             }
 
             String preferredUsername = jwt.getClaimAsString("preferred_username");
-            long userId = Long.parseLong(jwt.getSubject());
+            long userId = Long.parseLong(jwt.getClaimAsString("user_id"));
             String region = jwt.getClaimAsString("region") == null?
                     Regions.GLOBAL.getCode():
                     Regions.fromStringCode(
@@ -60,7 +60,8 @@ public class LeaderboardController {
             return ResponseEntity.badRequest().build();
 
         }
-
+        log.info("leaderboard with name {} created by user with id {}",
+                request.getName(), jwt.getSubject());
         return ResponseEntity.ok("leaderboard created");
     }
 
@@ -86,7 +87,7 @@ public class LeaderboardController {
         }
         try {
 
-        leaderboardService.initUserScore(request, preferredUsername, userId, region);
+        leaderboardService.initUserScore(request,userId);
         return ResponseEntity.ok().build();
 
         } catch (IllegalArgumentException e) {
