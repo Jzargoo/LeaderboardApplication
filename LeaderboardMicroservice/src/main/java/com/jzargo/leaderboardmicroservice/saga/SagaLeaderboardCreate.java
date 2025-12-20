@@ -7,7 +7,7 @@ import com.jzargo.messaging.*;
 public interface SagaLeaderboardCreate {
     void startSaga(CreateLeaderboardRequest request, long userId, String username, String region);
 
-    boolean stepCreateLeaderboard(InitLeaderboardCreateEvent event, String region, String SagaId);
+    boolean stepCreateLeaderboard(InitLeaderboardCreateEvent event, String SagaId);
     void stepSuccessfulEventInit(SuccessfulEventInitialization successfulEventInitialization, String sagaId);
     void stepSagaCompleted(UserAddedLeaderboard userAddedLeaderboard, String sagaId);
     void compensateStepUserProfile(
@@ -16,12 +16,9 @@ public interface SagaLeaderboardCreate {
     );
     void compensateStepOptionalEvent(
             String sagaId,
-            FailedLeaderboardCreation failedLeaderboardCreation
+            String lbId
     );
-    void compensateStepOptionalEvent(
-            String sagaId,
-            LeaderboardEventDeletion leaderboardEventDeletion
-    );
+
     void stepCompensateLeaderboard(DeleteLbEvent dle, String sagaId);
     boolean stepOutOfTime(String lbId);
 }

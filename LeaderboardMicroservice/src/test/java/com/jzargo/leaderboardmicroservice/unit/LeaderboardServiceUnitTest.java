@@ -6,7 +6,6 @@ import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.entity.SagaControllingState;
 import com.jzargo.leaderboardmicroservice.exceptions.CannotCreateCachedUserException;
 import com.jzargo.leaderboardmicroservice.mapper.MapperCreateLeaderboardInfo;
-import com.jzargo.leaderboardmicroservice.repository.CachedUserRepository;
 import com.jzargo.leaderboardmicroservice.repository.LeaderboardInfoRepository;
 import com.jzargo.leaderboardmicroservice.repository.SagaControllingStateRepository;
 import com.jzargo.leaderboardmicroservice.service.LeaderboardServiceImpl;
@@ -19,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.data.redis.core.script.RedisScript;
@@ -53,8 +53,6 @@ public class LeaderboardServiceUnitTest {
     @Mock
     private MapperCreateLeaderboardInfo mapperCreateLeaderboardInfo;
 
-    @Mock
-    private CachedUserRepository cachedUserRepository;
 
     @Mock
     private RedisScript<String> createUserCachedScript;
@@ -76,6 +74,8 @@ public class LeaderboardServiceUnitTest {
 
     private LeaderboardInfo testLeaderboardInfo;
     private UserScoreEvent userScoreEvent;
+
+    private final long USER_ID = 1L;
 
     @BeforeEach
     public void setUp() {
@@ -102,34 +102,32 @@ public class LeaderboardServiceUnitTest {
 
         userScoreEvent = new UserScoreEvent(
                 10.0,
+                1L,
                 testLeaderboardInfo.getId(),
                 Map.of()
         );
+
     }
 
     @Test
     public void test_increaseUserScore_Successful() throws CannotCreateCachedUserException {
-        when(cachedUserRepository
-                .existsById(anyLong())
-        ).thenReturn(true);
 
         when(leaderboardInfoRepository
                 .findById(anyString())
         ).thenReturn(Optional.of(testLeaderboardInfo));
 
-        when(cachedUserRepository
-                .findById(anyLong())
-        ).thenReturn(Optional.of(userCached));
-
         when(stringRedisTemplate
-                        .execute(
-                                any(),
-                                anyList(),
-                                any(Object[].class)
-                        )
+                .execute(
+                        any(),
+                        anyList(),
+                        any(Object[].class)
+                )
         ).thenAnswer(invocation -> "success");
 
+        setWhetherUserCached(true);
+
         leaderboardService.increaseUserScore(userScoreEvent);
+
 
         verify(stringRedisTemplate, times(1))
                 .execute(
@@ -140,7 +138,6 @@ public class LeaderboardServiceUnitTest {
     }
     @Test
     public void increaseUserScore_UserNotCached_CreationFails() {
-        when(cachedUserRepository.existsById(anyLong())).thenReturn(false);
 
         when(stringRedisTemplate.execute(
                 any(),
@@ -155,14 +152,23 @@ public class LeaderboardServiceUnitTest {
     @Test
     public void test_addNewScore_Successful() {
         UserScoreUploadEvent uploadEvent = new UserScoreUploadEvent(
-                testLeaderboardInfo.getId(), userCached.getUsername(), userCached.getId(), userCached.getRegion(),
+                testLeaderboardInfo.getId(), USER_ID,
                 50.0, Map.of()
         );
 
-        when(cachedUserRepository.existsById(anyLong())).thenReturn(true);
-        when(leaderboardInfoRepository.findById(anyString())).thenReturn(Optional.of(testLeaderboardInfo));
-        when(cachedUserRepository.findById(anyLong())).thenReturn(Optional.of(userCached));
-        when(stringRedisTemplate.execute(any(), anyList(), any(Object[].class))).thenReturn("success");
+        when(
+                leaderboardInfoRepository.findById(anyString())
+        ).thenReturn(Optional.of(testLeaderboardInfo));
+
+        when(
+                stringRedisTemplate
+                        .execute(
+                                any(),
+                                anyList(),
+                                any(Object[].class))
+        ).thenReturn("success");
+
+        setWhetherUserCached(true);
 
         leaderboardService.addNewScore(uploadEvent);
 
@@ -172,19 +178,16 @@ public class LeaderboardServiceUnitTest {
     @Test
     public void test_createLeaderboard_Successful() {
         InitLeaderboardCreateEvent request = new InitLeaderboardCreateEvent();
-        request.setOwnerId(userCached.getId());
-        request.setUsername(userCached.getUsername());
         request.setMaxScore(500.0);
         request.setInitialValue(100.0);
 
         LeaderboardInfo mappedInfo = testLeaderboardInfo;
         mappedInfo.setId("lb-999");
 
-        when(cachedUserRepository.existsById(anyLong())).thenReturn(true);
         when(mapperCreateLeaderboardInfo.map(any())).thenReturn(mappedInfo);
         when(stringRedisTemplate.execute(any(), anyList(), any(Object[].class))).thenReturn("OK");
 
-        String lbId = leaderboardService.createLeaderboard(request, userCached.getRegion());
+        String lbId = leaderboardService.createLeaderboard(request);
         assertEquals("lb-999", lbId);
     }
 
@@ -195,15 +198,17 @@ public class LeaderboardServiceUnitTest {
         InitUserScoreRequest request = new InitUserScoreRequest();
         request.setLeaderboardId(testLeaderboardInfo.getId());
 
+        setWhetherUserCached(true);
 
         when(zSetOperations.add(anyString(), anyString(), anyDouble())).thenReturn(true);
-        when(leaderboardInfoRepository.findById(anyString())).thenReturn(Optional.of(testLeaderboardInfo));
-        when(cachedUserRepository.existsById(anyLong())).thenReturn(true);
+        when(leaderboardInfoRepository
+                .findById(anyString() )
+        ).thenReturn(Optional.of(testLeaderboardInfo));
 
-        leaderboardService.initUserScore(request, userCached.getId());
+        leaderboardService.initUserScore(request, USER_ID);
 
         verify(stringRedisTemplate.opsForZSet(), times(1))
-                .add(eq(testLeaderboardInfo.getKey()), eq(String.valueOf(userCached.getId())), eq(testLeaderboardInfo.getInitialValue()));
+                .add(eq(testLeaderboardInfo.getKey()), eq(String.valueOf(USER_ID)), eq(testLeaderboardInfo.getInitialValue()));
     }
 
     @Test
@@ -230,5 +235,16 @@ public class LeaderboardServiceUnitTest {
 
         verify(stringRedisTemplate, times(1))
                 .execute(any(), anyList(), any(Object[].class));
+    }
+
+    private void setWhetherUserCached(boolean isCached) {
+        HashOperations<String, Object, Object> hashOperations = mock(HashOperations.class);
+        when(hashOperations
+                .hasKey(
+                        anyString(),
+                        anyString())
+        ).thenReturn(isCached);
+        when(stringRedisTemplate.opsForHash())
+                .thenReturn(hashOperations);
     }
 }

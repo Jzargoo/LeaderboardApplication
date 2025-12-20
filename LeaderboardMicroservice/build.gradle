@@ -21,7 +21,7 @@ java {
 }
 
 contracts {
-    testMode.set(TestMode.EXPLICIT)
+    testFramework = 'JUNIT'
     baseClassForTests.set("ContractVerifierBase")
     packageWithBaseClasses.set("com.jzargo")
 }

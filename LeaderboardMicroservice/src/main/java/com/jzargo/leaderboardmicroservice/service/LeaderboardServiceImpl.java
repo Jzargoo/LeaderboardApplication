@@ -9,7 +9,6 @@ import com.jzargo.leaderboardmicroservice.entity.SagaControllingState;
 import com.jzargo.leaderboardmicroservice.exceptions.CannotCreateCachedUserException;
 import com.jzargo.leaderboardmicroservice.mapper.LeaderboardToResponseReadMapper;
 import com.jzargo.leaderboardmicroservice.mapper.MapperCreateLeaderboardInfo;
-import com.jzargo.leaderboardmicroservice.repository.CachedUserRepository;
 import com.jzargo.leaderboardmicroservice.repository.LeaderboardInfoRepository;
 import com.jzargo.leaderboardmicroservice.repository.SagaControllingStateRepository;
 import com.jzargo.messaging.UserScoreEvent;
@@ -36,7 +35,6 @@ public class LeaderboardServiceImpl implements LeaderboardService{
     private final RedisScript<String> immutableLeaderboardScript;
     private final RedisScript<String> createLeaderboardScript;
     private final MapperCreateLeaderboardInfo mapperCreateLeaderboardInfo;
-    private final CachedUserRepository cachedUserRepository;
     private final RedisScript<String> createUserCachedScript;
     private final RedisScript<String> deleteLeaderboardScript;
     private final RedisScript<String> confirmLbCreationScript;
@@ -51,7 +49,7 @@ public class LeaderboardServiceImpl implements LeaderboardService{
     public LeaderboardServiceImpl(StringRedisTemplate stringRedisTemplate, LeaderboardInfoRepository LeaderboardInfoRepository,
                                   RedisScript<String> mutableLeaderboardScript, RedisScript<String> immutableLeaderboardScript,
                                   MapperCreateLeaderboardInfo mapperCreateLeaderboardInfo, RedisScript<String> createLeaderboardScript,
-                                  CachedUserRepository cachedUserRepository, RedisScript<String> createUserCachedScript,
+                                  RedisScript<String> createUserCachedScript,
                                   RedisScript<String> deleteLeaderboardScript,
                                   RedisScript<String> confirmLbCreationScript,
                                   SagaControllingStateRepository sagaControllingStateRepository, LeaderboardToResponseReadMapper leaderboardToResponseReadMapper) {
@@ -62,7 +60,6 @@ public class LeaderboardServiceImpl implements LeaderboardService{
         this.immutableLeaderboardScript = immutableLeaderboardScript;
         this.mapperCreateLeaderboardInfo = mapperCreateLeaderboardInfo;
         this.createLeaderboardScript = createLeaderboardScript;
-        this.cachedUserRepository = cachedUserRepository;
         this.createUserCachedScript = createUserCachedScript;
         this.deleteLeaderboardScript = deleteLeaderboardScript;
         this.confirmLbCreationScript = confirmLbCreationScript;
@@ -84,7 +81,14 @@ public class LeaderboardServiceImpl implements LeaderboardService{
     }
 
     private void userCachedCheck(Long userId) throws CannotCreateCachedUserException {
-        if (cachedUserRepository.existsById(userId)) {
+        if(
+                stringRedisTemplate
+                        .opsForHash()
+                        .hasKey("user_cached:" + userId + ":daily_attempts", "__init__") &&
+                stringRedisTemplate
+                        .opsForHash()
+                        .hasKey("user_cached:" + userId + ":total_attempts", "__init__")
+        ) {
             return;
         }
 
@@ -95,11 +99,10 @@ public class LeaderboardServiceImpl implements LeaderboardService{
 
         String execute = stringRedisTemplate.execute(
                 createUserCachedScript,
-                keys,
-                userId.toString()
+                keys
         );
 
-        if(!execute.equals("OK")) {
+        if(!"OK".equals(execute)) {
             log.error("Adding new user failed with id {}", userId);
             throw new CannotCreateCachedUserException("Cannot create user cached version");
         }
@@ -163,7 +166,7 @@ public class LeaderboardServiceImpl implements LeaderboardService{
     @SneakyThrows
     @Override
     @Transactional
-    public String createLeaderboard(InitLeaderboardCreateEvent request, String region) {
+    public String createLeaderboard(InitLeaderboardCreateEvent request) {
         if(request.getMaxScore() < -1 && request.getMaxScore() == request.getInitialValue()) {
             throw new IllegalArgumentException("initial value cannot be equal or greater than max score");
         }

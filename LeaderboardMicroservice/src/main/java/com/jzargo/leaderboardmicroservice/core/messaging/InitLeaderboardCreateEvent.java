@@ -17,7 +17,6 @@ public class InitLeaderboardCreateEvent {
     private long ownerId;
     private String username;
     private Set<String> regions;
-
     private String description;
     private int globalRange;
     private String lbId;

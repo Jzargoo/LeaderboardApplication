@@ -14,9 +14,9 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/leaderboard")
-@Slf4j
 public class LeaderboardController {
 
     private final LeaderboardService leaderboardService;
@@ -71,12 +71,7 @@ public class LeaderboardController {
             @AuthenticationPrincipal Jwt jwt
     ) {
 
-        String preferredUsername = jwt.getClaimAsString("preferred_username");
         long userId = Long.parseLong(jwt.getSubject());
-        String region = jwt.getClaimAsString("region") == null?
-                Regions.GLOBAL.getCode():
-                Regions.fromStringCode(
-                        jwt.getClaimAsString("region")).getCode();
 
         if(leaderboardService.userExistsById(userId, request.getLeaderboardId())) {
 

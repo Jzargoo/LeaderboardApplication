@@ -10,7 +10,7 @@
     "database.dbname": "uesrsdb",
     "decimal.handling.mode": "double",
     "topic.prefix": "pgserver",
-    "table.include.list": "public.users,public.failed_leaderboard_creation",
+    "table.include.list": "public.user_added_created_leaderboard,public.failed_leaderboard_creation",
     "slot.name": "usersdb_debezium",
     "publication.name": "users_publication",
     "heartbeat.interval.ms": "500",

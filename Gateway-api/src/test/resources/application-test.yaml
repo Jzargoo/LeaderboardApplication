@@ -1,0 +1,6 @@
+app:
+  leaderboard-service-url: http://localhost:8080
+
+eureka:
+  client:
+    enabled: false

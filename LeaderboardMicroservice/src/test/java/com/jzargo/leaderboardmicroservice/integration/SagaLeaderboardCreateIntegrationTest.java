@@ -119,7 +119,6 @@ public class SagaLeaderboardCreateIntegrationTest {
                         .handleCreateLeaderboardSaga(
                                 initCaptor.capture(),
                                 sagaIdCaptor.capture(),
-                                anyString(),
                                 anyString()
                         )
         );

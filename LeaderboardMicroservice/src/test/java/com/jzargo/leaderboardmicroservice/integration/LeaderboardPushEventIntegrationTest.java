@@ -4,7 +4,6 @@ import com.jzargo.leaderboardmicroservice.config.KafkaConfig;
 import com.jzargo.leaderboardmicroservice.exceptions.CannotCreateCachedUserException;
 import com.jzargo.leaderboardmicroservice.handler.RedisGlobalLeaderboardUpdateHandler;
 import com.jzargo.leaderboardmicroservice.handler.RedisLocalLeaderboardHandler;
-import com.jzargo.leaderboardmicroservice.repository.CachedUserRepository;
 import com.jzargo.leaderboardmicroservice.repository.LeaderboardInfoRepository;
 import com.jzargo.leaderboardmicroservice.service.LeaderboardService;
 import com.jzargo.messaging.UserScoreEvent;
@@ -55,8 +54,6 @@ class LeaderboardPushEventIntegrationTest {
     private LeaderboardService leaderboardService;
     @Autowired
     private LeaderboardInfoRepository leaderboardInfoRepository;
-    @Autowired
-    private CachedUserRepository cachedUserRepository;
 
     @MockitoBean
     private RedisGlobalLeaderboardUpdateHandler redisGlobalLeaderboardUpdateHandler;
@@ -109,8 +106,6 @@ class LeaderboardPushEventIntegrationTest {
         assertNotNull(found, "User could not be found in leaderboard");
         assertEquals(expectedScore, found.getScore(), 0.001, "Actual score and expected mismatch");
 
-        boolean cachedExists = cachedUserRepository.existsById(USER_ID);
-        assertTrue(cachedExists, "Unexpected cached user existence");
     }
 
     @Test
@@ -118,8 +113,6 @@ class LeaderboardPushEventIntegrationTest {
 
         UserScoreUploadEvent userScoreUploadEvent = new UserScoreUploadEvent();
         userScoreUploadEvent.setUserId(USER_ID);
-        userScoreUploadEvent.setUsername(USERNAME);
-        userScoreUploadEvent.setRegion(CODE);
         userScoreUploadEvent.setLbId(IMMUTABLE_LEADERBOARD_ID.toString());
 
         leaderboardService.addNewScore(userScoreUploadEvent);
@@ -141,8 +134,6 @@ class LeaderboardPushEventIntegrationTest {
 
         userScoreEvent.setUserId(USER_ID);
         userScoreEvent.setScore(10.0);
-        userScoreEvent.setRegion(CODE);
-        userScoreEvent.setUsername(USERNAME);
         userScoreEvent.setLbId(MUTABLE_LEADERBOARD_ID.toString());
 
         try {

@@ -7,7 +7,6 @@ import com.jzargo.leaderboardmicroservice.handler.RedisLocalLeaderboardHandler;
 import com.jzargo.leaderboardmicroservice.service.LeaderboardService;
 import com.jzargo.messaging.UserScoreEvent;
 import com.jzargo.messaging.UserScoreUploadEvent;
-import com.jzargo.region.Regions;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -48,7 +47,6 @@ import static org.springframework.kafka.support.KafkaHeaders.RECEIVED_KEY;
 public class KafkaLeaderboardIntegrationTest {
     private final double NEW_SCORE = 10.0;
     private final String LEADERBOARD_ID = "10241";
-    private final String USERNAME = "Alex333";
     private final long USER_ID = 2L;
 
     @MockitoBean
@@ -87,9 +85,7 @@ public class KafkaLeaderboardIntegrationTest {
     public void receiveMutableKafkaMessage(){
         UserScoreEvent userScoreEvent = new UserScoreEvent(
                 NEW_SCORE,
-                USERNAME,
                 USER_ID,
-                Regions.GLOBAL.getCode(),
                 LEADERBOARD_ID,
                 new HashMap<>()
         );
@@ -127,9 +123,7 @@ public class KafkaLeaderboardIntegrationTest {
         assertEquals(messageId, messId.getValue());
         assertEquals(userScoreEvent.getScore(), event.getValue().getScore());
         assertEquals(userScoreEvent.getUserId(), event.getValue().getUserId());
-        assertEquals(userScoreEvent.getRegion(), event.getValue().getRegion());
         assertEquals(userScoreEvent.getLbId(), event.getValue().getLbId());
-        assertEquals(userScoreEvent.getUsername(), event.getValue().getUsername());
     }
 
 
@@ -137,9 +131,7 @@ public class KafkaLeaderboardIntegrationTest {
     public void receiveImmutableKafkaMessage(){
         UserScoreUploadEvent userScoreUploadEvent = new UserScoreUploadEvent(
                 LEADERBOARD_ID,
-                USERNAME,
                 USER_ID,
-                Regions.GLOBAL.getCode(),
                 NEW_SCORE,
                 new HashMap<>()
         );
@@ -171,9 +163,7 @@ public class KafkaLeaderboardIntegrationTest {
         assertEquals(messageId, messId.getValue());
         assertEquals(userScoreUploadEvent.getScore(), event.getValue().getScore());
         assertEquals(userScoreUploadEvent.getUserId(), event.getValue().getUserId());
-        assertEquals(userScoreUploadEvent.getRegion(), event.getValue().getRegion());
         assertEquals(userScoreUploadEvent.getLbId(), event.getValue().getLbId());
-        assertEquals(userScoreUploadEvent.getUsername(), event.getValue().getUsername());
 
     }
 

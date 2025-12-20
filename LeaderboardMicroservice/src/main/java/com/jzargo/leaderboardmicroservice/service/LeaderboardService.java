@@ -11,8 +11,7 @@ public interface LeaderboardService {
     void increaseUserScore(UserScoreEvent changeEvent) throws CannotCreateCachedUserException;
     void addNewScore(UserScoreUploadEvent uploadEvent);
     String createLeaderboard(
-            InitLeaderboardCreateEvent initLeaderboardCreateEvent,
-            String region);
+            InitLeaderboardCreateEvent initLeaderboardCreateEvent);
     void initUserScore(
             InitUserScoreRequest request,
             long userId);

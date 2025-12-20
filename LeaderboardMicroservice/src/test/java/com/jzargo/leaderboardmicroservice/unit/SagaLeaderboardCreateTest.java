@@ -46,7 +46,6 @@ public class SagaLeaderboardCreateTest {
 
     private CreateLeaderboardRequest request;
     private InitLeaderboardCreateEvent event;
-    private UserCached userCached;
     private SagaControllingState sagaState;
     private LeaderboardInfo leaderboardInfo;
 
@@ -69,8 +68,6 @@ public class SagaLeaderboardCreateTest {
         request.setShowTies(true);
         request.setEvents(Map.of("KillEvent", 50.0, "WinEvent", 100.0));
 
-        // User cached
-        userCached = new UserCached(42L, "testUser", Map.of(), Regions.GLOBAL.getCode());
 
         // Event DTO
         event = new InitLeaderboardCreateEvent();
@@ -112,9 +109,9 @@ public class SagaLeaderboardCreateTest {
     @Test
     void testStepCreateLeaderboard_NonMutable() {
         when(sagaRepository.findById(sagaState.getId())).thenReturn(Optional.of(sagaState));
-        when(leaderboardService.createLeaderboard(event, "region1")).thenReturn(leaderboardInfo.getId());
+        when(leaderboardService.createLeaderboard(event)).thenReturn(leaderboardInfo.getId());
 
-        boolean result = sagaService.stepCreateLeaderboard(event, "region1", sagaState.getId());
+        boolean result = sagaService.stepCreateLeaderboard(event, sagaState.getId());
 
         assertTrue(result);
         verify(sagaRepository).save(any(SagaControllingState.class));
@@ -127,7 +124,7 @@ public class SagaLeaderboardCreateTest {
         event.setEvents(Collections.emptyMap());
 
         assertThrows(IllegalArgumentException.class,
-                () -> sagaService.stepCreateLeaderboard(event, "region1", sagaState.getId()));
+                () -> sagaService.stepCreateLeaderboard(event, sagaState.getId()));
     }
 
     @Test
@@ -180,7 +177,7 @@ public class SagaLeaderboardCreateTest {
 
         when(sagaRepository.findById(sagaState.getId())).thenReturn(Optional.of(sagaState));
 
-        sagaService.compensateStepOptionalEvent(sagaState.getId(), new FailedLeaderboardCreation());
+        sagaService.compensateStepOptionalEvent(sagaState.getId(), leaderboardInfo.getId());
 
         verify(sagaRepository).save(any(SagaControllingState.class));
     }
