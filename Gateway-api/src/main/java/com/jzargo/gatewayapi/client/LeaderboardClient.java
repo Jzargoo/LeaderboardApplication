@@ -1,8 +1,8 @@
 package com.jzargo.gatewayapi.client;
 
 import com.jzargo.dto.LeaderboardResponse;
+import com.jzargo.gatewayapi.config.RoutesDestination;
 import com.jzargo.gatewayapi.dto.UserScoreResponse;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -11,17 +11,16 @@ import reactor.core.publisher.Mono;
 public class LeaderboardClient {
 
     private final WebClient webClient;
+    private final RoutesDestination routesDestination;
 
-    @Value("${app.leaderboard-service-url:http://localhost:8080}")
-    private String leaderboardServiceUrl;
-
-    public LeaderboardClient(WebClient webClient) {
+    public LeaderboardClient(WebClient webClient, RoutesDestination routesDestination) {
         this.webClient = webClient;
+        this.routesDestination = routesDestination;
     }
 
     public Mono<UserScoreResponse> getUserScore(String id){
         return webClient.get()
-                .uri(leaderboardServiceUrl + "/api/v1/leaderboard/view/user/{id}", id)
+                .uri( routesDestination.getLeaderboardServiceUrl()+ "/api/v1/leaderboard/view/user/{id}", id)
                 .retrieve()
                 .bodyToMono(UserScoreResponse.class);
     }
@@ -29,7 +28,7 @@ public class LeaderboardClient {
 
     public Mono<LeaderboardResponse> getLeaderboard(String id){
         return webClient.get()
-                .uri(leaderboardServiceUrl + "/api/v1/leaderboard/view/{id}", id)
+                .uri(routesDestination.getLeaderboardServiceUrl()+ "/api/v1/leaderboard/view/{id}", id)
                 .retrieve()
                 .bodyToMono(LeaderboardResponse.class);
     }

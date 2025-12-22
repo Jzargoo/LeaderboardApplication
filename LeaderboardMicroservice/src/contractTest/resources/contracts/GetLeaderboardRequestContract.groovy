@@ -5,7 +5,7 @@ import org.springframework.cloud.contract.spec.Contract
 Contract.make {
     request {
         method 'GET'
-        urlPath('/view/lb123')
+        urlPath'/api/v1/leaderboard/view/lb123'
     }
 
     response {
@@ -19,7 +19,7 @@ Contract.make {
             },
             "description": "Test Description",
             "name": "Test Leaderboard",
-            "leaderboardId": "lb123",
+            "leaderboardId": "lb123"
         }
         """)
         headers {

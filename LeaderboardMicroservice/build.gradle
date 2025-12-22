@@ -1,11 +1,11 @@
-import org.springframework.cloud.contract.verifier.config.TestMode
-
 plugins {
     id 'java'
+    id 'maven-publish'
     id 'org.springframework.boot' version '3.5.6'
     id 'io.spring.dependency-management' version '1.1.7'
-    id("org.springframework.cloud.contract") version "4.0.0"
+    id 'org.springframework.cloud.contract' version '4.0.0'
 }
+
 ext {
     springCloudVersion = "2025.0.0"
 }
@@ -17,20 +17,6 @@ description = 'LeaderboardMicroservice'
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
-    }
-}
-
-contracts {
-    testFramework = 'JUNIT'
-    baseClassForTests.set("ContractVerifierBase")
-    packageWithBaseClasses.set("com.jzargo")
-}
-tasks.withType(Test) {
-    systemProperty 'spring.profiles.active', 'contract-test'
-}
-configurations {
-    compileOnly {
-        extendsFrom annotationProcessor
     }
 }
 
@@ -49,24 +35,44 @@ dependencies {
     implementation 'com.jzargo:core:1.0-SNAPSHOT'
     implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
 
-    annotationProcessor 'org.projectlombok:lombok'
     compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
 
     testImplementation 'org.springframework.cloud:spring-cloud-starter-contract-verifier'
-    testImplementation platform ("org.testcontainers:testcontainers-bom:1.20.1")
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'org.springframework.kafka:spring-kafka-test'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testImplementation "org.testcontainers:testcontainers"
     testImplementation 'org.testcontainers:junit-jupiter'
 }
+
 dependencyManagement {
     imports {
         mavenBom "org.springframework.cloud:spring-cloud-dependencies:$springCloudVersion"
     }
 }
 
-tasks.named('test') {
+contracts {
+    testFramework = 'JUNIT'
+    baseClassForTests.set("ContractVerifierBase")
+    packageWithBaseClasses.set("com.jzargo")
+}
+
+tasks.withType(Test) {
+    systemProperty 'spring.profiles.active', 'contract-test'
     useJUnitPlatform()
+}
+
+publishing {
+    publications {
+        stubs(MavenPublication) {
+            groupId = 'com.jzargo'
+            artifactId = 'LeaderboardMicroservice'
+            version = '0.0.1-SNAPSHOT'
+            artifact(verifierStubsJar)
+        }
+    }
+    repositories {
+        mavenLocal()
+    }
 }

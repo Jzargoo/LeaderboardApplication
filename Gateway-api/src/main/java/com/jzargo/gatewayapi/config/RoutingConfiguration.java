@@ -1,5 +1,6 @@
 package com.jzargo.gatewayapi.config;
 
+import com.jzargo.gatewayapi.client.LeaderboardClient;
 import com.jzargo.gatewayapi.handler.LeaderboardHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,14 +14,14 @@ import static org.springframework.web.reactive.function.server.RequestPredicates
 @EnableWebFlux
 public class RoutingConfiguration {
     @Bean
-    public LeaderboardHandler leaderboardHandler(){
-        return new LeaderboardHandler();
+    public LeaderboardHandler leaderboardHandler(LeaderboardClient leaderboardClient){
+        return new LeaderboardHandler(leaderboardClient);
     }
     @Bean
-    public RouterFunction<ServerResponse> routeGettingLeaderboard() {
+    public RouterFunction<ServerResponse> routeGettingLeaderboard(LeaderboardHandler leaderboardHandler) {
         return RouterFunctions
              .route(GET("/leaderboard/{leaderboardId}"),
-                     LeaderboardHandler::getLeaderboardById);
+                     leaderboardHandler::getLeaderboardById);
     }
 
     @Bean

@@ -1,4 +1,4 @@
-package com.jzargo.leaderboardmicroservice;
+package com.jzargo;
 
 import com.jzargo.dto.LeaderboardResponse;
 import com.jzargo.leaderboardmicroservice.api.LeaderboardController;
