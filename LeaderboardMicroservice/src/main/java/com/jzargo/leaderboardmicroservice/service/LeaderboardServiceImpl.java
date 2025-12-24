@@ -1,12 +1,15 @@
 package com.jzargo.leaderboardmicroservice.service;
 
 import com.jzargo.dto.LeaderboardResponse;
+import com.jzargo.dto.UserScoreResponse;
 import com.jzargo.leaderboardmicroservice.config.RedisConfig;
 import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.leaderboardmicroservice.dto.InitUserScoreRequest;
 import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.entity.SagaControllingState;
 import com.jzargo.leaderboardmicroservice.exceptions.CannotCreateCachedUserException;
+import com.jzargo.leaderboardmicroservice.exceptions.LeaderboardNotFound;
+import com.jzargo.leaderboardmicroservice.exceptions.UserNotFoundInLeaderboard;
 import com.jzargo.leaderboardmicroservice.mapper.LeaderboardToResponseReadMapper;
 import com.jzargo.leaderboardmicroservice.mapper.MapperCreateLeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.repository.LeaderboardInfoRepository;
@@ -281,14 +284,42 @@ public class LeaderboardServiceImpl implements LeaderboardService{
 
     @Override
     public boolean userExistsById(Long id, String lbId) {
+        LeaderboardInfo leaderboardInfo = leaderboardInfoRepository.findById(lbId)
+                .orElseThrow(
+                        () -> new LeaderboardNotFound("Leaderboard with id " + lbId + " not found")
+                );
 
-        Optional<Long> rank = Optional.ofNullable(
-                stringRedisTemplate.opsForZSet()
-                        .rank(lbId, id.toString())
-        );
-
-        return rank.isPresent();
+        return getUserRank(id, leaderboardInfo).isPresent();
 
     }
 
+    @Override
+    public UserScoreResponse getUserScoreInLeaderboard(Long userId, String id) {
+        LeaderboardInfo leaderboardInfo = leaderboardInfoRepository.findById(id)
+                .orElseThrow(
+                        () -> new LeaderboardNotFound("Leaderboard with id " + id + " not found")
+                );
+
+        Long l = getUserRank(userId, leaderboardInfo)
+                .orElseThrow(() ->
+                        new UserNotFoundInLeaderboard("User with id " + userId +
+                                " not found in leaderboard with id " + id)
+                );
+
+        return stringRedisTemplate.opsForZSet().rangeWithScores(leaderboardInfo.getKey(), l, l)
+                .stream().findFirst()
+                .map(tuple -> {
+                    log.info("User with id {} has score {} in leaderboard with id {}",
+                            userId, tuple.getScore(), id);
+                    return new UserScoreResponse(userId, leaderboardInfo.getId(), tuple.getScore(),  (l + 1));
+                }).orElseThrow();
+    }
+
+    private Optional<Long> getUserRank(Long id, LeaderboardInfo leaderboardInfo) {
+
+        return Optional.ofNullable(
+                stringRedisTemplate.opsForZSet()
+                        .rank(leaderboardInfo.getKey(), id.toString())
+        );
+    }
 }

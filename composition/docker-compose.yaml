@@ -1,6 +1,5 @@
 name: LeaderboardApplication
 
-
 services:
   scoresdb:
     image: bitnami/postgresql:latest

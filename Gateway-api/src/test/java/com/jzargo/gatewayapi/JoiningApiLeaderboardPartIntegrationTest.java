@@ -53,4 +53,6 @@ public class JoiningApiLeaderboardPartIntegrationTest {
         assertEquals(100, response.getLeaderboard().get(1L));
 
     }
+
+
 }

@@ -1,8 +1,11 @@
 package com.jzargo.leaderboardmicroservice.api;
 
 import com.jzargo.dto.LeaderboardResponse;
+import com.jzargo.dto.UserScoreResponse;
 import com.jzargo.leaderboardmicroservice.dto.CreateLeaderboardRequest;
 import com.jzargo.leaderboardmicroservice.dto.InitUserScoreRequest;
+import com.jzargo.leaderboardmicroservice.exceptions.LeaderboardNotFound;
+import com.jzargo.leaderboardmicroservice.exceptions.UserNotFoundInLeaderboard;
 import com.jzargo.leaderboardmicroservice.saga.SagaLeaderboardCreate;
 import com.jzargo.region.Regions;
 import com.jzargo.leaderboardmicroservice.service.LeaderboardService;
@@ -25,6 +28,34 @@ public class LeaderboardController {
     public LeaderboardController(LeaderboardService leaderboardService, SagaLeaderboardCreate sagaLeaderboardCreate) {
         this.leaderboardService = leaderboardService;
         this.sagaLeaderboardCreate = sagaLeaderboardCreate;
+    }
+
+    @GetMapping("/score/{id}")
+    public ResponseEntity<UserScoreResponse> getMyScoreIn(@PathVariable String id,
+                                                          @AuthenticationPrincipal Jwt jwt
+                                             ) {
+        Long userId = Long.parseLong(
+                jwt.getClaimAsString("user_id")
+        );
+
+        try {
+
+            UserScoreResponse userScoreInLeaderboard = leaderboardService.getUserScoreInLeaderboard(
+                    userId,
+                    id
+            );
+
+            return ResponseEntity.ok(userScoreInLeaderboard);
+
+        } catch (UserNotFoundInLeaderboard e) {
+
+            return ResponseEntity.notFound().build();
+
+        } catch (LeaderboardNotFound e) {
+
+            return ResponseEntity.badRequest().build();
+
+        }
     }
 
     @PostMapping("/create")
