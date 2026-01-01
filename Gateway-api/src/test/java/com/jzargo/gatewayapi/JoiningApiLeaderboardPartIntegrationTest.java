@@ -54,5 +54,8 @@ public class JoiningApiLeaderboardPartIntegrationTest {
 
     }
 
-
+    @Test
+    public void testGetUserSelfScore() {
+        leaderboardClient.getUserScore("");
+    }
 }

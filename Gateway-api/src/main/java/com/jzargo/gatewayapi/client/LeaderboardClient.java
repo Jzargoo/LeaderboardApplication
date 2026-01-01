@@ -18,9 +18,10 @@ public class LeaderboardClient {
         this.routesDestination = routesDestination;
     }
 
-    public Mono<UserScoreResponse> getUserScore(String id){
+    public Mono<UserScoreResponse> getUserScore(String id, String token){
         return webClient.get()
                 .uri( routesDestination.getLeaderboardServiceUrl()+ "/api/v1/leaderboard/view/user/{id}", id)
+                .headers(h -> h.setBearerAuth(token))
                 .retrieve()
                 .bodyToMono(UserScoreResponse.class);
     }

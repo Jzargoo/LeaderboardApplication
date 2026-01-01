@@ -9,8 +9,9 @@ import java.util.Map;
 @Data
 @AllArgsConstructor @NoArgsConstructor
 public class DiedLeaderboardEvent {
-    String leaderboardName;
-    Long ownerId;
-    String description;
-    Map<Long, Double> leaderboardFinalState;
+    private String leaderboardName;
+    private String leaderboardId;
+    private Long ownerId;
+    private String description;
+    private Map<Long, Double> leaderboardFinalState;
 }

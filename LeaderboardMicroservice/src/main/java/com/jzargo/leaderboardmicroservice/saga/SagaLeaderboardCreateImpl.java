@@ -273,11 +273,14 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate {
                 .orElseThrow();
 
         SagaControllingState saga = sagas.getFirst();
-        leaderboardService.deleteLeaderboard(lbId, saga.getId());
 
         leaderboardServiceWebProxy.outOfTime(
                 new OutOfTimeEvent(lbId, leaderboardInfo.getOwnerId()),
                 saga.getId());
+
+        leaderboardService.deleteLeaderboard(lbId, saga.getId());
+        saga.setStatus(SagaStep.DELETED);
+        sagaRepository.save(saga);
 
         return true;
     }

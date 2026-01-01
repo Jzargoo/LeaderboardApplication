@@ -93,6 +93,7 @@ public class ExpirationLeaderboardPubSubHandler implements MessageListener {
     private void sendKafkaMessage(String lbId, String lbName, String lbDescription, Map<Long, Double> collected, Long ownerId) {
         DiedLeaderboardEvent diedLeaderboardEvent = new DiedLeaderboardEvent(
                 lbName,
+                lbId,
                 ownerId,
                 lbDescription,
                 collected);

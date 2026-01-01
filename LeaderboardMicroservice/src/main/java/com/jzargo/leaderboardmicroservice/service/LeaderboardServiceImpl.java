@@ -20,6 +20,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.*;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -305,8 +307,13 @@ public class LeaderboardServiceImpl implements LeaderboardService{
                         new UserNotFoundInLeaderboard("User with id " + userId +
                                 " not found in leaderboard with id " + id)
                 );
-
-        return stringRedisTemplate.opsForZSet().rangeWithScores(leaderboardInfo.getKey(), l, l)
+        Set<ZSetOperations.TypedTuple<String>> typedTuples =
+                stringRedisTemplate.opsForZSet().rangeWithScores(leaderboardInfo.getKey(), l, l);
+        if (typedTuples == null){
+            throw new UserNotFoundInLeaderboard("User with id " + userId +
+                    " not found in leaderboard with id " + id);
+        }
+        return typedTuples
                 .stream().findFirst()
                 .map(tuple -> {
                     log.info("User with id {} has score {} in leaderboard with id {}",
