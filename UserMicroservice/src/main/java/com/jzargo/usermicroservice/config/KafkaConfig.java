@@ -10,7 +10,8 @@ import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Produced;
-import org.apache.kafka.streams.processor.api.Processor;
+import org.apache.kafka.streams.processor.api.ContextualProcessor;
+import org.apache.kafka.streams.processor.api.Record;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -36,11 +37,11 @@ public class KafkaConfig {
     public static final String GROUP_ID = "users-group" ;
     public static final String MESSAGE_ID_HEADER = "message-id";
     public static final String SAGA_ID_HEADER = "saga-id";
-    @Value("${kafka.topic.partition.count}")
+    @Value("${kafka.topic.partition.count:1}")
     private Integer partitionCount;
-    @Value("${kafka.topic.replicas}")
+    @Value("${kafka.topic.replicas:1} ")
     private Integer replicasCount;
-    @Value("${kafka.topic.partition.insync-replicas}")
+    @Value("${kafka.topic.partition.insync-replicas:1}")
     private Integer minInSyncReplicas;
 
     @Bean
@@ -65,8 +66,7 @@ public class KafkaConfig {
 
 
     @Bean
-    @SuppressWarnings("unchecked")
-    public KStream<String, Map<String, Object>> failedLeaderboardCreation(StreamsBuilder streamsBuilder){
+    public KStream<String, Map<String, Object>> failedLeaderboardTopology(StreamsBuilder streamsBuilder){
         KStream<String, Map<String, Object>> stream = streamsBuilder.stream(
                 DEBEZIUM_FLC_TOPIC,
                 Consumed.with(Serdes.String(), new JsonSerde<>(Map.class))
@@ -121,16 +121,21 @@ public class KafkaConfig {
                         }
                 )
                 .process(
-                        () -> (Processor<String, FailedLeaderboardCreation, String, FailedLeaderboardCreation>)
-                                record -> {
-                                    String id = UUID.randomUUID().toString();
-                                    record.headers()
-                                            .add(SAGA_ID_HEADER, record.key().getBytes())
-                                            .add(MESSAGE_ID_HEADER, id.getBytes());
+                        () ->
+                                new ContextualProcessor<String, FailedLeaderboardCreation, String, FailedLeaderboardCreation>() {
+                                    @Override
+                                    public void process(Record<String, FailedLeaderboardCreation> record) {
+                                        String id = UUID.randomUUID().toString();
+                                        record.headers()
+                                                .add(KafkaConfig.MESSAGE_ID_HEADER, id.getBytes())
+                                                .add(KafkaConfig.SAGA_ID_HEADER, record.key().getBytes());
+                                        context().forward(record);
+                                    }
                                 }
                 )
-                .peek((k,v) ->
-                        log.info("Successfully processed message with key(sagaId) {}", k))
+                .peek( (k,v) ->
+                        log.info("Successfully processed message with key(sagaId) {}")
+                )
                 .to(
                         SAGA_CREATE_LEADERBOARD_TOPIC,
                         Produced.with(Serdes.String(), new JsonSerde<>(FailedLeaderboardCreation.class))
@@ -139,8 +144,7 @@ public class KafkaConfig {
     }
 
     @Bean
-    @SuppressWarnings("unchecked")
-    public KStream<String, Map<String, Object>> userUpdate(StreamsBuilder streamsBuilder){
+    public KStream<String, Map<String, Object>> userUpdateTopology(StreamsBuilder streamsBuilder){
         KStream<String, Map<String, Object>> stream = streamsBuilder.stream(
                 DEBEZIUM_USERS_TOPIC,
                 Consumed.with(Serdes.String(), new JsonSerde<>(Map.class))
@@ -180,14 +184,17 @@ public class KafkaConfig {
                                         k != null &&
                                         !k.isBlank())
                 .process(
-                        () -> (Processor<String, UserAddedLeaderboard, String, UserAddedLeaderboard>)
-                                record -> {
-                                    String id = UUID.randomUUID().toString();
-                                    record.headers()
-                                            .add(SAGA_ID_HEADER, record.key().getBytes())
-                                            .add(MESSAGE_ID_HEADER, id.getBytes());
+                        ()-> new ContextualProcessor<String, UserAddedLeaderboard, String, UserAddedLeaderboard>() {
+                            @Override
+                            public void process(Record<String, UserAddedLeaderboard> record) {
+                                record.headers()
+                                        .add(KafkaConfig.MESSAGE_ID_HEADER, UUID.randomUUID().toString().getBytes())
+                                        .add(KafkaConfig.SAGA_ID_HEADER, record.key().getBytes());
+
+                                context().forward(record);
+                            }
                         }
-                )
+                        )
                 .peek(
                         (k,v) -> log.info("Processed message with new key {} " +
                                 "and value {} for topic user updates", k, v)

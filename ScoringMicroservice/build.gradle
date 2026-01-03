@@ -35,17 +35,22 @@ dependencies {
 	implementation 'org.apache.kafka:kafka-streams'
 	implementation 'com.jzargo:core:1.0-SNAPSHOT'
 	implementation 'org.liquibase:liquibase-core'
+
 	testImplementation 'org.testcontainers:junit-jupiter'
 	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
 	testImplementation 'org.testcontainers:kafka'
 	testImplementation 'org.testcontainers:postgresql'
+	testImplementation 'org.springframework.cloud:spring-cloud-starter-contract-stub-runner'
+
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'org.postgresql:postgresql'
 	annotationProcessor 'org.projectlombok:lombok'
+
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.kafka:spring-kafka-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
+
 
 tasks.named('test') {
 	useJUnitPlatform()

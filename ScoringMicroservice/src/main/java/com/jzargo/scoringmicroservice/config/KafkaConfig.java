@@ -99,8 +99,6 @@ public class KafkaConfig {
                     }
 
                     String lbId = (String) after.get("lb_id");
-                    String username = (String) after.get("username");
-                    String region = (String) after.get("region");
                     Long userId = ((Number) after.get("user_id")).longValue();
                     double scoreDelta = ((Number) after.get("event_score")).doubleValue();
 
@@ -108,8 +106,6 @@ public class KafkaConfig {
                             .score(scoreDelta)
                             .userId(userId)
                             .lbId(lbId)
-                            .username(username)
-                            .region(region)
                             .build();
 
                     return new KeyValue<>(userId.toString(), userScoreEvent);
@@ -118,10 +114,6 @@ public class KafkaConfig {
                         value != null &&
                                 value.getLbId() != null &&
                                 !value.getLbId().isBlank() &&
-                                value.getUsername() != null &&
-                                !value.getUsername().isBlank() &&
-                                value.getRegion() != null &&
-                                !value.getRegion().isBlank() &&
                                 value.getUserId() != null &&
                                 value.getScore() != 0
                 )

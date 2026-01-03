@@ -1,4 +1,12 @@
 name: LeaderboardApplication
+volumes:
+  postgres-data:
+  redis-master-data:
+  kafka1-data:
+  redis-slave-2-data:
+  kafka2-data:
+  redis-slave-1-data:
+  kafka3-data:
 
 services:
   scoresdb:
@@ -39,7 +47,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./postgres-data:/bitnami/postgresql
+      - postgres-data:/bitnami/postgresql
       - ./postgres-init:/docker-entrypoint-initdb.d
 
   kafka1:
@@ -63,7 +71,7 @@ services:
       KAFKA_CFG_LOG_DIRS: "/bitnami/kafka/data"
       KAFKA_CLUSTER_ID: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
     volumes:
-      - ./kafka1-data:/bitnami/kafka/data
+      - kafka1-data:/bitnami/kafka/data
   kafka2:
     image: bitnami/kafka:latest
     container_name: kafka2
@@ -84,7 +92,7 @@ services:
       KAFKA_CFG_LOG_DIRS: "/bitnami/kafka/data"
       KAFKA_CLUSTER_ID: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
     volumes:
-      - ./kafka2-data:/bitnami/kafka/data
+      - kafka2-data:/bitnami/kafka/data
   kafka3:
     image: bitnami/kafka:latest
     container_name: kafka3
@@ -105,7 +113,7 @@ services:
       KAFKA_CFG_LOG_DIRS: "/bitnami/kafka/data"
       KAFKA_CLUSTER_ID: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
     volumes:
-      - ./kafka3-data:/bitnami/kafka/data
+      - kafka3-data:/bitnami/kafka/data
 
   redis-master:
     image: redis:latest
@@ -119,7 +127,7 @@ services:
       "--appendfsync", "everysec",
     ]
     volumes:
-      - ./redis-master-data:/data
+      - redis-master-data:/data
   redis-slave-1:
     image: redis:latest
     container_name: redis-slave-1
@@ -136,7 +144,7 @@ services:
       "--masterauth", "masterRedisPassword"
     ]
     volumes:
-      - ./redis-slave-1-data:/data
+      - redis-slave-1-data:/data
   redis-slave-2:
     image: redis:latest
     container_name: redis-slave-2
@@ -153,7 +161,7 @@ services:
       "--masterauth", "masterRedisPassword"
     ]
     volumes:
-      - ./redis-slave-2-data:/data
+      - redis-slave-2-data:/data
 
   keycloak:
     image: keycloak/keycloak:latest
@@ -173,7 +181,7 @@ services:
     ports:
       - "8899:8080"
     volumes:
-      - /home/jzargo/IdeaProjects/LeaderboardApplication/keycloak-extensions/files:/opt/keycloak/providers
+      - ../keycloak-extensions/files:/opt/keycloak/providers
 
   debezium:
     image: quay.io/debezium/connect:latest

@@ -10,6 +10,7 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.oauth2.client.oidc.web.server.logout.OidcClientInitiatedServerLogoutSuccessHandler;
+import org.springframework.security.oauth2.client.registration.InMemoryReactiveClientRegistrationRepository;
 import org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestCustomizers;
 import org.springframework.security.oauth2.client.web.server.DefaultServerOAuth2AuthorizationRequestResolver;
@@ -53,6 +54,7 @@ public class SecurityConfig {
                 )
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers("/leaderboard/view/**").permitAll()
+                        .pathMatchers("/users/internal").permitAll()
                         .anyExchange().authenticated()
                 );
         return http.build();
@@ -95,5 +97,4 @@ public class SecurityConfig {
         oidcLogoutSuccessHandler.setPostLogoutRedirectUri(redirectUri);
         return oidcLogoutSuccessHandler;
     }
-
 }

@@ -1,0 +1,42 @@
+server:
+  port: 0
+
+spring:
+  application:
+    name:
+      Gateway-api
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: leaderboard-microservice
+              uri: lb://leaderboard-microservice
+              predicates:
+                - Path=/leaderboard/**
+              filters:
+                - TokenRelay=
+                - PrefixPath=/api/v1
+            - id: user-microservice
+              uri: lb://user-microservice
+              predicates:
+                - Path=/users/**
+              filters:
+                - TokenRelay=
+                - PrefixPath=/api/v1
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOrigins: "*"
+                allowedMethods:
+                  - GET
+                  - OPTIONS
+                allowedHeaders: "*"
+                exposedHeaders: "*"
+
+
+
+app:
+  redirect-uri: http://localhost:8080/home
+  leaderboard-service-url: lb://leaderboard-service
+  user-service-url: lb://user-microservice

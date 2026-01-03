@@ -1,0 +1,96 @@
+name: leaderboard-lightweight
+
+volumes:
+  redpanda-data:
+    driver: local
+
+
+services:
+  generaldb:
+    build:
+      context: ./postgres-init
+    container_name: postresdb
+    environment:
+      POSTGRES_USERNAME: postgres
+      POSTGRES_PASSWORD: root333
+      POSTGRES_DATABASE: generaldb
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres-data:/bitnami/postgresql
+
+  redpanda:
+    image: redpandadata/redpanda:latest
+    container_name: redpanda
+    mem_limit: 512M
+    command:
+      - redpanda
+      - start
+      - --overprovisioned
+      - --smp 1
+      - --memory 384M
+      - --reserve-memory 0M
+      - --node-id 0
+      - --check=false
+      - --kafka-addr PLAINTEXT://0.0.0.0:9092
+      - --advertise-kafka-addr PLAINTEXT://localhost:9092
+    ports:
+      - "9092:9092"
+      - "9644:9644"
+    volumes:
+      - redpanda-data:/var/lib/redpanda/data
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    command: [
+      "redis-server",
+      "--requirepass", "redisPassword",
+      "--appendonly", "yes"
+    ]
+
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    depends_on:
+      - generaldb
+    container_name: keycloak
+    command: start-dev
+    mem_limit: 1024M
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin-password
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://generaldb:5432/keycloakdb
+      KC_DB_USERNAME: jzargo
+      KC_DB_PASSWORD: root333
+    ports:
+      - "8899:8080"
+    volumes:
+      - ../keycloak-extensions/files:/opt/keycloak/providers
+
+  debezium-dev-container:
+    image: quay.io/debezium/connect:latest
+    container_name: debezium-dev-container
+    depends_on:
+      - redpanda
+      - generaldb
+    environment:
+      BOOTSTRAP_SERVERS: redpanda:9092
+      GROUP_ID: 1
+      CONFIG_STORAGE_TOPIC: connect-configs
+      OFFSET_STORAGE_TOPIC: connect-offsets
+      STATUS_STORAGE_TOPIC: connect-statuses
+    ports:
+      - "10103:8083"
+    volumes:
+      - ./configuration-files/lightweight:/kafka/configs
+
+  gateway:
+    build:
+      context: ../Gateway-api
+    container_name: gateway
+
+    ports:
+      - "8080:8080"

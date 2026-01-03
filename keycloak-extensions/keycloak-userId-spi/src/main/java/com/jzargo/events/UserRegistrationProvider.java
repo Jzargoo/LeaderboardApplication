@@ -1,10 +1,15 @@
 package com.jzargo.events;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jzargo.entities.IncrementedValue;
+import com.jzargo.entities.Outbox;
+import com.jzargo.entities.Status;
 import com.jzargo.messaging.UserRegisterRequest;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.TypedQuery;
+import jakarta.transaction.Transactional;
 import org.keycloak.connections.jpa.JpaConnectionProvider;
 import org.keycloak.events.Event;
 import org.keycloak.events.EventListenerProvider;
@@ -15,74 +20,21 @@ import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 import org.slf4j.LoggerFactory;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.util.concurrent.CompletableFuture;
 
 public class UserRegistrationProvider implements EventListenerProvider {
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(UserRegistrationProvider.class);
     private final KeycloakSession session;
 
-    private static final String KEYCLOAK_HEADER = "X-KEYCLOAK-SECRET";
-    private static final String KEYCLOAK_VALUE = "Gz9Tj7cE2Rk1Q4L8aXnYhP7vWb3sQ6Lf";
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public UserRegistrationProvider(KeycloakSession session) {
         this.session = session;
     }
 
-    private void sendToUser(Event event, long userId){
-        HttpClient build = HttpClient.newBuilder().build();
+    private void setIdToUser(Event event, EntityManager em) {
         try {
 
-            RealmModel realm = session.realms().getRealm(event.getRealmId());
-            UserModel user = session.users().getUserById(realm, event.getUserId());
-
-
-            if(userId < 1) {
-                log.error("UserId did not set");
-                throw new RuntimeException();
-            }
-
-            UserRegisterRequest urr = UserRegisterRequest.builder()
-                    .userId(userId)
-                    .name(user.getUsername())
-                    .email(user.getEmail())
-                    .build();
-
-            HttpRequest request = HttpRequest.newBuilder()
-                    .POST(HttpRequest.BodyPublishers.ofString(urr.toString()))
-                    .uri(new URI("http://gateway:8080/api/users/internal"))
-                    .headers(KEYCLOAK_HEADER, KEYCLOAK_VALUE)
-                    .build();
-            CompletableFuture<HttpResponse<String>> futureResponse =
-                    build.sendAsync(request, HttpResponse.BodyHandlers.ofString());
-
-            futureResponse.whenComplete(
-                    (resp, e) -> {
-                        if(resp.statusCode()>= 200 && resp.statusCode() < 300) {
-                            return;
-                        } else if(e != null){
-                            log.error("Processed request with exception", e);
-                            throw new RuntimeException(e);
-                        } else{
-                            log.error("Internal error");
-                            throw new RuntimeException("Internal error");
-                        }
-                    }
-            );
-        } catch (URISyntaxException e) {
-            log.error("Cannot send register");
-            throw new RuntimeException(e);
-        }
-    }
-
-    private long setIdToUser(Event event) {
-        try {
-
-            EntityManager em = session.getProvider(JpaConnectionProvider.class).getEntityManager();
             TypedQuery<IncrementedValue> typedQuery =
                     em.createQuery("SELECT iv FROM IncrementedValue iv WHERE iv.name = :name", IncrementedValue.class);
             typedQuery.setParameter("name", IncrementedValue.USER_ID_COUNTER);
@@ -106,7 +58,6 @@ public class UserRegistrationProvider implements EventListenerProvider {
             user.setSingleAttribute("user_id", l.toString());
             log.info("Attribute user_id was added successfully");
 
-            return l;
         } catch (Exception e) {
             log.error("Error happened",e);
             throw e;
@@ -114,14 +65,47 @@ public class UserRegistrationProvider implements EventListenerProvider {
     }
 
     @Override
+    @Transactional
     public void onEvent(Event event) {
         if (event.getType() == EventType.REGISTER) {
-
+            EntityManager em = session.getProvider(JpaConnectionProvider.class).getEntityManager();
             log.info("caught event register");
-            long id = setIdToUser(event);
-            sendToUser(event, id);
+            setIdToUser(event, em);
+            try {
+                createOutboxRecord(event, em);
+            } catch (JsonProcessingException e) {
+                log.error("Registration provider threw exception while it parsed a payload for outbox {}", e.getMessage());
+                throw new RuntimeException(e);
+            }
             log.info("Everything alright");
         }
+    }
+
+    private void createOutboxRecord(Event event, EntityManager em) throws JsonProcessingException {
+
+        RealmModel realm = session.realms().getRealm(event.getRealmId());
+        UserModel user = session.users().getUserById(realm, event.getUserId());
+
+        String username = user.getUsername();
+        long userId = Long.parseLong(user.getFirstAttribute("user_id"));
+        String email = user.getEmail();
+
+        UserRegisterRequest urr = new UserRegisterRequest(
+                userId, username, email);
+
+        Outbox build = Outbox.builder()
+                .payload(
+                        objectMapper.writeValueAsString(urr)
+                )
+                .aggregateId(Long.toString(userId))
+                .aggregateType(UserRegisterRequest.class
+                        .getSimpleName())
+                .status(Status.UNPUBLISHED)
+                .eventType(EventType.REGISTER)
+                .build();
+
+        em.persist(build);
+        log.debug("Saved successfully outbox: {}", build);
     }
 
     @Override

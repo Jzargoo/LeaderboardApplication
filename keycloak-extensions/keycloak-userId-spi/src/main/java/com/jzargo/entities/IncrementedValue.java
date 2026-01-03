@@ -12,7 +12,7 @@ public class IncrementedValue {
     private Long id;
 
     private String name;
-    @Column(name = "lastvalue")
+    @Column(name = "lastValue")
     private Long lastValue;
 
     public void setName(String name) {

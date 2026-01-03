@@ -4,7 +4,6 @@ import com.jzargo.scoringmicroservice.config.KafkaConfig;
 import com.jzargo.scoringmicroservice.entity.DeletedEvents;
 import com.jzargo.scoringmicroservice.entity.FailedCreateLeaderboardEvents;
 import com.jzargo.scoringmicroservice.entity.ProcessedMessage;
-import com.jzargo.scoringmicroservice.entity.SuccessfulEventsCreation;
 import com.jzargo.scoringmicroservice.repository.DeletedEventsRepository;
 import com.jzargo.scoringmicroservice.repository.FailedCreateLeaderboardEventsRepository;
 import com.jzargo.scoringmicroservice.repository.ProcessedMessageRepository;
@@ -74,7 +73,7 @@ public class KafkaScoringEventsAndCommandsHandler {
     @Transactional
     public void handleCreateLeaderboardEvents (@Payload LeaderboardEventInitialization leaderboardEventInitialization,
                                               @Header(KafkaConfig.SAGA_HEADER) String sagaId,
-                                              @Header(KafkaConfig.MESSAGE_HEADER) String messageId){
+                                              @Header(KafkaConfig.MESSAGE_HEADER) String messageId) {
         if (processedMessageRepository.existsById(messageId)) {
             getDebug(messageId);
             return;
@@ -82,12 +81,6 @@ public class KafkaScoringEventsAndCommandsHandler {
         try{
             log.info("Handling initialization: {}", leaderboardEventInitialization);
             scoringService.saveEvents(leaderboardEventInitialization);
-            new SuccessfulEventsCreation(
-                 sagaId,
-                 leaderboardEventInitialization.getLbId(),
-                 sagaId,
-                 leaderboardEventInitialization.getUserId()
-            );
         } catch (Exception e){
             failedCreateLeaderboardEventsRepository.save(
                     new FailedCreateLeaderboardEvents(

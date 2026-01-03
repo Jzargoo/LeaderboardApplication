@@ -2,15 +2,22 @@ server:
   port: 0
 
 spring:
-  kafka:
 
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+  datasource:
+    username: jzargo
+    password: root333
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://generaldb:5432/usersdb
+  kafka:
     consumer:
 
       group-id: user-group
       value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       properties:
-        spring.deserializer.value.delegate.class: org.apache.kafka.common.serialization.JsonDeserializer
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
         spring.json.trusted.packages: "com.jzargo.messaging.*"
 
       bootstrap-servers: localhost:9092
@@ -42,7 +49,10 @@ spring:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    instance-id: ${spring.application.name}:${server.port}
+    prefer-ip-address: true
 kafka:
   topic:
     partition:

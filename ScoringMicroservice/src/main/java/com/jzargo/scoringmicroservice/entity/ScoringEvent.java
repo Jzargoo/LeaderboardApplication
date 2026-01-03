@@ -25,6 +25,5 @@ public class ScoringEvent {
     private Double scoreChange;
     @Builder.Default
     private LocalDateTime happenedAt = LocalDateTime.now();
-    private String username;
-    private String region;
+
 }
