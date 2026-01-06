@@ -1,0 +1,27 @@
+{
+  "name": "pg-users-connect",
+  "config": {
+    "plugin.name": "pgoutput",
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "database.hostname": "generaldb",
+    "database.port": "5432",
+    "database.user": "debezium",
+    "database.password": "dbz123",
+    "database.dbname": "uesrsdb",
+    "decimal.handling.mode": "double",
+    "topic.prefix": "pgserver",
+    "table.include.list": "public.user_added_created_leaderboard,public.failed_leaderboard_creation",
+    "slot.name": "usersdb_debezium",
+    "publication.name": "users_publication",
+    
+    "snapshot.mode": "always",        
+    "slot.drop.on.stop": "true",     
+    
+    "heartbeat.interval.ms": "500",
+    "transforms": "AddPrefix",
+    "transforms.AddPrefix.type": "org.apache.kafka.connect.transforms.RegexRouter",
+    "transforms.AddPrefix.regex": "pgserver.users.public.(.*)",
+    "transforms.AddPrefix.replacement": "data.cdc.scoring.$1"
+  }
+}
+

@@ -1,0 +1,27 @@
+{
+  "name": "pg-scoring-connect",
+  "config": {
+    "plugin.name": "pgoutput",
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "database.hostname": "generaldb",
+    "database.port": "5432",
+    "database.user": "debezium",
+    "database.password": "dbz123",
+    "database.dbname": "scoresdb",
+    "topic.prefix": "pgserver",
+    "decimal.handling.mode": "double",
+    "table.include.list": "public.scoring_events,public.failed_create_leaderboard_events",
+    "slot.name": "scoring_debezium",
+    "publication.name": "scoring_publication",
+    
+    "snapshot.mode": "always",   
+    "slot.drop.on.stop": "true", 
+
+    "heartbeat.interval.ms": "500",
+    "transforms": "AddPrefix",
+    "transforms.AddPrefix.type": "org.apache.kafka.connect.transforms.RegexRouter",
+    "transforms.AddPrefix.regex": "pgserver.scoring.public.(.*)",
+    "transforms.AddPrefix.replacement": "data.cdc.users.$1"
+  }
+}
+

@@ -21,12 +21,9 @@ public class WebSocketController {
     @MessageMapping("/queue/leaderboard-push/{id}")
     public void pushScore(@DestinationVariable String id,
                           @Payload LeaderboardPushEvent<?> lbEvent,
-                          @AuthenticationPrincipal Jwt jwt
-                          ) {
+                          @Attribute
+    ) {
 
-        String preferredUsername = jwt.getClaimAsString("preferred_username");
-
-        long userId = jwt.getClaim("user_id");
 
         if(userId == 0){
             log.error("Invalid user id in JWT token");

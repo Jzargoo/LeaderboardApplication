@@ -1,5 +1,6 @@
 package com.jzargo.websocketapi.handler;
 
+import com.jzargo.messaging.GlobalLeaderboardEvent;
 import com.jzargo.messaging.UserLocalUpdateEvent;
 import com.jzargo.websocketapi.config.KafkaConfig;
 import com.jzargo.websocketapi.service.WebSocketService;
@@ -27,5 +28,11 @@ public class KafkaLeaderboardReceivedHandler {
     public void handleLocalLeaderboardUpdate(@Payload UserLocalUpdateEvent userLocalUpdateEvent){
         log.debug("Received UserLocalUpdateEvent for lb id: {}", userLocalUpdateEvent.getLeaderboardId());
         webSocketService.refreshLocalLeaderboard(userLocalUpdateEvent);
+    }
+
+    @KafkaHandler
+    public void handleGlobalLeaderboardEvent(@Payload GlobalLeaderboardEvent gle) {
+        log.debug("Received Global leaderboard event for lb id: {}", gle.getId());
+        webSocketService.refreshGlobalLeaderboard(gle);
     }
 }

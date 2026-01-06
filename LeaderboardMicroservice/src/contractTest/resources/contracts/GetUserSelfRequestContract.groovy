@@ -6,12 +6,6 @@ Contract.make {
     request {
         method 'GET'
         urlPath'/api/v1/leaderboard/score/lb123'
-        headers {
-            header('Authorization', value(
-                    consumer(regex('Bearer .+')),
-                    producer('Bearer test-token')
-            ))
-        }
     }
 
     response {

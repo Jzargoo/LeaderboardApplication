@@ -3,7 +3,6 @@ package com.jzargo.websocketapi;
 import com.jzargo.messaging.GlobalLeaderboardEvent;
 import com.jzargo.messaging.UserLocalUpdateEvent;
 import com.jzargo.websocketapi.dto.LeaderboardResponsePayload;
-import com.jzargo.websocketapi.lifecylce.SubscribeInterceptor;
 import com.jzargo.websocketapi.service.WebSocketServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,7 +41,7 @@ public class WebSocketServiceUnitTest {
 
         verify(simpMessagingTemplate).convertAndSendToUser(
                 eq("1"),
-                eq(SubscribeInterceptor.LOCAL_LEADERBOARD_UPDATE_ENDPOINT),
+                eq(ConnectSTOMPInterceptor.LOCAL_LEADERBOARD_UPDATE_ENDPOINT),
                 argThat(object ->{
                     LeaderboardResponsePayload payload = (LeaderboardResponsePayload) object;
                     return "777".equals(payload.getLeaderboardId()) &&
@@ -54,7 +53,7 @@ public class WebSocketServiceUnitTest {
 
         verify(simpMessagingTemplate).convertAndSendToUser(
                 eq("2"),
-                eq(SubscribeInterceptor.LOCAL_LEADERBOARD_UPDATE_ENDPOINT),
+                eq(ConnectSTOMPInterceptor.LOCAL_LEADERBOARD_UPDATE_ENDPOINT),
                 argThat(object->{
                     LeaderboardResponsePayload payload = (LeaderboardResponsePayload) object;
                     return "777".equals(payload.getLeaderboardId()) &&
@@ -105,7 +104,7 @@ public class WebSocketServiceUnitTest {
                 )
         );
         verify(simpMessagingTemplate).convertAndSend(
-                eq(SubscribeInterceptor.GLOBAL_LEADERBOARD_UPDATE_ENDPOINT),
+                eq(ConnectSTOMPInterceptor.GLOBAL_LEADERBOARD_UPDATE_ENDPOINT),
                 argThat((LeaderboardResponsePayload payload) -> "leaderboard-1".equals(payload.getLeaderboardId()) &&
                         payload.getUserId() == 1L &&
                         payload.getScore() == 500.0 &&

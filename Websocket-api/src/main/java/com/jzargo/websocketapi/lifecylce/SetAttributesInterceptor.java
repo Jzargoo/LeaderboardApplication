@@ -1,6 +1,7 @@
 package com.jzargo.websocketapi.lifecylce;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.stereotype.Component;
@@ -9,14 +10,19 @@ import org.springframework.web.socket.server.HandshakeInterceptor;
 
 import java.net.URI;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
 @Component
-public class CheckLeaderboardIdInterceptor implements HandshakeInterceptor {
-    public static String LEADERBOARD_ATTRIBUTE = "leaderboard_id";
-    public static String LEADERBOARD_QUERY = "leaderboardId";
+public class SetAttributesInterceptor implements HandshakeInterceptor {
+
+    private final PropertiesStorage propertiesStorage;
+
+    public SetAttributesInterceptor(PropertiesStorage propertiesStorage) {
+        this.propertiesStorage = propertiesStorage;
+    }
 
     @Override
     public boolean beforeHandshake(
@@ -30,15 +36,26 @@ public class CheckLeaderboardIdInterceptor implements HandshakeInterceptor {
         String query = uri.getQuery();
 
         Optional<String> lbId = Arrays.stream(query.split("&"))
-                .filter(s -> s.startsWith(LEADERBOARD_QUERY))
+                .filter(s -> s.startsWith(propertiesStorage.getLeaderboardQuery()))
                 .map(s -> s.split("=")[1])
                 .findFirst();
 
-        lbId.ifPresent(
-                value -> attributes.put(LEADERBOARD_ATTRIBUTE,value)
+        Optional<String> userId = Optional.ofNullable(
+                request.getHeaders().get(propertiesStorage.getUserIdHeader())
+                        .getFirst()
         );
 
-        return lbId.isPresent();
+        lbId.ifPresent(
+                value -> attributes.put(propertiesStorage
+                        .getLeaderboardAttribute(),value)
+        );
+
+        userId.ifPresent(
+                value -> attributes.put(propertiesStorage
+                        .getUserIdAttribute(),value)
+        );
+
+        return lbId.isPresent() && userId.isPresent();
     }
 
     @Override

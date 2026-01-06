@@ -25,11 +25,6 @@ spring:
       properties:
         spring.json.trusted.packages: "com.jzargo.messaging,
         com.jzargo.leaderboardmicroservice.core.messaging"
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: http://keycloak:8899/realms/leaderboard-security
 kafka:
     topic:
       insync-replicas: 2

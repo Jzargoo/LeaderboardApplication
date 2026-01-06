@@ -123,39 +123,4 @@ public abstract class ContractVerifierBase {
         sagaLeaderboardCreate.stepOutOfTime("leaderboard455");
     }
 
-    @BeforeEach
-    void setupSecurity(TestInfo testInfo) {
-        String name = testInfo.getDisplayName();
-
-        if (name.contains("!user")) {
-            SecurityContextHolder.clearContext();
-            return;
-        }
-
-        if (name.contains("configUser?")) {
-            String cfg = name.substring(name.indexOf("configUser?") + 11);
-            String[] p = cfg.split("_");
-
-            Jwt jwt = new Jwt(
-                    "token",
-                    null,
-                    null,
-                    Map.of("alg", "none"),
-                    Map.of(
-                            "preferred_username", p[0],
-                            "user_id", p[1],
-                            "region", p.length > 2 ? p[2] : "GLOBAL"
-                    )
-            );
-
-            SecurityContext context =
-                    SecurityContextHolder.createEmptyContext();
-
-            context.setAuthentication(
-                    new JwtAuthenticationToken(jwt, List.of())
-            );
-
-            SecurityContextHolder.setContext(context);
-        }
-    }
 }

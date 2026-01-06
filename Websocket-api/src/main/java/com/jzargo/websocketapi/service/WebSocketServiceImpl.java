@@ -8,7 +8,7 @@ import com.jzargo.websocketapi.config.KafkaConfig;
 import com.jzargo.websocketapi.dto.InitUserScoreRequest;
 import com.jzargo.websocketapi.dto.LeaderboardPushEvent;
 import com.jzargo.websocketapi.dto.LeaderboardResponsePayload;
-import com.jzargo.websocketapi.lifecylce.SubscribeInterceptor;
+import com.jzargo.websocketapi.lifecylce.PropertiesStorage;
 import com.jzargo.websocketapi.utils.KafkaSendUtils;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +28,7 @@ public class WebSocketServiceImpl implements WebSocketService {
     private final LeaderboardWebClient leaderboardWebClient;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final SimpMessagingTemplate simpMessagingTemplate;
+    private final PropertiesStorage propertiesStorage;
 
     @Override
     public void initLeaderboardScore(String id) {
@@ -52,9 +53,7 @@ public class WebSocketServiceImpl implements WebSocketService {
                         id,
                         new UserScoreUploadEvent(
                                 id,
-                                updateUserScore.getUsername(),
                                 updateUserScore.getUserId(),
-                                updateUserScore.getRegion(),
                                 updateUserScore.getNewScore(),
                                 Map.of()
                         )
@@ -99,7 +98,7 @@ public class WebSocketServiceImpl implements WebSocketService {
             simpMessagingTemplate.convertAndSendToUser(
                     String.valueOf(entry.getUserId()),
 
-                    SubscribeInterceptor.LOCAL_LEADERBOARD_UPDATE_ENDPOINT,
+                    ,
 
                     new LeaderboardResponsePayload(
                             userLocalUpdateEvent.getLeaderboardId(),
@@ -126,10 +125,11 @@ public class WebSocketServiceImpl implements WebSocketService {
 
         for(long i = 0; i < globalLeaderboardEvent.getTopNLeaderboard().size(); i++){
 
-            simpMessagingTemplate.convertAndSend(
-                    SubscribeInterceptor.GLOBAL_LEADERBOARD_UPDATE_ENDPOINT,
+            simpMessagingTemplate.convertAndSend (
+                    propertiesStorage.getGlobalPushEndpointPattern()
+                            + globalLeaderboardEvent.getId(),
 
-                    new LeaderboardResponsePayload(
+                    new LeaderboardResponsePayload (
                             globalLeaderboardEvent.getId(),
                             globalLeaderboardEvent.getTopNLeaderboard().get((int) i)
                                     .getUserId(),

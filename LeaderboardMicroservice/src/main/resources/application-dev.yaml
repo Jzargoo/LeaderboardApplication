@@ -22,22 +22,6 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
         spring.json.trusted.packages: "com.jzargo.messaging,com.jzargo.leaderboardmicroservice.core.messaging"
-  security:
-    oauth2:
-      client:
-        registration:
-          keycloak:
-            provider: keycloak
-            client-id: leaderboard
-            client-secret: cKA0bJ3dVU62zMm3Pald5DU23zpg94vx
-            authorization-grant-type: client_credentials
-            scope: openid, profile
-        provider:
-          keycloak:
-            issuer-uri: http://localhost:8899/realms/leaderboard-security
-      resourceserver:
-        jwt:
-          issuer-uri: http://localhost:8899/realms/leaderboard-security
 kafka:
   topic:
     insync-replicas: 1

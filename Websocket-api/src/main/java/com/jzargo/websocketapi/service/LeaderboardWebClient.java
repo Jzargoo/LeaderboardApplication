@@ -18,6 +18,6 @@ public interface LeaderboardWebClient {
     @PutMapping
     void initUserScore(@RequestBody InitUserScoreRequest initUserScoreRequest);
 
-    @GetMapping("/{id}")
+    @GetMapping("/view/{id}")
     LeaderboardResponse getLeaderboard(@PathVariable String id);
 }

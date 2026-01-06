@@ -1,0 +1,5 @@
+CREATE DATABASE generaldb;
+CREATE DATABASE scoresdb;
+CREATE DATABASE usersdb;
+CREATE DATABASE analyticsdb;
+CREATE DATABASE keycloakdb;
