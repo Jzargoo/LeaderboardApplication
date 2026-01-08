@@ -5,7 +5,7 @@ import com.jzargo.leaderboardmicroservice.dto.CreateLeaderboardRequest;
 import com.jzargo.messaging.*;
 
 public interface SagaLeaderboardCreate {
-    void startSaga(CreateLeaderboardRequest request, long userId, String username, String region);
+    void startSaga(CreateLeaderboardRequest request, long userId, String username);
 
     boolean stepCreateLeaderboard(InitLeaderboardCreateEvent event, String SagaId);
     void stepSuccessfulEventInit(SuccessfulEventInitialization successfulEventInitialization, String sagaId);

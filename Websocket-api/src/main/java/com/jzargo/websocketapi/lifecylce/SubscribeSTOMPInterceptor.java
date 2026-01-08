@@ -1,8 +1,8 @@
 package com.jzargo.websocketapi.lifecylce;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jzargo.dto.LeaderboardResponse;
-import com.jzargo.websocketapi.exception.InvalidDestinationException;
+import com.jzargo.dto.UserScoreResponse;
+import com.jzargo.websocketapi.exception.ParticipantException;
 import com.jzargo.websocketapi.service.LeaderboardWebClient;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +25,41 @@ public class SubscribeSTOMPInterceptor implements ChannelInterceptor {
     private final LeaderboardWebClient leaderboardWebClient;
     private final PropertiesStorage propertiesStorage;
     private final SimpMessagingTemplate simpMessagingTemplate;
-    private final ObjectMapper objectMapper;
+
+    @Override
+    public Message<?> preSend(@NonNull Message<?> message, @NonNull MessageChannel channel) {
+        StompHeaderAccessor accessor = StompHeaderAccessor.wrap(message);
+
+        if(!StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
+            return message;
+        }
+
+        if (
+                accessor.getDestination() != null &&
+                        (
+                                accessor.getDestination().startsWith(
+                                        propertiesStorage.getLocalPushEndpointPattern()
+                                ) ||
+                                        accessor.getDestination().startsWith(
+                                                propertiesStorage.getGlobalPushEndpointPattern()
+                                        )
+                        )
+        ) {
+
+            String lbId = (String) accessor.getSessionAttributes()
+                    .get(propertiesStorage.getLeaderboardAttribute());
+            long userId = (Long) accessor.getSessionAttributes()
+                    .get(propertiesStorage.getUserIdAttribute());
+
+            boolean participant = leaderboardWebClient.isParticipant(lbId, userId + "");
+
+            if (!participant) {
+                throw new ParticipantException("user is not a part of the leaderboard and cannot subscribe on it");
+            }
+        }
+        return message;
+    }
+
 
     @Override
     public void postSend(@NonNull Message<?> message, @NonNull MessageChannel channel, boolean isSent) {
@@ -45,19 +79,19 @@ public class SubscribeSTOMPInterceptor implements ChannelInterceptor {
                     .startsWith(propertiesStorage.getLocalPushEndpointPattern())
             ) {
 
-                String id = accessor.getSessionAttributes().get(
-
-                ).toString();
+                String lbId = accessor.getSessionAttributes()
+                        .get(propertiesStorage.getLeaderboardAttribute())
+                        .toString();
 
                 Long userId = (Long) accessor.getSessionAttributes()
-                        .get(ConnectSTOMPInterceptor.USER_ID_SESSION_ATTRIBUTE);
+                        .get(propertiesStorage.getUserIdAttribute());
 
-                LeaderboardResponse leaderboardPayload = leaderboardWebClient.getLeaderboard(id);
-
+                UserScoreResponse usr =
+                        leaderboardWebClient.myScoreIn(lbId, userId);
                 simpMessagingTemplate.convertAndSendToUser(
                         String.valueOf(userId),
-                        ConnectSTOMPInterceptor.INIT_LEADERBOARD_EXPECTATION + id,
-                        leaderboardPayload
+                        propertiesStorage.getLocalPushEndpointPattern() + lbId,
+                        usr
                 );
             }
         }

@@ -7,13 +7,10 @@ import com.jzargo.leaderboardmicroservice.dto.InitUserScoreRequest;
 import com.jzargo.leaderboardmicroservice.exceptions.LeaderboardNotFound;
 import com.jzargo.leaderboardmicroservice.exceptions.UserNotFoundInLeaderboard;
 import com.jzargo.leaderboardmicroservice.saga.SagaLeaderboardCreate;
-import com.jzargo.region.Regions;
 import com.jzargo.leaderboardmicroservice.service.LeaderboardService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,14 +29,9 @@ public class LeaderboardController {
 
     @GetMapping("/score/{id}")
     public ResponseEntity<UserScoreResponse> getMyScoreIn(@PathVariable String id,
-                                                          @AuthenticationPrincipal Jwt jwt
-                                             ) {
-        Long userId = Long.parseLong(
-                jwt.getClaimAsString("user_id")
-        );
-
+                                                          @RequestParam Long userId
+                                                          ) {
         try {
-
             UserScoreResponse userScoreInLeaderboard = leaderboardService.getUserScoreInLeaderboard(
                     userId,
                     id
@@ -61,7 +53,8 @@ public class LeaderboardController {
     @PostMapping("/create")
     public ResponseEntity<String> createLeaderboard(
             @RequestBody @Validated CreateLeaderboardRequest request,
-            @AuthenticationPrincipal Jwt jwt
+            @RequestParam Long userId,
+            @RequestParam String preferredUsername
             ) {
 
         try {
@@ -76,14 +69,7 @@ public class LeaderboardController {
 
             }
 
-            String preferredUsername = jwt.getClaimAsString("preferred_username");
-            long userId = Long.parseLong(jwt.getClaimAsString("user_id"));
-            String region = jwt.getClaimAsString("region") == null?
-                    Regions.GLOBAL.getCode():
-                    Regions.fromStringCode(
-                            jwt.getClaimAsString("region")).getCode();
-
-            sagaLeaderboardCreate.startSaga(request, userId,preferredUsername,region);
+            sagaLeaderboardCreate.startSaga(request, userId,preferredUsername);
 
         } catch (Exception e) {
 
@@ -92,17 +78,16 @@ public class LeaderboardController {
 
         }
         log.info("leaderboard with name {} created by user with id {}",
-                request.getName(), jwt.getSubject());
+                request.getName(), userId);
         return ResponseEntity.ok("leaderboard created");
     }
 
     @PutMapping
     public ResponseEntity<Void> initUserScore(
             @RequestBody @Validated InitUserScoreRequest request,
-            @AuthenticationPrincipal Jwt jwt
+            @RequestParam long userId
     ) {
 
-        long userId = Long.parseLong(jwt.getSubject());
 
         if(leaderboardService.userExistsById(userId, request.getLeaderboardId())) {
 

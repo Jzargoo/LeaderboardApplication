@@ -98,6 +98,8 @@ public class WebSocketServiceImpl implements WebSocketService {
             simpMessagingTemplate.convertAndSendToUser(
                     String.valueOf(entry.getUserId()),
 
+                    propertiesStorage.getLocalPushEndpointPattern() +
+                            userLocalUpdateEvent.getLeaderboardId()
                     ,
 
                     new LeaderboardResponsePayload(

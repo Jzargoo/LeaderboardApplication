@@ -67,8 +67,7 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate {
     @Override
     public void startSaga(CreateLeaderboardRequest request,
                           long userId,
-                          String username,
-                          String region) {
+                          String username) {
 
         InitLeaderboardCreateEvent event = mapper.map(request);
         event.setOwnerId(userId);

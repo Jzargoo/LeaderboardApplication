@@ -22,5 +22,4 @@ public class PropertiesStorage {
     @Value("application.endpoints-pattern.local-leaderboard-push:/queue/leaderboard-update/")
     private String localPushEndpointPattern;
 
-
 }

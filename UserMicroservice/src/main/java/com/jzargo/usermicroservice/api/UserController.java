@@ -6,8 +6,6 @@ import com.jzargo.usermicroservice.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -16,7 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 public class UserController {
     private final UserService userService;
-    @Value("${api.keycloak-connection-header}")
+    @Value("${api.headers.keycloak-connection-header}")
     private String keycloakHeader;
     @Value("${api.secret-keycloak-connection}")
     private String keycloakValue;
@@ -31,8 +29,8 @@ public class UserController {
             produces = MediaType.MULTIPART_FORM_DATA_VALUE
     )
     public ResponseEntity<byte[]> setAvatar(@RequestBody MultipartFile avatar,
-                                            @AuthenticationPrincipal Jwt jwt){
-        long userId = Long.parseLong(jwt.getClaimAsString("user_id"));
+                                            @RequestParam Long userId
+                                            ){
         try{
             userService.changeAvatar(avatar.getBytes(), userId);
             return ResponseEntity.ok(avatar.getBytes());

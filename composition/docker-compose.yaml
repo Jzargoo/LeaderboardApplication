@@ -16,6 +16,8 @@ services:
       POSTGRES_USER: jzargo
       POSTGRES_PASSWORD: root333
       POSTGRES_DB: scoresdb
+    networks:
+      - tool
     ports:
       - "5433:5432"
   usersdb:
@@ -27,7 +29,12 @@ services:
       POSTGRES_DB: usersdb
     ports:
       - "5434:5432"
+    networks:
+      - tool
+
   analyticsdb:
+    networks:
+      - tool
     image: bitnami/postgresql:latest
     container_name: analytics-db
     environment:
@@ -38,6 +45,8 @@ services:
       - "5435:5432"
 
   generaldb:
+    networks:
+      - tool
     image: bitnami/postgresql:latest
     container_name: generaldb
     environment:
@@ -51,6 +60,8 @@ services:
       - ./postgres-init:/docker-entrypoint-initdb.d
 
   kafka1:
+    networks:
+      - tool
     image: bitnami/kafka:latest
     container_name: kafka1
     hostname: kafka1
@@ -73,6 +84,8 @@ services:
     volumes:
       - kafka1-data:/bitnami/kafka/data
   kafka2:
+    networks:
+      - tool
     image: bitnami/kafka:latest
     container_name: kafka2
     hostname: kafka2
@@ -94,6 +107,8 @@ services:
     volumes:
       - kafka2-data:/bitnami/kafka/data
   kafka3:
+    networks:
+      - tool
     image: bitnami/kafka:latest
     container_name: kafka3
     hostname: kafka3
@@ -116,6 +131,8 @@ services:
       - kafka3-data:/bitnami/kafka/data
 
   redis-master:
+    networks:
+      - tool
     image: redis:latest
     container_name: redis-master
     ports:
@@ -129,6 +146,8 @@ services:
     volumes:
       - redis-master-data:/data
   redis-slave-1:
+    networks:
+      - tool
     image: redis:latest
     container_name: redis-slave-1
     depends_on:
@@ -146,6 +165,8 @@ services:
     volumes:
       - redis-slave-1-data:/data
   redis-slave-2:
+    networks:
+      - tool
     image: redis:latest
     container_name: redis-slave-2
     depends_on:
@@ -164,6 +185,8 @@ services:
       - redis-slave-2-data:/data
 
   keycloak:
+    networks:
+      - tool
     image: keycloak/keycloak:latest
     container_name: keycloak-security
     command: start-dev
@@ -184,6 +207,8 @@ services:
       - ../keycloak-extensions/files:/opt/keycloak/providers
 
   debezium:
+    networks:
+      - tool
     image: quay.io/debezium/connect:latest
     container_name: debezium
     depends_on:
@@ -201,4 +226,3 @@ services:
       STATUS_STORAGE_TOPIC: connect-statuses-topic
     volumes:
       - ./configuration-files:/kafka/configs
-

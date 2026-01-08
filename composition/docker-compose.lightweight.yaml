@@ -4,7 +4,6 @@ volumes:
   redpanda-data:
     driver: local
 
-
 services:
   generaldb:
     build:
@@ -16,6 +15,8 @@ services:
       POSTGRES_DATABASE: generaldb
     ports:
       - "5432:5432"
+    networks:
+      - tool
     volumes:
       - ./postgres-data:/bitnami/postgresql
 
@@ -34,9 +35,12 @@ services:
       - --check=false
       - --kafka-addr PLAINTEXT://0.0.0.0:9092
       - --advertise-kafka-addr PLAINTEXT://localhost:9092
+    networks:
+      - tool
     ports:
       - "9092:9092"
       - "9644:9644"
+
     volumes:
       - redpanda-data:/var/lib/redpanda/data
   redis:
@@ -49,6 +53,8 @@ services:
       "--requirepass", "redisPassword",
       "--appendonly", "yes"
     ]
+    networks:
+      - tool
 
 
   keycloak:
@@ -58,6 +64,8 @@ services:
     container_name: keycloak
     command: start-dev
     mem_limit: 1024M
+    networks:
+      - tool
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin-password
@@ -73,6 +81,8 @@ services:
   debezium-dev-container:
     image: quay.io/debezium/connect:latest
     container_name: debezium-dev-container
+    networks:
+      - tool
     depends_on:
       - redpanda
       - generaldb
@@ -91,6 +101,7 @@ services:
     build:
       context: ../Gateway-api
     container_name: gateway
-
+    networks:
+      - backend
     ports:
       - "8080:8080"
