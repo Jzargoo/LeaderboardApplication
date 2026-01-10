@@ -1,4 +1,13 @@
 name: LeaderboardApplication
+
+networks:
+  tool:
+    driver: bridge
+  backend:
+    driver: bridge
+  frontend:
+    driver: bridge
+
 volumes:
   postgres-data:
   redis-master-data:

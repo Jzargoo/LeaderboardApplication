@@ -1,5 +1,13 @@
 name: leaderboard-lightweight
 
+networks:
+  tool:
+    driver: bridge
+  backend:
+    driver: bridge
+  frontend:
+    driver: bridge
+
 volumes:
   redpanda-data:
     driver: local
@@ -96,12 +104,18 @@ services:
       - "10103:8083"
     volumes:
       - ./configuration-files/lightweight:/kafka/configs
-
+  eureka:
+    build:
+      context: ./../EurekaServerService
+    container_name: eureka-light
+    networks:
+      - backend
   gateway:
     build:
-      context: ../Gateway-api
+      context: ./../Gateway-api
     container_name: gateway
     networks:
       - backend
+      - frontend
     ports:
       - "8080:8080"

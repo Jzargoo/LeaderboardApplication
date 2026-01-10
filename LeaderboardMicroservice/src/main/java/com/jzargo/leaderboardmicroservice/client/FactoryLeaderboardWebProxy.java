@@ -12,6 +12,9 @@ public class FactoryLeaderboardWebProxy {
     private final Map<String, LeaderboardServiceWebProxy> proxies;
 
     public LeaderboardServiceWebProxy getClient(String type) {
+        if (type == null)
+            return proxies.get(TypesOfProxy.KAFKA.name());
+
         return proxies.getOrDefault(type.toUpperCase(),
                 proxies.get(TypesOfProxy.KAFKA.name())
         );

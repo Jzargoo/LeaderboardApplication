@@ -1,25 +1,38 @@
 package com.jzargo.websocketapi.lifecylce;
 
 import lombok.Data;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 @Component
+@ConfigurationProperties(prefix = "application")
 @Data
 public class PropertiesStorage {
-    @Value("application.attribute.userId:user_id")
-    private String userIdAttribute;
-    @Value("application.attribute.leaderboardId:leaderboard_id")
-    private String leaderboardAttribute;
 
-    @Value("application.query.leaderboardId:leaderboardId")
-    private String leaderboardQuery;
-    @Value("application.headers.userId:X-USER-ID")
-    private String userIdHeader;
+    private Attribute attribute = new Attribute();
+    private Query query = new Query();
+    private Headers headers = new Headers();
+    private EndpointsPattern endpointsPattern = new EndpointsPattern();
 
-    @Value("application.endpoints-pattern.global-leaderboard-push:/topic/leaderboard-update/")
-    private String globalPushEndpointPattern;
-    @Value("application.endpoints-pattern.local-leaderboard-push:/queue/leaderboard-update/")
-    private String localPushEndpointPattern;
+    @Data
+    public static class Attribute {
+        private String userId;
+        private String leaderboardId;
+    }
 
+    @Data
+    public static class Query {
+        private String leaderboardId;
+    }
+
+    @Data
+    public static class Headers {
+        private String userId;
+    }
+
+    @Data
+    public static class EndpointsPattern {
+        private String globalLeaderboardPush;
+        private String localLeaderboardPush;
+    }
 }

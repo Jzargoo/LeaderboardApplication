@@ -38,18 +38,18 @@ public class SubscribeSTOMPInterceptor implements ChannelInterceptor {
                 accessor.getDestination() != null &&
                         (
                                 accessor.getDestination().startsWith(
-                                        propertiesStorage.getLocalPushEndpointPattern()
+                                        propertiesStorage.getEndpointsPattern().getLocalLeaderboardPush()
                                 ) ||
                                         accessor.getDestination().startsWith(
-                                                propertiesStorage.getGlobalPushEndpointPattern()
+                                                propertiesStorage.getEndpointsPattern().getGlobalLeaderboardPush()
                                         )
                         )
         ) {
 
             String lbId = (String) accessor.getSessionAttributes()
-                    .get(propertiesStorage.getLeaderboardAttribute());
+                    .get(propertiesStorage.getAttribute().getLeaderboardId());
             long userId = (Long) accessor.getSessionAttributes()
-                    .get(propertiesStorage.getUserIdAttribute());
+                    .get(propertiesStorage.getAttribute().getUserId());
 
             boolean participant = leaderboardWebClient.isParticipant(lbId, userId + "");
 
@@ -76,21 +76,21 @@ public class SubscribeSTOMPInterceptor implements ChannelInterceptor {
 
         if(StompCommand.SUBSCRIBE.equals(accessor.getCommand())){
             if(accessor.getDestination()
-                    .startsWith(propertiesStorage.getLocalPushEndpointPattern())
+                    .startsWith(propertiesStorage.getEndpointsPattern().getLocalLeaderboardPush())
             ) {
 
                 String lbId = accessor.getSessionAttributes()
-                        .get(propertiesStorage.getLeaderboardAttribute())
+                        .get(propertiesStorage.getAttribute().getLeaderboardId())
                         .toString();
 
                 Long userId = (Long) accessor.getSessionAttributes()
-                        .get(propertiesStorage.getUserIdAttribute());
+                        .get(propertiesStorage.getAttribute().getUserId());
 
                 UserScoreResponse usr =
                         leaderboardWebClient.myScoreIn(lbId, userId);
                 simpMessagingTemplate.convertAndSendToUser(
                         String.valueOf(userId),
-                        propertiesStorage.getLocalPushEndpointPattern() + lbId,
+                        propertiesStorage.getEndpointsPattern().getLocalLeaderboardPush() + lbId,
                         usr
                 );
             }

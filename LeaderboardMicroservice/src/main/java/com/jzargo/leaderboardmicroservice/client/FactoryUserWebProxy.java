@@ -12,6 +12,9 @@ public class FactoryUserWebProxy {
     private final Map<String, UserServiceWebProxy> proxies;
 
     public UserServiceWebProxy getClient(String type) {
+        if (type == null)
+            return proxies.get(TypesOfProxy.KAFKA.name());
+
         return proxies.getOrDefault(
                 type.toUpperCase(),
                 proxies.get(TypesOfProxy.KAFKA.name())

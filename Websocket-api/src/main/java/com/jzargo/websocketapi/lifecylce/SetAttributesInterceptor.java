@@ -7,6 +7,7 @@ import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.HandshakeInterceptor;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.util.Arrays;
@@ -36,23 +37,25 @@ public class SetAttributesInterceptor implements HandshakeInterceptor {
         String query = uri.getQuery();
 
         Optional<String> lbId = Arrays.stream(query.split("&"))
-                .filter(s -> s.startsWith(propertiesStorage.getLeaderboardQuery()))
+                .filter(s -> s.startsWith(propertiesStorage
+                        .getQuery().getLeaderboardId()))
                 .map(s -> s.split("=")[1])
                 .findFirst();
 
         Optional<String> userId = Optional.ofNullable(
-                request.getHeaders().get(propertiesStorage.getUserIdHeader())
+                request.getHeaders().get(propertiesStorage
+                                .getHeaders().getUserId())
                         .getFirst()
         );
 
         lbId.ifPresent(
                 value -> attributes.put(propertiesStorage
-                        .getLeaderboardAttribute(),value)
+                        .getAttribute().getLeaderboardId(),value)
         );
 
         userId.ifPresent(
                 value -> attributes.put(propertiesStorage
-                        .getUserIdAttribute(),value)
+                        .getAttribute().getUserId(),value)
         );
 
         return lbId.isPresent() && userId.isPresent();

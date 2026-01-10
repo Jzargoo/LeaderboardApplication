@@ -1,16 +1,30 @@
 package com.jzargo.websocketapi.config.WebSocket;
 
+import com.jzargo.websocketapi.lifecylce.PropertiesStorage;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.*;
 
 @Configuration
 @EnableWebSocketMessageBroker
-public class WebSocketConfig implements WebSocketMessageBrokerConfigurer, WebSocketConfigurer {
+public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+
+    private final UserIdAsPrincipalHandshakeHandler userIdAsPrincipalHandshakeHandler;
+
+    public WebSocketConfig(UserIdAsPrincipalHandshakeHandler userIdAsPrincipalHandshakeHandler) {
+        this.userIdAsPrincipalHandshakeHandler = userIdAsPrincipalHandshakeHandler;
+    }
+
+    @Bean
+    UserIdAsPrincipalHandshakeHandler userIdAsPrincipalHandshakeHandler(PropertiesStorage ps){
+        return new UserIdAsPrincipalHandshakeHandler(ps);
+    }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws/leaderboard");
+        registry.addEndpoint("/ws/leaderboard")
+                .setHandshakeHandler(userIdAsPrincipalHandshakeHandler);
     }
 
     @Override
@@ -20,9 +34,4 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer, WebSoc
     }
 
 
-    @Override
-    public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(, "/app")
-                .setAllowedOrigins("*");
-    }
 }

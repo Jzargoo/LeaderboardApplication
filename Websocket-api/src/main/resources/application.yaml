@@ -36,3 +36,15 @@ eureka:
   client:
     service-url:
       defaultZone: http://localhost:6371/eureka
+
+application:
+  attribute:
+    userId: user_id
+    leaderboardId: leaderboard_id
+  query:
+    leaderboardId: leaderboardId
+  headers:
+    userId: X-USER-ID
+  endpoints-pattern:
+    global-leaderboard-push: /topic/leaderboard-update/
+    local-leaderboard-push: /queue/leaderboard-update/

@@ -12,6 +12,9 @@ public class FactoryScoringWebProxy {
     private final Map<String, ScoringServiceWebProxy> proxies;
 
     public ScoringServiceWebProxy getClient(String type) {
+        if (type == null)
+            return proxies.get(TypesOfProxy.KAFKA.name());
+
         return proxies.getOrDefault(type.toUpperCase(),
                 proxies.get(TypesOfProxy.KAFKA.name())
         );
