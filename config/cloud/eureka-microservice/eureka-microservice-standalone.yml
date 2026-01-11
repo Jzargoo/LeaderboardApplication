@@ -1,0 +1,10 @@
+eureka:
+  client:
+    allow-redirects: false
+    fetch-registry: false
+    register-with-eureka: false
+  instance:
+    hostname: localhost
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+    appname: ${spring.application.name}

@@ -4,12 +4,5 @@ server:
 spring:
   application:
     name: leaderboard-microservice
-  profiles:
-    active: cloudconfig
-    include:
-
-      - redis-common-{spring.profiles.active}
-      - kafka-common-{spring.profiles.active}
-      - eureka-common-{spring.profiles.active}
   config:
     import: 'optional:configserver:http://localhost:8888'

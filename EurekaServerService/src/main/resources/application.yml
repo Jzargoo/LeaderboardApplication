@@ -1,0 +1,8 @@
+server.port: 8761
+
+spring:
+  application:
+    name: eureka-microservice
+  profiles.active: standalone
+  config:
+    import: 'optional:configserver:http://localhost8888'

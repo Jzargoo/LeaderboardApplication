@@ -11,3 +11,4 @@ spring:
           search-locations:
             - file:///${CONFIG_DIR_PATH}/cloud/{application}/{profile}/
             - file:///${CONFIG_DIR_PATH}/cloud/{profile}/
+            - file:///${CONFIG_DIR_PATH}/cloud
