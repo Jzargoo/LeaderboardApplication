@@ -1,0 +1,10 @@
+spring:
+  kafka:
+    consumer:
+      bootstrap-servers: kafka1:9090,kafka2:9092
+    producer:
+      bootstrap-servers: kafka1:9090,kafka2:9092
+kafka:
+  topic:
+    insync-replicas: 2
+    replicas: 2

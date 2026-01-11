@@ -1,12 +1,11 @@
 spring:
-  data:
-    redis:
-      password: redisPassword
-      port: 6379
-      host: localhost
+  config:
+    import:
+      - "optional:configserver:http://localhost:8888/redis-common-${spring.profiles.active}.yaml"
+      - "optional:configserver:http://localhost:8888/eureka-common-${spring.profiles.active}.yaml"
+      - "optional:configserver:http://localhost:8888/kafka-common-${spring.profiles.active}.yaml"
   kafka:
     consumer:
-      bootstrap-servers: localhost:9092
       group-id: leaderboard-group
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
@@ -14,19 +13,7 @@ spring:
         spring.json.trusted.packages: "com.jzargo.messaging,
         com.jzargo.leaderboardmicroservice.core.messaging"
     producer:
-      bootstrap-servers: localhost:9092
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
         spring.json.trusted.packages: "com.jzargo.messaging,com.jzargo.leaderboardmicroservice.core.messaging"
-kafka:
-  topic:
-    insync-replicas: 1
-    replicas: 1
-
-eureka:
-  client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka/
-  instance:
-    prefer-ip-address: true

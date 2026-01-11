@@ -3,6 +3,13 @@ server:
 
 
 spring:
+  profiles:
+    group:
+      "devconfig":
+        - redis-common-{spring.profiles.active}
+        - kafka-common-{spring.profiles.active}
+        - eureka-common-{spring.profiles.active}
+    active: devconfig
   application:
     name: leaderboard-microservice
   config:
