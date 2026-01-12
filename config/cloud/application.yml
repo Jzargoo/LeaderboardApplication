@@ -1,2 +1,3 @@
-headers:
-  userId: X-USER-ID
+application:
+  headers:
+    userId: X-USER-ID

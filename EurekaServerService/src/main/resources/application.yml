@@ -5,4 +5,4 @@ spring:
     name: eureka-microservice
   profiles.active: standalone
   config:
-    import: 'optional:configserver:http://localhost8888'
+    import: 'optional:configserver:http://localhost:8888'

@@ -1,6 +1,6 @@
 package com.jzargo.websocketapi.config.WebSocket;
 
-import com.jzargo.websocketapi.lifecylce.PropertiesStorage;
+import com.jzargo.websocketapi.utils.PropertiesStorage;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;

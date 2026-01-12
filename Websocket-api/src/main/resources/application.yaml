@@ -1,50 +1,8 @@
 spring:
   application:
-    name: Websocket-api
-  kafka:
-    consumer:
-      group-id: webSocket-group
-      bootstrap-servers: kafka1:9090,kafka2:9092
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
-      properties:
-        spring.deserializer.value.delegate.class:  org.apache.kafka.common.serialization.JsonDeserializer
-        spring.json.trusted.packages: com.jzargo.core.*
-    producer:
-      bootstrap-servers: kafka1:9090,kafka2:9092
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-      properties:
-        spring.json.trusted.packages: com.jzargo.core.*
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: http://localhost:8899/realms/leaderboard-security
-      client:
-        registration:
-          keycloak:
-            provider: keycloak
-            client-id: websocket-api
-            client-secret: d2PoSRPexVB51B0VvMStdUKXcpsED3gt
-            authorization-grant-type: client_credentials
-            scope: openid, profile
-        provider:
-          keycloak:
-            issuer-uri: http://localhost:8899/realms/leaderboard-security
-eureka:
-  client:
-    service-url:
-      defaultZone: http://localhost:6371/eureka
-
-application:
-  attribute:
-    userId: user_id
-    leaderboardId: leaderboard_id
-  query:
-    leaderboardId: leaderboardId
-  headers:
-    userId: X-USER-ID
-  endpoints-pattern:
-    global-leaderboard-push: /topic/leaderboard-update/
-    local-leaderboard-push: /queue/leaderboard-update/
+    name: websocket-api-microservice
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE}
+    include: ${SPRING_PROFILES_INCLUDE:}
+  config:
+    import: 'optional:configserver:${URL_CONFIG_SERVER}'

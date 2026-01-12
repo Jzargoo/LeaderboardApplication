@@ -8,7 +8,7 @@ import com.jzargo.websocketapi.config.KafkaConfig;
 import com.jzargo.websocketapi.dto.InitUserScoreRequest;
 import com.jzargo.websocketapi.dto.LeaderboardPushEvent;
 import com.jzargo.websocketapi.dto.LeaderboardResponsePayload;
-import com.jzargo.websocketapi.lifecylce.PropertiesStorage;
+import com.jzargo.websocketapi.utils.PropertiesStorage;
 import com.jzargo.websocketapi.utils.KafkaSendUtils;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
@@ -98,7 +98,7 @@ public class WebSocketServiceImpl implements WebSocketService {
             simpMessagingTemplate.convertAndSendToUser(
                     String.valueOf(entry.getUserId()),
 
-                    propertiesStorage.getLocalPushEndpointPattern() +
+                    propertiesStorage.getEndpointsPattern().getLocalLeaderboardPush() +
                             userLocalUpdateEvent.getLeaderboardId()
                     ,
 
@@ -128,7 +128,7 @@ public class WebSocketServiceImpl implements WebSocketService {
         for(long i = 0; i < globalLeaderboardEvent.getTopNLeaderboard().size(); i++){
 
             simpMessagingTemplate.convertAndSend (
-                    propertiesStorage.getGlobalPushEndpointPattern()
+                    propertiesStorage.getEndpointsPattern().getGlobalLeaderboardPush()
                             + globalLeaderboardEvent.getId(),
 
                     new LeaderboardResponsePayload (

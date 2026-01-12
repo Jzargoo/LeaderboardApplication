@@ -1,6 +1,6 @@
 package com.jzargo.websocketapi.config.WebSocket;
 
-import com.jzargo.websocketapi.lifecylce.PropertiesStorage;
+import com.jzargo.websocketapi.utils.PropertiesStorage;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.support.DefaultHandshakeHandler;

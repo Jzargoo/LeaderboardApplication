@@ -1,0 +1,25 @@
+spring:
+  kafka:
+    consumer:
+      group-id: webSocket-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.apache.kafka.common.serialization.JsonDeserializer
+        spring.json.trusted.packages: com.jzargo.core.*
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.trusted.packages: com.jzargo.core.*
+
+
+application:
+  attribute:
+    userId: user_id
+    leaderboardId: leaderboard_id
+  query:
+    leaderboardId: leaderboardId
+  endpoints-pattern:
+    global-leaderboard-push: /topic/leaderboard-update/
+    local-leaderboard-push: /queue/leaderboard-update/

@@ -1,18 +1,24 @@
-package com.jzargo.websocketapi.lifecylce;
+package com.jzargo.websocketapi.utils;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.stereotype.Component;
+import org.springframework.validation.annotation.Validated;
 
 @Component
+@Validated
+@RefreshScope
 @ConfigurationProperties(prefix = "application")
 @Data
 public class PropertiesStorage {
 
-    private Attribute attribute = new Attribute();
-    private Query query = new Query();
-    private Headers headers = new Headers();
-    private EndpointsPattern endpointsPattern = new EndpointsPattern();
+    private final Attribute attribute = new Attribute();
+    private final Query query = new Query();
+    private final Headers headers = new Headers();
+    private final EndpointsPattern endpointsPattern = new EndpointsPattern();
 
     @Data
     public static class Attribute {
@@ -27,12 +33,16 @@ public class PropertiesStorage {
 
     @Data
     public static class Headers {
+        @NotNull
+        @NotBlank
         private String userId;
     }
 
     @Data
     public static class EndpointsPattern {
+        @NotNull
         private String globalLeaderboardPush;
+        @NotNull
         private String localLeaderboardPush;
     }
 }
