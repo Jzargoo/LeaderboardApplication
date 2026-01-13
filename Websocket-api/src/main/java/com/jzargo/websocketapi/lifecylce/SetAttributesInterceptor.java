@@ -1,6 +1,6 @@
 package com.jzargo.websocketapi.lifecylce;
 
-import com.jzargo.websocketapi.utils.PropertiesStorage;
+import com.jzargo.websocketapi.config.properties.ApplicationPropertiesStorage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
@@ -17,10 +17,10 @@ import java.util.Optional;
 @Component
 public class SetAttributesInterceptor implements HandshakeInterceptor {
 
-    private final PropertiesStorage propertiesStorage;
+    private final ApplicationPropertiesStorage applicationPropertiesStorage;
 
-    public SetAttributesInterceptor(PropertiesStorage propertiesStorage) {
-        this.propertiesStorage = propertiesStorage;
+    public SetAttributesInterceptor(ApplicationPropertiesStorage applicationPropertiesStorage) {
+        this.applicationPropertiesStorage = applicationPropertiesStorage;
     }
 
     @Override
@@ -35,24 +35,24 @@ public class SetAttributesInterceptor implements HandshakeInterceptor {
         String query = uri.getQuery();
 
         Optional<String> lbId = Arrays.stream(query.split("&"))
-                .filter(s -> s.startsWith(propertiesStorage
+                .filter(s -> s.startsWith(applicationPropertiesStorage
                         .getQuery().getLeaderboardId()))
                 .map(s -> s.split("=")[1])
                 .findFirst();
 
         Optional<String> userId = Optional.ofNullable(
-                request.getHeaders().get(propertiesStorage
+                request.getHeaders().get(applicationPropertiesStorage
                                 .getHeaders().getUserId())
                         .getFirst()
         );
 
         lbId.ifPresent(
-                value -> attributes.put(propertiesStorage
+                value -> attributes.put(applicationPropertiesStorage
                         .getAttribute().getLeaderboardId(),value)
         );
 
         userId.ifPresent(
-                value -> attributes.put(propertiesStorage
+                value -> attributes.put(applicationPropertiesStorage
                         .getAttribute().getUserId(),value)
         );
 

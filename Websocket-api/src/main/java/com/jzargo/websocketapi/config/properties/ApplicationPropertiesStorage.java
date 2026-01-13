@@ -1,4 +1,4 @@
-package com.jzargo.websocketapi.utils;
+package com.jzargo.websocketapi.config.properties;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -13,7 +13,7 @@ import org.springframework.validation.annotation.Validated;
 @Component
 @RefreshScope
 @ConfigurationProperties(prefix = "application")
-public class PropertiesStorage {
+public class ApplicationPropertiesStorage {
 
     private Attribute attribute;
     private Query query;

@@ -1,0 +1,12 @@
+kafka:
+  headers:
+    MESSAGE_ID: "message-id"
+
+  names:
+    leaderboard-event: "leaderboard-event-topic"
+    leaderboard_update: "leaderboard-update-topic"
+    user-state-event: "user-state-event-topic"
+    saga-create-eaderboard: "saga-create-leaderboard-topic"
+    user_event_score: "user-event-score-topic"
+    leaderboard_event: "leaderboard-event-topic"
+    command_string_score: "user-string-score-command-topic"

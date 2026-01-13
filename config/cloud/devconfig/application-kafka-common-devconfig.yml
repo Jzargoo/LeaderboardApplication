@@ -8,3 +8,4 @@ kafka:
   topic:
     insync-replicas: 1
     replicas: 1
+    partitions: 3

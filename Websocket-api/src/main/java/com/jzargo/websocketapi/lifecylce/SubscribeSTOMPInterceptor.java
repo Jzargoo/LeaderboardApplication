@@ -3,7 +3,7 @@ package com.jzargo.websocketapi.lifecylce;
 import com.jzargo.dto.UserScoreResponse;
 import com.jzargo.websocketapi.exception.ParticipantException;
 import com.jzargo.websocketapi.service.LeaderboardWebClient;
-import com.jzargo.websocketapi.utils.PropertiesStorage;
+import com.jzargo.websocketapi.config.properties.ApplicationPropertiesStorage;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +23,7 @@ public class SubscribeSTOMPInterceptor implements ChannelInterceptor {
 
 
     private final LeaderboardWebClient leaderboardWebClient;
-    private final PropertiesStorage propertiesStorage;
+    private final ApplicationPropertiesStorage applicationPropertiesStorage;
     private final SimpMessagingTemplate simpMessagingTemplate;
 
     @Override
@@ -38,18 +38,18 @@ public class SubscribeSTOMPInterceptor implements ChannelInterceptor {
                 accessor.getDestination() != null &&
                         (
                                 accessor.getDestination().startsWith(
-                                        propertiesStorage.getEndpointsPattern().getLocalLeaderboardPush()
+                                        applicationPropertiesStorage.getEndpointsPattern().getLocalLeaderboardPush()
                                 ) ||
                                         accessor.getDestination().startsWith(
-                                                propertiesStorage.getEndpointsPattern().getGlobalLeaderboardPush()
+                                                applicationPropertiesStorage.getEndpointsPattern().getGlobalLeaderboardPush()
                                         )
                         )
         ) {
 
             String lbId = (String) accessor.getSessionAttributes()
-                    .get(propertiesStorage.getAttribute().getLeaderboardId());
+                    .get(applicationPropertiesStorage.getAttribute().getLeaderboardId());
             long userId = (Long) accessor.getSessionAttributes()
-                    .get(propertiesStorage.getAttribute().getUserId());
+                    .get(applicationPropertiesStorage.getAttribute().getUserId());
 
             boolean participant = leaderboardWebClient.isParticipant(lbId, userId + "");
 
@@ -76,21 +76,21 @@ public class SubscribeSTOMPInterceptor implements ChannelInterceptor {
 
         if(StompCommand.SUBSCRIBE.equals(accessor.getCommand())){
             if(accessor.getDestination()
-                    .startsWith(propertiesStorage.getEndpointsPattern().getLocalLeaderboardPush())
+                    .startsWith(applicationPropertiesStorage.getEndpointsPattern().getLocalLeaderboardPush())
             ) {
 
                 String lbId = accessor.getSessionAttributes()
-                        .get(propertiesStorage.getAttribute().getLeaderboardId())
+                        .get(applicationPropertiesStorage.getAttribute().getLeaderboardId())
                         .toString();
 
                 Long userId = (Long) accessor.getSessionAttributes()
-                        .get(propertiesStorage.getAttribute().getUserId());
+                        .get(applicationPropertiesStorage.getAttribute().getUserId());
 
                 UserScoreResponse usr =
                         leaderboardWebClient.myScoreIn(lbId, userId);
                 simpMessagingTemplate.convertAndSendToUser(
                         String.valueOf(userId),
-                        propertiesStorage.getEndpointsPattern().getLocalLeaderboardPush() + lbId,
+                        applicationPropertiesStorage.getEndpointsPattern().getLocalLeaderboardPush() + lbId,
                         usr
                 );
             }

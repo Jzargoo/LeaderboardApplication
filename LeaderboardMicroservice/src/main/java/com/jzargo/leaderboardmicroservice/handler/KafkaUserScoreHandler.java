@@ -16,8 +16,7 @@ import java.time.Duration;
 
 @Slf4j
 @KafkaListener(topics = {
-        KafkaConfig.LEADERBOARD_EVENT_TOPIC,
-        KafkaConfig.USER_STATE_EVENT_TOPIC
+        KafkaConfig.LEADERBOARD_EVENT_TOPIC
 },
         groupId = "leaderboard-group"
 )

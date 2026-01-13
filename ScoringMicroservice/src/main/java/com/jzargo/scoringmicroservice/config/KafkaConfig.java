@@ -25,16 +25,6 @@ import java.util.UUID;
 @Slf4j
 @EnableKafkaStreams
 public class KafkaConfig {
-    public static final String COMMAND_STRING_SCORE_TOPIC = "user-string-score-command-topic";
-    private static final String DEBEZIUM_SCORING_TOPIC = "pgserver.public.scoring_events";
-    private static final String DEBEZIUM_FAILED_TOPIC = "pgserver.public.failed_create_leaderboard_events";
-    private static final String DEBEZIUM_DELETED_EVENT_TOPIC = "pgserver.public.deleted_events";
-    public static final String SAGA_CREATE_LEADERBOARD_TOPIC = "saga-create-leaderboard-topic";
-    public static final String USER_EVENT_SCORE_TOPIC = "user-event-score-topic";
-    public static final String LEADERBOARD_EVENT_TOPIC = "leaderboard-event-topic";
-    public static final String MESSAGE_HEADER = "message-id";
-    public static final String GROUP_ID = "scoring-group";
-    public static final String SAGA_HEADER = "saga-id";
 
     @Bean
     public NewTopic userEventScoreTopic(){

@@ -1,6 +1,6 @@
 package com.jzargo.websocketapi.config.WebSocket;
 
-import com.jzargo.websocketapi.utils.PropertiesStorage;
+import com.jzargo.websocketapi.config.properties.ApplicationPropertiesStorage;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
@@ -17,7 +17,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     }
 
     @Bean
-    UserIdAsPrincipalHandshakeHandler userIdAsPrincipalHandshakeHandler(PropertiesStorage ps){
+    UserIdAsPrincipalHandshakeHandler userIdAsPrincipalHandshakeHandler(ApplicationPropertiesStorage ps){
         return new UserIdAsPrincipalHandshakeHandler(ps);
     }
 
