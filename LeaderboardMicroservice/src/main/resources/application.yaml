@@ -4,6 +4,4 @@ spring:
     include: ${SPRING_PROFILES_INCLUDE:}
   application:
     name: leaderboard-microservice
-leaderboard:
-  max:
-    durationForInactiveState: 86400000
+

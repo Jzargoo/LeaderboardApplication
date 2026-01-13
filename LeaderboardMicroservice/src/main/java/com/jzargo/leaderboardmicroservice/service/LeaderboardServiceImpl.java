@@ -3,6 +3,7 @@ package com.jzargo.leaderboardmicroservice.service;
 import com.jzargo.dto.LeaderboardResponse;
 import com.jzargo.dto.UserScoreResponse;
 import com.jzargo.leaderboardmicroservice.config.RedisConfig;
+import com.jzargo.leaderboardmicroservice.config.properties.ApplicationPropertyStorage;
 import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.leaderboardmicroservice.dto.InitUserScoreRequest;
 import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
@@ -45,19 +46,19 @@ public class LeaderboardServiceImpl implements LeaderboardService{
     private final RedisScript<String> confirmLbCreationScript;
     private final SagaControllingStateRepository sagaControllingStateRepository;
 
-    //  Values which are lesser than 0 mean absence of timer
-    @Value("${leaderboard.max.durationForInactiveState:86400000}")
-    private Long maxDurationForInactiveState;
+    private final ApplicationPropertyStorage applicationPropertyStorage;
 
     private final LeaderboardToResponseReadMapper leaderboardToResponseReadMapper;
 
-    public LeaderboardServiceImpl(StringRedisTemplate stringRedisTemplate, LeaderboardInfoRepository LeaderboardInfoRepository,
+    public LeaderboardServiceImpl(StringRedisTemplate stringRedisTemplate,
+                                  ApplicationPropertyStorage applicationPropertyStorage,
+                                  SagaControllingStateRepository sagaControllingStateRepository,
+                                  LeaderboardInfoRepository LeaderboardInfoRepository,
                                   RedisScript<String> mutableLeaderboardScript, RedisScript<String> immutableLeaderboardScript,
-                                  MapperCreateLeaderboardInfo mapperCreateLeaderboardInfo, RedisScript<String> createLeaderboardScript,
-                                  RedisScript<String> createUserCachedScript,
-                                  RedisScript<String> deleteLeaderboardScript,
-                                  RedisScript<String> confirmLbCreationScript,
-                                  SagaControllingStateRepository sagaControllingStateRepository, LeaderboardToResponseReadMapper leaderboardToResponseReadMapper) {
+                                  RedisScript<String> createLeaderboardScript, RedisScript<String> createUserCachedScript,
+                                  RedisScript<String> deleteLeaderboardScript, RedisScript<String> confirmLbCreationScript,
+                                  MapperCreateLeaderboardInfo mapperCreateLeaderboardInfo,
+                                  LeaderboardToResponseReadMapper leaderboardToResponseReadMapper) {
 
         this.stringRedisTemplate = stringRedisTemplate;
         this.leaderboardInfoRepository = LeaderboardInfoRepository;
@@ -69,6 +70,7 @@ public class LeaderboardServiceImpl implements LeaderboardService{
         this.deleteLeaderboardScript = deleteLeaderboardScript;
         this.confirmLbCreationScript = confirmLbCreationScript;
         this.sagaControllingStateRepository = sagaControllingStateRepository;
+        this.applicationPropertyStorage = applicationPropertyStorage;
         this.leaderboardToResponseReadMapper = leaderboardToResponseReadMapper;
     }
 
@@ -202,7 +204,7 @@ public class LeaderboardServiceImpl implements LeaderboardService{
                 map.getRegions().toString(),
                 String.valueOf(map.getMaxEventsPerUser()),
                 String.valueOf(map.getMaxEventsPerUserPerDay()),
-                maxDurationForInactiveState
+                applicationPropertyStorage.getMax().getDurationForInactiveState()
         );
         return map.getId();
     }

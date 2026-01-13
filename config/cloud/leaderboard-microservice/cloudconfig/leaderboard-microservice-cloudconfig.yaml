@@ -13,3 +13,5 @@ spring:
       properties:
         spring.json.trusted.packages: "com.jzargo.messaging,
         com.jzargo.leaderboardmicroservice.core.messaging"
+application:
+  max.durationForInactiveState: 86400000

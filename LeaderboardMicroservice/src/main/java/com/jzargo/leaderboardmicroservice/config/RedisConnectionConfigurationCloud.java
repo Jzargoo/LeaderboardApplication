@@ -1,8 +1,9 @@
 package com.jzargo.leaderboardmicroservice.config;
 
+import com.jzargo.leaderboardmicroservice.config.properties.RedisPropertyStorage;
 import io.lettuce.core.ClientOptions;
 import io.lettuce.core.protocol.ProtocolVersion;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -11,24 +12,25 @@ import org.springframework.data.redis.connection.RedisPassword;
 import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 
-import java.util.Arrays;
 
 @Configuration
-@Profile("cloud")
+@EnableConfigurationProperties(RedisPropertyStorage.class)
+@Profile("cloudconfig")
 public class RedisConnectionConfigurationCloud {
 
-    @Value("${spring.data.redis.cluster.nodes}")
-    private String clusterNodes;
 
-    @Value("${spring.data.redis.password}")
-    private String password;
+    private final RedisPropertyStorage redisPropertyStorage;
+
+    public RedisConnectionConfigurationCloud(RedisPropertyStorage redisPropertyStorage) {
+        this.redisPropertyStorage = redisPropertyStorage;
+    }
 
     @Bean
     public LettuceConnectionFactory redisConnectionFactory() {
         RedisClusterConfiguration clusterConfig = new RedisClusterConfiguration(
-                Arrays.asList(clusterNodes.split(","))
+            redisPropertyStorage.getCluster().getClusterNodes()
         );
-        clusterConfig.setPassword(RedisPassword.of(password));
+        clusterConfig.setPassword(RedisPassword.of(redisPropertyStorage.getPassword()));
 
         ClientOptions clientOptions = ClientOptions.builder()
                 .protocolVersion(ProtocolVersion.RESP3)
@@ -40,5 +42,4 @@ public class RedisConnectionConfigurationCloud {
 
         return new LettuceConnectionFactory(clusterConfig, clientConfig);
     }
-
 }

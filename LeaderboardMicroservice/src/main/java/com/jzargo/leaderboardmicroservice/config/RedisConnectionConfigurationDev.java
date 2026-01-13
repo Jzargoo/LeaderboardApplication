@@ -1,8 +1,10 @@
 package com.jzargo.leaderboardmicroservice.config;
 
+import com.jzargo.leaderboardmicroservice.config.properties.RedisPropertyStorage;
 import io.lettuce.core.ClientOptions;
 import io.lettuce.core.protocol.ProtocolVersion;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -12,21 +14,21 @@ import org.springframework.data.redis.connection.lettuce.LettuceClientConfigurat
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 
 @Configuration
-@Profile("dev")
-public class RedisConnectionConfigurationStandalone {
-    @Value("${spring.data.redis.password}")
-    private String password;
-    @Value("${spring.data.redis.port}")
-    private String port;
-    @Value("${spring.data.redis.host}")
-    private String host;
+@EnableConfigurationProperties(RedisPropertyStorage.class)
+@Profile("devconfig")
+public class RedisConnectionConfigurationDev{
+    private final RedisPropertyStorage redisPropertyStorage;
+
+    public RedisConnectionConfigurationDev(RedisPropertyStorage redisPropertyStorage) {
+        this.redisPropertyStorage = redisPropertyStorage;
+    }
 
     @Bean
     public LettuceConnectionFactory redisConnectionFactory() {
 
-        RedisStandaloneConfiguration config = new RedisStandaloneConfiguration(host, Integer.parseInt(port));
+        RedisStandaloneConfiguration config = new RedisStandaloneConfiguration(redisPropertyStorage.getHost(), redisPropertyStorage.getPort());
 
-        config.setPassword(RedisPassword.of(password));
+        config.setPassword(RedisPassword.of(redisPropertyStorage.getPassword()));
 
         ClientOptions clientOptions = ClientOptions.builder()
                 .protocolVersion(ProtocolVersion.RESP3)

@@ -8,17 +8,17 @@ import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
-@Component
+@Data
 @Validated
+@Component
 @RefreshScope
 @ConfigurationProperties(prefix = "application")
-@Data
 public class PropertiesStorage {
 
-    private final Attribute attribute = new Attribute();
-    private final Query query = new Query();
-    private final Headers headers = new Headers();
-    private final EndpointsPattern endpointsPattern = new EndpointsPattern();
+    private Attribute attribute;
+    private Query query;
+    private Headers headers;
+    private EndpointsPattern endpointsPattern;
 
     @Data
     public static class Attribute {

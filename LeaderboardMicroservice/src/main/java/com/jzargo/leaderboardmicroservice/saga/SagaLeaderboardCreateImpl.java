@@ -1,6 +1,7 @@
 package com.jzargo.leaderboardmicroservice.saga;
 
 import com.jzargo.leaderboardmicroservice.client.*;
+import com.jzargo.leaderboardmicroservice.config.properties.ApplicationPropertyStorage;
 import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.leaderboardmicroservice.dto.CreateLeaderboardRequest;
 import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
@@ -34,14 +35,8 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate {
     private final LeaderboardInfoRepository leaderboardInfoRepository;
     private final CreateLeaderboardEventInitializationCreateMapper createLeaderboardEventInitializationCreateMapper;
 
-    @Value("${proxy.mode.leaderboard:kafka}")
-    private String leaderboardProxyMode;
-    @Value("${proxy.mode.user:kafka}")
-    private String userProxyMode;
-    @Value("${proxy.mode.scoring:kafka}")
-    private String scoringProxyMode;
-
     public SagaLeaderboardCreateImpl(
+
             CreateInitialCreateLeaderboardSagaRequestMapper mapper,
             SagaControllingStateRepository sagaRepository,
             LeaderboardService leaderboardService,
@@ -49,18 +44,23 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate {
             FactoryLeaderboardWebProxy leaderboardProxyFactory,
             FactoryUserWebProxy userProxyFactory,
             FactoryScoringWebProxy scoringProxyFactory,
-            CreateLeaderboardEventInitializationCreateMapper createLeaderboardEventInitializationCreateMapper) {
+            CreateLeaderboardEventInitializationCreateMapper createLeaderboardEventInitializationCreateMapper,
+            ApplicationPropertyStorage applicationPropertyStorage) {
+
+        ApplicationPropertyStorage.Proxy proxy= applicationPropertyStorage.getProxy();
+
         this.mapper = mapper;
         this.sagaRepository = sagaRepository;
         this.leaderboardService = leaderboardService;
         this.leaderboardInfoRepository = leaderboardInfoRepository;
 
         this.leaderboardServiceWebProxy =
-                leaderboardProxyFactory.getClient(leaderboardProxyMode);
+                leaderboardProxyFactory.getClient(proxy.getMode().getLeaderboard());
         this.userServiceWebProxy =
-                userProxyFactory.getClient(userProxyMode);
+                userProxyFactory.getClient(proxy.getMode().getUser());
         this.scoringServiceWebProxy =
-                scoringProxyFactory.getClient(scoringProxyMode);
+                scoringProxyFactory.getClient(proxy.getMode().getScoring());
+
         this.createLeaderboardEventInitializationCreateMapper = createLeaderboardEventInitializationCreateMapper;
     }
 

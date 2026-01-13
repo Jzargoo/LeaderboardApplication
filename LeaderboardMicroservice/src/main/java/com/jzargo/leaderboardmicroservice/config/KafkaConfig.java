@@ -1,14 +1,18 @@
 package com.jzargo.leaderboardmicroservice.config;
 
+import com.jzargo.leaderboardmicroservice.config.properties.KafkaPropertyStorage;
+import com.jzargo.leaderboardmicroservice.config.properties.RedisPropertyStorage;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.kafka.config.TopicBuilder;
 
 @Configuration
+@EnableConfigurationProperties(KafkaPropertyStorage.class)
 @Profile("!standalone")
 public class KafkaConfig{
     //Consume push events
@@ -22,19 +26,20 @@ public class KafkaConfig{
     public static final String SAGA_ID_HEADER = "saga-id";
     public static final String GROUP_ID = "leaderboard-group";
 
-    @Value("${kafka.topic.insync-replicas:2}")
-    private int minInSyncReplicas;
+    private final KafkaPropertyStorage kafkaPropertyStorage;
 
-    @Value("${kafka.topic.replicas:2}")
-    private int replicas;
+    public KafkaConfig(KafkaPropertyStorage kafkaPropertyStorage) {
+        this.kafkaPropertyStorage = kafkaPropertyStorage;
+    }
 
     @Bean
     public NewTopic leaderboardEventsTopic(){
         return TopicBuilder
                 .name(LEADERBOARD_EVENT_TOPIC)
                 .partitions(3)
-                .replicas(replicas)
-                .config("min.insync.replicas", String.valueOf(minInSyncReplicas))
+                .replicas(kafkaPropertyStorage.getTopic().getReplicas())
+                .config("min.insync.replicas",
+                        String.valueOf(kafkaPropertyStorage.getTopic().getInSyncReplicas()))
                 .build();
     }
 
@@ -43,8 +48,9 @@ public class KafkaConfig{
         return TopicBuilder
                 .name(USER_STATE_EVENT_TOPIC)
                 .partitions(3)
-                .replicas(replicas)
-                .config("min.insync.replicas", String.valueOf(minInSyncReplicas))
+                .replicas(kafkaPropertyStorage.getTopic().getReplicas())
+                .config("min.insync.replicas",
+                        String.valueOf(kafkaPropertyStorage.getTopic().getInSyncReplicas()))
                 .build();
     }
 
@@ -54,8 +60,9 @@ public class KafkaConfig{
         return TopicBuilder
                 .name(LEADERBOARD_UPDATE_TOPIC)
                 .partitions(3)
-                .replicas(replicas)
-                .config("min.insync.replicas", String.valueOf(minInSyncReplicas))
+                .replicas(kafkaPropertyStorage.getTopic().getReplicas())
+                .config("min.insync.replicas",
+                        String.valueOf(kafkaPropertyStorage.getTopic().getInSyncReplicas()))
                 .build();
     }
 
