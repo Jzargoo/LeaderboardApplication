@@ -1,5 +1,6 @@
 package com.jzargo.websocketapi.config;
 
+import com.jzargo.websocketapi.config.properties.KafkaPropertiesStorage;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -10,22 +11,35 @@ import org.springframework.kafka.config.TopicBuilder;
 public class KafkaConfig {
 
     @Bean
-    public NewTopic userEventScoreTopic(){
+    public NewTopic userEventScoreTopic(KafkaPropertiesStorage kafkaPropertiesStorage){
         return TopicBuilder
-                .name(USER_EVENT_SCORE_TOPIC)
+                .name(
+                        kafkaPropertiesStorage
+                                .getTopic().getNames()
+                                .getUserEventScore()
+                )
                 .partitions()
-                .replicas(replicas)
-                .config("Min.insync.replicas", String.valueOf(minInSyncReplicas))
+                .partitions(kafkaPropertiesStorage.getTopic().getPartitions())
+                .config("Min.insync.replicas",
+                        String.valueOf(
+                                kafkaPropertiesStorage.getTopic().getInSyncReplicas()
+                        ))
                 .build();
     }
 
     @Bean
-    public NewTopic leaderboardUpdateTopic(){
+    public NewTopic leaderboardUpdateTopic(KafkaPropertiesStorage kafkaPropertiesStorage){
         return TopicBuilder
-                .name(LEADERBOARD_UPDATE_TOPIC)
-                .partitions()
-                .replicas(replicas)
-                .config("Min.insync.replicas", String.valueOf(minInSyncReplicas))
+                .name(kafkaPropertiesStorage
+                        .getTopic().getNames()
+                        .getLeaderboardUpdate()
+                )
+                .partitions(kafkaPropertiesStorage.getTopic().getPartitions())
+                .replicas(kafkaPropertiesStorage.getTopic().getReplicas())
+                .config("Min.insync.replicas",
+                        String.valueOf(
+                                kafkaPropertiesStorage.getTopic().getInSyncReplicas()
+                        ))
                 .build();
     }
 }

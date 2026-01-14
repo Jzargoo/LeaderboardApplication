@@ -2,6 +2,7 @@ package com.jzargo.usermicroservice.config;
 
 import com.jzargo.messaging.FailedLeaderboardCreation;
 import com.jzargo.messaging.UserAddedLeaderboard;
+import com.jzargo.usermicroservice.config.properties.KafkaPropertiesStorage;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.common.serialization.Serdes;
@@ -30,19 +31,12 @@ import java.util.UUID;
 public class KafkaConfig {
     public static final String PULSE_LEADERBOARD
             = "pulse-leaderboard-topic";
-    private static final String DEBEZIUM_FLC_TOPIC = "pgserver.users.public.failed_leaderboard_creation";
-    private static final String DEBEZIUM_USERS_TOPIC = "pgserver.users.public.users";
-    private static final String USER_UPDATING_TOPIC = "user-updating-topic";
-    public static final String SAGA_CREATE_LEADERBOARD_TOPIC = "saga-create-leaderboard-topic";
-    public static final String GROUP_ID = "users-group" ;
-    public static final String MESSAGE_ID_HEADER = "message-id";
-    public static final String SAGA_ID_HEADER = "saga-id";
-    @Value("${kafka.topic.partition.count:1}")
-    private Integer partitionCount;
-    @Value("${kafka.topic.replicas:1} ")
-    private Integer replicasCount;
-    @Value("${kafka.topic.partition.insync-replicas:1}")
-    private Integer minInSyncReplicas;
+
+    private final KafkaPropertiesStorage propertiesStorage;
+
+    public KafkaConfig(KafkaPropertiesStorage propertiesStorage) {
+        this.propertiesStorage = propertiesStorage;
+    }
 
     @Bean
     NewTopic pulseLeaderboard(){

@@ -11,6 +11,7 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.SessionAttribute;
 
 @Slf4j
 @Controller
@@ -21,19 +22,15 @@ public class WebSocketController {
     @MessageMapping("/queue/leaderboard-push/{id}")
     public void pushScore(@DestinationVariable String id,
                           @Payload LeaderboardPushEvent<?> lbEvent,
-                          @Attribute
+                          @SessionAttribute long userId
     ) {
 
 
         if(userId == 0){
-            log.error("Invalid user id in JWT token");
+            log.error("Invalid session because of userId session attribute");
             return;
         }
 
-        String region = jwt.getClaimAsString("region") == null?
-                Regions.GLOBAL.getCode():
-                Regions.fromStringCode(
-                        jwt.getClaimAsString("region")).getCode();
 
         switch (lbEvent.getType()) {
 
@@ -41,7 +38,7 @@ public class WebSocketController {
 
                 LeaderboardPushEvent.UpdateLeaderboardScore updateUserScore =
                         new LeaderboardPushEvent.UpdateLeaderboardScore(
-                                userId, (Double) lbEvent.getPayload(), region, preferredUsername
+                                userId, (Double) lbEvent.getPayload()
                         );
                 webSocketService.updateUserScore(id, updateUserScore);
 
@@ -51,7 +48,7 @@ public class WebSocketController {
 
                 LeaderboardPushEvent.IncreaseUserScore increaseUserScore =
                         new LeaderboardPushEvent.IncreaseUserScore(
-                                userId, (String) lbEvent.getPayload(), region, preferredUsername
+                                userId, (String) lbEvent.getPayload()
                         );
                 webSocketService.increaseUserScore(id, increaseUserScore);
 

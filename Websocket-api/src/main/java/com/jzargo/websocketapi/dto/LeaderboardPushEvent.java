@@ -17,8 +17,6 @@ public class LeaderboardPushEvent <T>{
     public static class IncreaseUserScore{
         Long userId;
         String event;
-        String region;
-        String username;
     }
 
     @Data
@@ -27,7 +25,5 @@ public class LeaderboardPushEvent <T>{
     public static class UpdateLeaderboardScore{
         Long userId;
         Double newScore;
-        String region;
-        String username;
     }
 }

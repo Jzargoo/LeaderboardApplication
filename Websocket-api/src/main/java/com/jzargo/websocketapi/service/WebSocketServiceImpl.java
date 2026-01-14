@@ -5,6 +5,7 @@ import com.jzargo.messaging.UserEventHappenedCommand;
 import com.jzargo.messaging.UserLocalUpdateEvent;
 import com.jzargo.messaging.UserScoreUploadEvent;
 import com.jzargo.websocketapi.config.KafkaConfig;
+import com.jzargo.websocketapi.config.properties.KafkaPropertiesStorage;
 import com.jzargo.websocketapi.dto.InitUserScoreRequest;
 import com.jzargo.websocketapi.dto.LeaderboardPushEvent;
 import com.jzargo.websocketapi.dto.LeaderboardResponsePayload;
@@ -29,6 +30,7 @@ public class WebSocketServiceImpl implements WebSocketService {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final SimpMessagingTemplate simpMessagingTemplate;
     private final ApplicationPropertiesStorage applicationPropertiesStorage;
+    private final KafkaPropertiesStorage kafkaPropertiesStorage;
 
     @Override
     public void initLeaderboardScore(String id) {
@@ -70,7 +72,7 @@ public class WebSocketServiceImpl implements WebSocketService {
 
         ProducerRecord<String, Object> ius =
                 KafkaSendUtils.buildProducerRecord(
-                        KafkaConfig.USER_EVENT_SCORE_TOPIC,
+                        kafkaPropertiesStorage.getTopic().getNames().get.,
                         id,
                         new UserEventHappenedCommand(
                                 id,
