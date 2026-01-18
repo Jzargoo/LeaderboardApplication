@@ -58,10 +58,20 @@ public class KafkaPropertiesStorage {
         public static class Names{
             @NotNull
             @NotBlank
-            private String leaderboardUpdate;
+            private String userStateEvent;
             @NotNull
             @NotBlank
-            private String userEventScore;
+            private String sagaCreateLeaderboard;
+            @NotNull
+            @NotBlank
+            private String participantLeaderboard;
+            @NotNull
+            @NotBlank
+            private String debeziumUsers;
+            @NotNull
+            @NotBlank
+            private String debeziumFlc;
+
         }
     }
 

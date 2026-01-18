@@ -1,11 +1,10 @@
 package com.jzargo.usermicroservice.api;
 
-import com.jzargo.messaging.UserRegisterRequest;
 import com.jzargo.usermicroservice.api.model.UserResponse;
 import com.jzargo.usermicroservice.service.UserService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -14,10 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Slf4j
 public class UserController {
     private final UserService userService;
-    @Value("${api.headers.keycloak-connection-header}")
-    private String keycloakHeader;
-    @Value("${api.secret-keycloak-connection}")
-    private String keycloakValue;
+
 
 
     public UserController(UserService userService) {
@@ -40,24 +36,6 @@ public class UserController {
         }
     }
 
-    @PostMapping("/internal")
-    public ResponseEntity<Void> registerUser(
-            HttpHeaders headers,
-            @RequestBody UserRegisterRequest request
-    ){
-        String secret = headers.getFirst(keycloakHeader);
-        if(secret == null || secret.equals(keycloakValue)){
-            return ResponseEntity
-                    .status(HttpStatus.FORBIDDEN)
-                    .build();
-        }
-        try{
-            userService.register(request);
-            return  ResponseEntity.ok().build();
-        } catch (Exception e) {
-            return  ResponseEntity.badRequest().build();
-        }
-    }
 
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse>  getUserById(@PathVariable Long id){
@@ -69,41 +47,5 @@ public class UserController {
         }
     }
 
-    @PutMapping
-    public ResponseEntity<String> updateUser(
-            HttpHeaders headers,
-            @RequestBody UserRegisterRequest request
-    ){
-        String secret = headers.getFirst(keycloakHeader);
-        if(secret == null || secret.equals(keycloakValue)){
-            return ResponseEntity
-                    .status(HttpStatus.FORBIDDEN)
-                    .build();
-        }
-        try{
-            userService.updateUser(request.getUserId(), request);
-            return ResponseEntity.ok("User updated successfully");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
 
-    @DeleteMapping
-    public ResponseEntity<String> deleteUser(
-            HttpHeaders headers,
-            @RequestParam Long id
-    ){
-        String secret = headers.getFirst(keycloakHeader);
-        if(secret == null || secret.equals(keycloakValue)){
-            return ResponseEntity
-                    .status(HttpStatus.FORBIDDEN)
-                    .build();
-        }
-        try{
-            userService.deleteUser(id);
-            return ResponseEntity.ok("User deleted successfully");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
 }

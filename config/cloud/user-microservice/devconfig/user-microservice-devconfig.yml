@@ -1,3 +1,8 @@
 kafka.topic.names:
   debezium-flc: "pgserver.users.public.failed_leaderboard_creation"
   debezium-users: "pgserver.users.public.users"
+application:
+  headers:
+    keycloak-connection:
+      name: keycloakHeader
+      value: keycloakValue

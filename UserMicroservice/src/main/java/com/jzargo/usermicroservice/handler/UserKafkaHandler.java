@@ -4,7 +4,6 @@ import com.jzargo.messaging.ActiveLeaderboardEvent;
 import com.jzargo.messaging.DiedLeaderboardEvent;
 import com.jzargo.messaging.OutOfTimeEvent;
 import com.jzargo.messaging.UserNewLeaderboardCreated;
-import com.jzargo.usermicroservice.config.KafkaConfig;
 import com.jzargo.usermicroservice.entity.FailedLeaderboardCreation;
 import com.jzargo.usermicroservice.entity.ProcessingMessage;
 import com.jzargo.usermicroservice.entity.UserAddedCreatedLeaderboard;
@@ -22,19 +21,20 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-
 @Component
 @Slf4j
 @KafkaListener(
         topics = {
-                KafkaConfig.PULSE_LEADERBOARD,
-                KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC},
-        groupId = KafkaConfig.GROUP_ID
+                "#{@kafkaPropertiesStorage.topic.names.participantLeaderboard}",
+                "#{@kafkaPropertiesStorage.topic.names.sagaCreateLeaderboard}"
+        },
+        groupId = "#{@kafkaPropertiesStorage.consumer.groupId}"
 )
 @RequiredArgsConstructor
 public class UserKafkaHandler {
 
     private static final String PROCESSED_EVENT_MESSAGE = "That message already had been processed";
+
     private final ProcessingMessageRepository processingMessageRepository;
     private final UserService userService;
     private final FailedLeaderboardCreationRepository failedLeaderboardCreationRepository;
@@ -43,7 +43,7 @@ public class UserKafkaHandler {
     @Transactional
     @KafkaHandler
     public void activeLeaderboard(
-            @Header(KafkaConfig.MESSAGE_ID_HEADER) String messageId,
+            @Header("#{@kafkaPropertyStorage.headers.messageId}") String messageId,
             @Payload ActiveLeaderboardEvent event){
         checkProcessed(messageId);
         try {
@@ -62,7 +62,7 @@ public class UserKafkaHandler {
     @Transactional
     @KafkaHandler
     public void endLeaderboard(
-            @Header(KafkaConfig.MESSAGE_ID_HEADER) String messageId,
+            @Header("#{@kafkaPropertyStorage.headers.messageId}") String messageId,
             @Payload DiedLeaderboardEvent event){
         checkProcessed(messageId);
         try {
@@ -82,7 +82,7 @@ public class UserKafkaHandler {
     @KafkaHandler
     public void handleOutOfTime(
             @Payload OutOfTimeEvent outOfTimeEvent,
-            @Header(KafkaConfig.MESSAGE_ID_HEADER) String messageId
+            @Header("#{@kafkaPropertyStorage.headers.messageId}") String messageId
     ) {
         checkProcessed(messageId);
 
@@ -111,8 +111,8 @@ public class UserKafkaHandler {
     @KafkaHandler
     public void handleSaga(
             @Payload UserNewLeaderboardCreated userNewLeaderboardCreated,
-            @Header(KafkaConfig.MESSAGE_ID_HEADER) String messageId,
-            @Header(KafkaConfig.SAGA_ID_HEADER) String sagaId
+            @Header("#{@kafkaPropertyStorage.headers.messageId}") String messageId,
+            @Header("#{@kafkaPropertyStorage.headers.sagaId}") String sagaId
             ) {
 
         checkProcessed(messageId);

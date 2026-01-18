@@ -13,7 +13,6 @@ import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.processor.api.ContextualProcessor;
 import org.apache.kafka.streams.processor.api.Record;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -29,8 +28,6 @@ import java.util.UUID;
 @Configuration
 @EnableKafkaStreams
 public class KafkaConfig {
-    public static final String PULSE_LEADERBOARD
-            = "pulse-leaderboard-topic";
 
     private final KafkaPropertiesStorage propertiesStorage;
 
@@ -39,22 +36,32 @@ public class KafkaConfig {
     }
 
     @Bean
-    NewTopic pulseLeaderboard(){
+    NewTopic participantLeaderboard(){
         return TopicBuilder
-                .name(PULSE_LEADERBOARD)
-                .partitions(partitionCount)
-                .replicas(replicasCount)
-                .config("Min.insync.replicas", String.valueOf(minInSyncReplicas))
+                .name(propertiesStorage.getTopic()
+                        .getNames()
+                        .getParticipantLeaderboard()
+                )
+                .partitions(propertiesStorage.getTopic().getPartitions())
+                .replicas(propertiesStorage.getTopic().getReplicas())
+                .config("Min.insync.replicas", String.valueOf(
+                        propertiesStorage.getTopic().getInSyncReplicas()
+                ))
                 .build();
     }
 
     @Bean
     NewTopic sagaCreateLeaderboardTopic(){
         return TopicBuilder
-                .name(SAGA_CREATE_LEADERBOARD_TOPIC)
-                .partitions(partitionCount)
-                .replicas(replicasCount)
-                .config("Min.insync.replicas", String.valueOf(minInSyncReplicas))
+                .name(propertiesStorage.getTopic()
+                        .getNames().getSagaCreateLeaderboard()
+                )
+                .partitions(propertiesStorage.getTopic().getPartitions())
+                .replicas(propertiesStorage.getTopic().getReplicas())
+                .config("Min.insync.replicas",
+                        String.valueOf(
+                                propertiesStorage.getTopic().getInSyncReplicas()
+                        ))
                 .build();
     }
 
@@ -62,7 +69,7 @@ public class KafkaConfig {
     @Bean
     public KStream<String, Map<String, Object>> failedLeaderboardTopology(StreamsBuilder streamsBuilder){
         KStream<String, Map<String, Object>> stream = streamsBuilder.stream(
-                DEBEZIUM_FLC_TOPIC,
+                propertiesStorage.getTopic().getNames().getDebeziumFlc(),
                 Consumed.with(Serdes.String(), new JsonSerde<>(Map.class))
         );
 
@@ -121,17 +128,22 @@ public class KafkaConfig {
                                     public void process(Record<String, FailedLeaderboardCreation> record) {
                                         String id = UUID.randomUUID().toString();
                                         record.headers()
-                                                .add(KafkaConfig.MESSAGE_ID_HEADER, id.getBytes())
-                                                .add(KafkaConfig.SAGA_ID_HEADER, record.key().getBytes());
+                                                .add(
+                                                        propertiesStorage.getHeaders().getMessageId(),
+                                                        id.getBytes())
+                                                .add(
+
+                                                        propertiesStorage.getHeaders().getMessageId(),
+                                                        record.key().getBytes());
                                         context().forward(record);
                                     }
                                 }
                 )
                 .peek( (k,v) ->
-                        log.info("Successfully processed message with key(sagaId) {}")
+                        log.info("Successfully processed message with key(sagaId) {}", k)
                 )
                 .to(
-                        SAGA_CREATE_LEADERBOARD_TOPIC,
+                        propertiesStorage.getTopic().getNames().getSagaCreateLeaderboard(),
                         Produced.with(Serdes.String(), new JsonSerde<>(FailedLeaderboardCreation.class))
                 );
         return stream;
@@ -140,7 +152,7 @@ public class KafkaConfig {
     @Bean
     public KStream<String, Map<String, Object>> userUpdateTopology(StreamsBuilder streamsBuilder){
         KStream<String, Map<String, Object>> stream = streamsBuilder.stream(
-                DEBEZIUM_USERS_TOPIC,
+                propertiesStorage.getTopic().getNames().getDebeziumUsers(),
                 Consumed.with(Serdes.String(), new JsonSerde<>(Map.class))
         );
 
@@ -182,8 +194,14 @@ public class KafkaConfig {
                             @Override
                             public void process(Record<String, UserAddedLeaderboard> record) {
                                 record.headers()
-                                        .add(KafkaConfig.MESSAGE_ID_HEADER, UUID.randomUUID().toString().getBytes())
-                                        .add(KafkaConfig.SAGA_ID_HEADER, record.key().getBytes());
+                                        .add(
+                                                propertiesStorage.getHeaders().getMessageId(),
+                                                UUID.randomUUID().toString().getBytes()
+                                        )
+                                        .add(
+                                                propertiesStorage.getHeaders().getSagaId(),
+                                                record.key().getBytes()
+                                        );
 
                                 context().forward(record);
                             }
@@ -194,7 +212,7 @@ public class KafkaConfig {
                                 "and value {} for topic user updates", k, v)
                 )
                 .to(
-                        USER_UPDATING_TOPIC,
+                        propertiesStorage.getTopic().getNames().getUserStateEvent(),
                         Produced.with(Serdes.String(), new JsonSerde<>(UserAddedLeaderboard.class))
                 );
         return stream;
