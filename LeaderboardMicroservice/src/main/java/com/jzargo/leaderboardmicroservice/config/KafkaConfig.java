@@ -1,10 +1,7 @@
 package com.jzargo.leaderboardmicroservice.config;
 
 import com.jzargo.leaderboardmicroservice.config.properties.KafkaPropertyStorage;
-import com.jzargo.leaderboardmicroservice.config.properties.RedisPropertyStorage;
 import org.apache.kafka.clients.admin.NewTopic;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -43,7 +40,7 @@ public class KafkaConfig{
         return TopicBuilder
                 .name(kafkaPropertyStorage
                         .getTopic().getNames()
-                        .getLeaderboardUpdate()
+                        .getLeaderboardUpdateState()
                 )
                 .partitions(kafkaPropertyStorage.getTopic().getPartitions())
                 .replicas(kafkaPropertyStorage.getTopic().getReplicas())

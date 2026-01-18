@@ -1,10 +1,10 @@
 package com.jzargo.leaderboardmicroservice.handler;
 
-import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
-import com.jzargo.leaderboardmicroservice.saga.SagaUtils;
-import com.jzargo.leaderboardmicroservice.config.KafkaConfig;
+import com.jzargo.leaderboardmicroservice.config.properties.KafkaPropertyStorage;
 import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEvent;
+import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.repository.LeaderboardInfoRepository;
+import com.jzargo.leaderboardmicroservice.saga.KafkaUtils;
 import com.jzargo.leaderboardmicroservice.saga.SagaLeaderboardCreate;
 import com.jzargo.messaging.*;
 import lombok.extern.slf4j.Slf4j;
@@ -13,18 +13,18 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.annotation.KafkaHandler;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 
 @Component
 @KafkaListener(topics = {
-        KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC,
-        KafkaConfig.LEADERBOARD_EVENT_TOPIC
+        "#{@kafkaPropertyStorage.topic.names.leaderboardEvent}",
+        "#{@kafkaPropertyStorage.topic.names.sagaCreateLeaderboard}"
 },
-        groupId = KafkaConfig.GROUP_ID
+        groupId = "#{@kafkaPropertyStorage.consumer.groupId}"
 )
 @Slf4j
 public class KafkaSagaLeaderboardCreationHandler {
@@ -33,15 +33,17 @@ public class KafkaSagaLeaderboardCreationHandler {
     private final SagaLeaderboardCreate sagaLeaderboardCreate;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final LeaderboardInfoRepository leaderboardInfoRepository;
+    private final KafkaPropertyStorage kafkaPropertyStorage;
 
     public KafkaSagaLeaderboardCreationHandler(StringRedisTemplate stringRedisTemplate,
                                                SagaLeaderboardCreate sagaLeaderboardCreate,
                                                KafkaTemplate<String, Object> kafkaTemplate,
-                                               LeaderboardInfoRepository leaderboardInfoRepository) {
+                                               LeaderboardInfoRepository leaderboardInfoRepository, KafkaPropertyStorage kafkaPropertyStorage) {
         this.stringRedisTemplate = stringRedisTemplate;
         this.sagaLeaderboardCreate = sagaLeaderboardCreate;
         this.kafkaTemplate = kafkaTemplate;
         this.leaderboardInfoRepository = leaderboardInfoRepository;
+        this.kafkaPropertyStorage = kafkaPropertyStorage;
     }
 
     private static void getWarn(String messageId) {
@@ -50,11 +52,11 @@ public class KafkaSagaLeaderboardCreationHandler {
 
     @KafkaHandler
     public void handleCreateLeaderboardSaga(InitLeaderboardCreateEvent event,
-                                            @Header(KafkaConfig.SAGA_ID_HEADER) String sagaId,
-                                            @Header(KafkaConfig.MESSAGE_ID) String messageId
+                                            @Header("#{@kafkaPropertyStorage.headers.sagaId}") String sagaId,
+                                            @Header("#{@kafkaPropertyStorage.headers.messageId}") String messageId
     ){
         log.info("The body is {}", event);
-        if (!SagaUtils.tryAcquireProcessingLock(stringRedisTemplate, messageId)) {
+        if (!KafkaUtils.tryAcquireProcessingLock(stringRedisTemplate, messageId)) {
             getWarn(messageId);
             return;
         }
@@ -71,11 +73,11 @@ public class KafkaSagaLeaderboardCreationHandler {
     @KafkaHandler
     @Transactional
     public void handleSuccessfulEventInitialization(
-            @Header(KafkaConfig.SAGA_ID_HEADER) String sagaId,
-            @Header(KafkaConfig.MESSAGE_ID) String messageId,
+            @Header("#{@kafkaPropertyStorage.headers.sagaId}") String sagaId,
+            @Header("#{@kafkaPropertyStorage.headers.messageId}") String messageId,
             @Payload SuccessfulEventInitialization successfulEventInitialization
     ) {
-        if (!SagaUtils.tryAcquireProcessingLock(stringRedisTemplate, messageId)) {
+        if (!KafkaUtils.tryAcquireProcessingLock(stringRedisTemplate, messageId)) {
             getWarn(messageId);
             return;
         }
@@ -90,30 +92,35 @@ public class KafkaSagaLeaderboardCreationHandler {
                     successfulEventInitialization.getLbId(), byId.getName(),
                     byId.getOwnerId()
             );
-            ProducerRecord<String, Object> record = SagaUtils.createRecord(KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC,
+            ProducerRecord<String, Object> record = KafkaUtils.createRecord(kafkaPropertyStorage.getTopic().getNames().getLeaderboardEvent(),
                     byId.getId(), userNewLeaderboardCreated);
 
-            SagaUtils.addSagaHeaders(record, sagaId, SagaUtils.newMessageId(), byId.getId());
+            KafkaUtils.addSagaHeaders(
+                    record, sagaId,
+                    byId.getId(),
+                    kafkaPropertyStorage.getHeaders().getMessageId(),
+                    kafkaPropertyStorage.getHeaders().getSagaId()
+            );
             kafkaTemplate.send(record);
 
             log.info("Handled SuccessfulEventInitialization (sagaId={})", sagaId);
         } catch (IllegalArgumentException e) {
             log.error("Incorrect event without lb id or bad payload, sagaId={}", sagaId, e);
-            SagaUtils.releaseProcessingLock(stringRedisTemplate, messageId);
+            KafkaUtils.releaseProcessingLock(stringRedisTemplate, messageId);
         } catch (Exception e) {
             log.error("Error while processing SuccessfulEventInitialization message {}", messageId, e);
-            SagaUtils.releaseProcessingLock(stringRedisTemplate, messageId);
+            KafkaUtils.releaseProcessingLock(stringRedisTemplate, messageId);
         }
     }
 
     @KafkaHandler
     @Transactional
     public void handleUserAddedLeaderboard(
-            @Header(KafkaConfig.SAGA_ID_HEADER) String sagaId,
-            @Header(KafkaConfig.MESSAGE_ID) String messageId,
-            @Payload UserAddedLeaderboard userAddedLeaderboard
+            @Payload UserAddedLeaderboard userAddedLeaderboard,
+            @Header("#{@kafkaPropertyStorage.headers.sagaId}") String sagaId,
+            @Header("#{@kafkaPropertyStorage.headers.messageId}") String messageId
     ) {
-        if (!SagaUtils.tryAcquireProcessingLock(stringRedisTemplate, messageId)) {
+        if (!KafkaUtils.tryAcquireProcessingLock(stringRedisTemplate, messageId)) {
             getWarn(messageId);
             return;
         }
@@ -123,21 +130,21 @@ public class KafkaSagaLeaderboardCreationHandler {
             log.info("Saga completed for sagaId={}", sagaId);
         } catch (IllegalArgumentException e) {
             log.error("Leaderboard id incorrect or other business validation failed for sagaId={}", sagaId, e);
-            SagaUtils.releaseProcessingLock(stringRedisTemplate, messageId);
+            KafkaUtils.releaseProcessingLock(stringRedisTemplate, messageId);
         } catch (Exception e) {
             log.error("Error while processing UserAddedLeaderboard message {}", messageId, e);
-            SagaUtils.releaseProcessingLock(stringRedisTemplate, messageId);
+            KafkaUtils.releaseProcessingLock(stringRedisTemplate, messageId);
         }
     }
 
     @KafkaHandler
     @Transactional
     public void handleFailedCreation(
-            @Header(KafkaConfig.SAGA_ID_HEADER) String sagaId,
-            @Header(KafkaConfig.MESSAGE_ID) String messageId,
-            @Payload FailedLeaderboardCreation failed
-    ) {
-        if (!SagaUtils.tryAcquireProcessingLock(stringRedisTemplate, messageId)) {
+            @Payload FailedLeaderboardCreation failed,
+            @Header("#{@kafkaPropertyStorage.headers.sagaId}") String sagaId,
+            @Header("#{@kafkaPropertyStorage.headers.messageId}") String messageId
+            ) {
+        if (!KafkaUtils.tryAcquireProcessingLock(stringRedisTemplate, messageId)) {
             getWarn(messageId);
             return;
         }
@@ -163,11 +170,12 @@ public class KafkaSagaLeaderboardCreationHandler {
 
     @KafkaHandler
     public void handleDeletedEvents(
-            @Header(KafkaConfig.SAGA_ID_HEADER) String sagaId,
-            @Header(KafkaConfig.MESSAGE_ID) String messageId,
+
+            @Header("#{@kafkaPropertyStorage.headers.sagaId}") String sagaId,
+            @Header("#{@kafkaPropertyStorage.headers.messageId}") String messageId,
             @Payload LeaderboardEventDeletion led
     ){
-        if (!SagaUtils.tryAcquireProcessingLock(stringRedisTemplate, messageId)) {
+        if (!KafkaUtils.tryAcquireProcessingLock(stringRedisTemplate, messageId)) {
             getWarn(messageId);
             return;
         }
@@ -181,11 +189,11 @@ public class KafkaSagaLeaderboardCreationHandler {
 
     @KafkaHandler
     public void handleDeleteLbEvent(
-            @Header(KafkaConfig.SAGA_ID_HEADER) String sagaId,
-            @Header(KafkaConfig.MESSAGE_ID) String messageId,
+            @Header("#{@kafkaPropertyStorage.headers.sagaId}") String sagaId,
+            @Header("#{@kafkaPropertyStorage.headers.messageId}") String messageId,
             @Payload DeleteLbEvent dle
     ){
-        if (!SagaUtils.tryAcquireProcessingLock(stringRedisTemplate, messageId)) {
+        if (!KafkaUtils.tryAcquireProcessingLock(stringRedisTemplate, messageId)) {
             getWarn(messageId);
             return;
         }

@@ -4,12 +4,11 @@ import com.jzargo.messaging.GlobalLeaderboardEvent;
 import com.jzargo.messaging.UserEventHappenedCommand;
 import com.jzargo.messaging.UserLocalUpdateEvent;
 import com.jzargo.messaging.UserScoreUploadEvent;
-import com.jzargo.websocketapi.config.KafkaConfig;
+import com.jzargo.websocketapi.config.properties.ApplicationPropertiesStorage;
 import com.jzargo.websocketapi.config.properties.KafkaPropertiesStorage;
 import com.jzargo.websocketapi.dto.InitUserScoreRequest;
 import com.jzargo.websocketapi.dto.LeaderboardPushEvent;
 import com.jzargo.websocketapi.dto.LeaderboardResponsePayload;
-import com.jzargo.websocketapi.config.properties.ApplicationPropertiesStorage;
 import com.jzargo.websocketapi.utils.KafkaSendUtils;
 import feign.FeignException;
 import lombok.RequiredArgsConstructor;
@@ -51,7 +50,8 @@ public class WebSocketServiceImpl implements WebSocketService {
         log.debug("Caught updateUserScore event for user id: {}", updateUserScore.getUserId());
 
         ProducerRecord<String, Object> uus =
-                KafkaSendUtils.buildProducerRecord(KafkaConfig.USER_EVENT_SCORE_TOPIC,
+                KafkaSendUtils.buildProducerRecord(
+                        kafkaPropertiesStorage.getTopic().getNames().getLeaderboardEvent(),
                         id,
                         new UserScoreUploadEvent(
                                 id,
@@ -72,7 +72,7 @@ public class WebSocketServiceImpl implements WebSocketService {
 
         ProducerRecord<String, Object> ius =
                 KafkaSendUtils.buildProducerRecord(
-                        kafkaPropertiesStorage.getTopic().getNames().get.,
+                        kafkaPropertiesStorage.getTopic().getNames().getCommandStringScore(),
                         id,
                         new UserEventHappenedCommand(
                                 id,

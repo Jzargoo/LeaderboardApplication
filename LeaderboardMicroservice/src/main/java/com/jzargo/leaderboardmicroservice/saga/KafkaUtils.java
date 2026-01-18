@@ -1,16 +1,15 @@
 package com.jzargo.leaderboardmicroservice.saga;
 
-import com.jzargo.leaderboardmicroservice.config.KafkaConfig;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.support.KafkaHeaders;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.UUID;
 
-public class SagaUtils {
-    private SagaUtils() {}
+public class KafkaUtils {
+    private KafkaUtils() {}
 
     public static final Duration DEFAULT_IDEMPOTENCY_TTL = Duration.ofDays(6);
 
@@ -28,18 +27,27 @@ public class SagaUtils {
         String key = "processed:" + messageId;
         try {
             redis.delete(key);
-        } catch (Exception ignored) {
-        }
+        } catch (Exception ignored) {}
     }
-
     public static void addSagaHeaders(ProducerRecord<String, Object> record,
                                       String sagaId,
-                                      String messageId,
-                                      String partitionKey) {
+                                      String partitionKey,
+                                      String messageIdHeader, String sagaIdHeader) {
         record.headers()
-                .add(KafkaConfig.MESSAGE_ID, messageId.getBytes(StandardCharsets.UTF_8))
-                .add(KafkaConfig.SAGA_ID_HEADER, sagaId.getBytes(StandardCharsets.UTF_8))
-                .add(KafkaHeaders.RECEIVED_KEY, (partitionKey != null ? partitionKey : sagaId).getBytes(StandardCharsets.UTF_8));
+                .add(messageIdHeader, newMessageId().getBytes(StandardCharsets.UTF_8))
+                .add(sagaIdHeader, sagaId.getBytes(StandardCharsets.UTF_8))
+                .add(KafkaHeaders.RECEIVED_KEY, partitionKey.getBytes(StandardCharsets.UTF_8));
+
+    }
+    public static void addSagaHeaders(ProducerRecord<String, Object> record,
+                                      String sagaId,
+                                      String messageIdHeader, String sagaIdHeader) {
+        addSagaHeaders(
+                record,
+                sagaId,
+                sagaId,
+                messageIdHeader,
+                sagaIdHeader);
     }
 
     public static ProducerRecord<String, Object> createRecord(String topic, String partitionKey, Object payload) {
@@ -48,5 +56,10 @@ public class SagaUtils {
 
     public static String newMessageId() {
         return UUID.randomUUID().toString();
+    }
+
+    public static void addCommonHeaders(ProducerRecord<String, Object> record, String key, String messageIdHeader) {
+        record.headers().add(messageIdHeader, newMessageId().getBytes())
+                .add(KafkaHeaders.RECEIVED_KEY, key.getBytes());
     }
 }

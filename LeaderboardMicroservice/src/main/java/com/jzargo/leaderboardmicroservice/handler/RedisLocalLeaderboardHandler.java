@@ -1,18 +1,20 @@
 package com.jzargo.leaderboardmicroservice.handler;
 
-import com.jzargo.leaderboardmicroservice.config.KafkaConfig;
-import com.jzargo.leaderboardmicroservice.saga.SagaUtils;
-import lombok.extern.slf4j.Slf4j;
+import com.jzargo.leaderboardmicroservice.config.properties.KafkaPropertyStorage;
+import com.jzargo.leaderboardmicroservice.saga.KafkaUtils;
 import com.jzargo.messaging.UserLocalUpdateEvent;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.springframework.data.redis.connection.stream.*;
+import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Objects;
+import java.util.Set;
 
 import static org.springframework.kafka.support.KafkaHeaders.RECEIVED_KEY;
 
@@ -22,13 +24,15 @@ import static org.springframework.kafka.support.KafkaHeaders.RECEIVED_KEY;
 public class RedisLocalLeaderboardHandler implements StreamListener<String, MapRecord<String, String, String>> {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final StringRedisTemplate stringRedisTemplate;
+    private final KafkaPropertyStorage kafkaPropertyStorage;
 
 
     public RedisLocalLeaderboardHandler(
             KafkaTemplate<String, Object> kafkaTemplate,
-            StringRedisTemplate stringRedisTemplate) {
+            StringRedisTemplate stringRedisTemplate, KafkaPropertyStorage kafkaPropertyStorage) {
         this.kafkaTemplate = kafkaTemplate;
         this.stringRedisTemplate = stringRedisTemplate;
+        this.kafkaPropertyStorage = kafkaPropertyStorage;
     }
 
     @Override
@@ -65,15 +69,15 @@ public class RedisLocalLeaderboardHandler implements StreamListener<String, MapR
             });
         }
 
-        String messageId = SagaUtils.newMessageId();
+        String messageId = KafkaUtils.newMessageId();
         ProducerRecord<String, Object> record =
-                SagaUtils.createRecord(
-                        KafkaConfig.LEADERBOARD_UPDATE_TOPIC,
+                KafkaUtils.createRecord(
+                        kafkaPropertyStorage.getTopic().getNames().getLeaderboardUpdateState(),
                         leaderboardId,
                         new UserLocalUpdateEvent(leaderboardKey, list));
 
         record.headers()
-                .add(KafkaConfig.MESSAGE_ID, messageId.getBytes())
+                .add(kafkaPropertyStorage.getHeaders().getMessageId(), messageId.getBytes())
                 .add(RECEIVED_KEY, leaderboardId.getBytes());
 
         kafkaTemplate.send(record);

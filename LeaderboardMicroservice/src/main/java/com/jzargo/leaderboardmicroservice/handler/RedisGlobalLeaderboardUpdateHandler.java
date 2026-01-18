@@ -1,10 +1,10 @@
 package com.jzargo.leaderboardmicroservice.handler;
 
-import com.jzargo.leaderboardmicroservice.config.KafkaConfig;
+import com.jzargo.leaderboardmicroservice.config.properties.KafkaPropertyStorage;
 import com.jzargo.messaging.GlobalLeaderboardEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.springframework.data.redis.connection.stream.*;
+import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.stream.StreamListener;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -14,18 +14,20 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Objects;
 
-import static org.springframework.kafka.support.KafkaHeaders.*;
+import static org.springframework.kafka.support.KafkaHeaders.RECEIVED_KEY;
 
 @Component
 @Slf4j
 public class RedisGlobalLeaderboardUpdateHandler implements StreamListener<String, MapRecord<String, String, String>> {
     private final KafkaTemplate<String, GlobalLeaderboardEvent> kafkaTemplate;
     private final StringRedisTemplate stringRedisTemplate;
+    private final KafkaPropertyStorage kafkaPropertyStorage;
 
 
-    public RedisGlobalLeaderboardUpdateHandler(KafkaTemplate<String, GlobalLeaderboardEvent> kafkaTemplate, StringRedisTemplate stringRedisTemplate) {
+    public RedisGlobalLeaderboardUpdateHandler(KafkaTemplate<String, GlobalLeaderboardEvent> kafkaTemplate, StringRedisTemplate stringRedisTemplate, KafkaPropertyStorage kafkaPropertyStorage) {
         this.kafkaTemplate = kafkaTemplate;
         this.stringRedisTemplate = stringRedisTemplate;
+        this.kafkaPropertyStorage = kafkaPropertyStorage;
     }
 
     @Override
@@ -50,9 +52,9 @@ public class RedisGlobalLeaderboardUpdateHandler implements StreamListener<Strin
                 .createdAt(LocalDateTime.now())
                 .build();
         ProducerRecord<String, GlobalLeaderboardEvent> record =
-                new ProducerRecord<>(KafkaConfig.LEADERBOARD_UPDATE_TOPIC, lbId, build);
+                new ProducerRecord<>(kafkaPropertyStorage.getTopic().getNames().getLeaderboardUpdateState(), lbId, build);
         record.headers().add(
-                KafkaConfig.MESSAGE_ID,
+                kafkaPropertyStorage.getHeaders().getMessageId(),
                         message.getId().getValue().getBytes()
                 )
                 .add(

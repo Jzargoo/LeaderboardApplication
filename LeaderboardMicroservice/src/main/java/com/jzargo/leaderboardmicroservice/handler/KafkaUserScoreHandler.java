@@ -1,10 +1,9 @@
 package com.jzargo.leaderboardmicroservice.handler;
 
-import com.jzargo.leaderboardmicroservice.config.KafkaConfig;
 import com.jzargo.leaderboardmicroservice.service.LeaderboardService;
-import lombok.extern.slf4j.Slf4j;
 import com.jzargo.messaging.UserScoreEvent;
 import com.jzargo.messaging.UserScoreUploadEvent;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.annotation.KafkaHandler;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -15,13 +14,13 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 
 @Slf4j
-@KafkaListener(topics = {
-        KafkaConfig.LEADERBOARD_EVENT_TOPIC
-},
-        groupId = "leaderboard-group"
-)
 @Component
+@KafkaListener(
+        topics = "#{@kafkaPropertyStorage.topic.names.leaderboardEvent}",
+        groupId = "#{@kafkaPropertyStorage.consumer.groupId}"
+)
 public class KafkaUserScoreHandler {
+
     private final StringRedisTemplate stringRedisTemplate;
     private final LeaderboardService leaderboardService;
 
@@ -32,7 +31,7 @@ public class KafkaUserScoreHandler {
 
     @KafkaHandler
     public void handleUserMutableChangeEvent(@Payload UserScoreEvent event,
-                                              @Header (KafkaConfig.MESSAGE_ID) String messageId
+                                              @Header ("#{@kafkaPropertyStorage.headers.messageId}") String messageId
                                               ) {
         String key = "processed:" + messageId;
 
@@ -57,7 +56,7 @@ public class KafkaUserScoreHandler {
 
     @KafkaHandler
     public void handleUserImmutableChangeEvent(@Payload UserScoreUploadEvent event,
-                                               @Header(KafkaConfig.MESSAGE_ID) String messageId
+                                               @Header ("#{@kafkaPropertyStorage.headers.messageId}") String messageId
                                                ) {
 
         String key = "processed:" + messageId;

@@ -1,6 +1,5 @@
 package com.jzargo.websocketapi.controller;
 
-import com.jzargo.region.Regions;
 import com.jzargo.websocketapi.dto.LeaderboardPushEvent;
 import com.jzargo.websocketapi.service.WebSocketService;
 import lombok.RequiredArgsConstructor;
@@ -8,8 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.SessionAttribute;
 

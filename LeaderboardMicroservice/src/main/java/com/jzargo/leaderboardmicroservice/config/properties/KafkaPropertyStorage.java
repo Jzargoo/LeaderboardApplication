@@ -61,7 +61,7 @@ public class KafkaPropertyStorage {
             private String leaderboardEvent;
             @NotNull
             @NotBlank
-            private String leaderboardUpdate;
+            private String leaderboardUpdateState;
             @NotNull
             @NotBlank
             private String sagaCreateLeaderboard;

@@ -100,7 +100,7 @@ public class OutboxListener {
 
             HttpRequest request = HttpRequest.newBuilder()
                     .POST(HttpRequest.BodyPublishers.ofString(urr.toString()))
-                    .uri(new URI("http://host.docker.internal:8080/api/users/internal"))
+                    .uri(new URI("http://host.docker.internal:8090/api/users/internal/register"))
                     .headers(KEYCLOAK_HEADER, KEYCLOAK_VALUE)
                     .build();
             CompletableFuture<HttpResponse<String>> futureResponse =
@@ -108,7 +108,11 @@ public class OutboxListener {
 
             futureResponse.whenComplete(
                     (resp, e) -> {
-                        if (resp.statusCode() < 200 || resp.statusCode() >= 300) {
+                        if (resp.statusCode() >= 200 && resp.statusCode() < 300) {
+                            record.setStatus(Status.PUBLISHED);
+                            em.merge(record);
+                        }
+                        else if (resp.statusCode() < 200 || resp.statusCode() >= 300) {
                             if(e != null){
                                 log.error("Processed request with exception", e);
                                 throw new RuntimeException(e);

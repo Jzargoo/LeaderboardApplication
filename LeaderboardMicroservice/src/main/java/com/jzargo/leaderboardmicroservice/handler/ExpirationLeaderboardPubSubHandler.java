@@ -1,10 +1,10 @@
 package com.jzargo.leaderboardmicroservice.handler;
 
-import com.jzargo.leaderboardmicroservice.config.KafkaConfig;
+import com.jzargo.leaderboardmicroservice.config.properties.KafkaPropertyStorage;
 import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.repository.LeaderboardInfoRepository;
+import com.jzargo.leaderboardmicroservice.saga.KafkaUtils;
 import com.jzargo.leaderboardmicroservice.saga.SagaLeaderboardCreate;
-import com.jzargo.leaderboardmicroservice.saga.SagaUtils;
 import com.jzargo.messaging.DiedLeaderboardEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -24,21 +24,24 @@ import java.util.Set;
 @Component
 @Slf4j
 public class ExpirationLeaderboardPubSubHandler implements MessageListener {
+
     private final LeaderboardInfoRepository leaderboardInfoRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final SagaLeaderboardCreate sagaLeaderboardCreate;
     private final StringRedisTemplate stringRedisTemplate;
+    private final KafkaPropertyStorage kafkaPropertyStorage;
 
     public ExpirationLeaderboardPubSubHandler(
             LeaderboardInfoRepository leaderboardInfoRepository,
             KafkaTemplate<String, Object> kafkaTemplate,
             SagaLeaderboardCreate sagaLeaderboardCreate,
-            StringRedisTemplate stringRedisTemplate) {
+            StringRedisTemplate stringRedisTemplate, KafkaPropertyStorage kafkaPropertyStorage) {
 
         this.leaderboardInfoRepository = leaderboardInfoRepository;
         this.kafkaTemplate = kafkaTemplate;
         this.sagaLeaderboardCreate = sagaLeaderboardCreate;
         this.stringRedisTemplate = stringRedisTemplate;
+        this.kafkaPropertyStorage = kafkaPropertyStorage;
     }
 
     @Override
@@ -98,15 +101,16 @@ public class ExpirationLeaderboardPubSubHandler implements MessageListener {
                 lbDescription,
                 collected);
 
-        ProducerRecord<String, Object> record = SagaUtils.createRecord(
-                KafkaConfig.LEADERBOARD_UPDATE_TOPIC,
+        ProducerRecord<String, Object> record = KafkaUtils.createRecord(
+                kafkaPropertyStorage.getTopic().getNames().getLeaderboardUpdateState(),
                 lbId,
                 diedLeaderboardEvent
         );
 
-        SagaUtils.addSagaHeaders(
-                record, "",
-                SagaUtils.newMessageId(), lbId);
+        KafkaUtils.addCommonHeaders(
+                record,lbId,
+                kafkaPropertyStorage.getHeaders().getMessageId()
+                );
 
         kafkaTemplate.send(record);
     }
