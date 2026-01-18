@@ -1,13 +1,11 @@
 spring:
   kafka:
-
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
         spring.json.trusted.packages: "com.jzargo.messaging,
         com.jzargo.leaderboardmicroservice.core.messaging"
-
     consumer:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
@@ -15,13 +13,21 @@ spring:
       properties:
         spring.json.trusted.packages: "com.jzargo.messaging,
         com.jzargo.leaderboardmicroservice.core.messaging"
-
   embedded:
     kafka:
       bootstrap-servers: localhost:9090
 kafka:
+  headers:
+    message-id: "message-id"
+    saga-id: "saga-id"
   consumer:
     group-id: leaderboard-group
   topic:
     insync-replicas: 1
     replicas: 1
+    partitions: 1
+    names:
+      leaderboard-event: "test.leaderboard.event"
+      leaderboard-update-state: "test.leaderboard.update-state"
+      saga-create-leaderboard: "test.saga.leaderboard.create"
+

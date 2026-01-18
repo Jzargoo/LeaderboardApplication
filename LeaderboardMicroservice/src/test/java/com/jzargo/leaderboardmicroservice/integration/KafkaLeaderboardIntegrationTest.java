@@ -1,9 +1,11 @@
 package com.jzargo.leaderboardmicroservice.integration;
 
+import com.jzargo.leaderboardmicroservice.config.properties.KafkaPropertyStorage;
 import com.jzargo.leaderboardmicroservice.exceptions.CannotCreateCachedUserException;
 import com.jzargo.leaderboardmicroservice.handler.KafkaUserScoreHandler;
 import com.jzargo.leaderboardmicroservice.handler.RedisGlobalLeaderboardUpdateHandler;
 import com.jzargo.leaderboardmicroservice.handler.RedisLocalLeaderboardHandler;
+import com.jzargo.leaderboardmicroservice.saga.KafkaUtils;
 import com.jzargo.leaderboardmicroservice.service.LeaderboardService;
 import com.jzargo.messaging.UserScoreEvent;
 import com.jzargo.messaging.UserScoreUploadEvent;
@@ -22,7 +24,6 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.test.context.EmbeddedKafka;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -32,14 +33,11 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.UUID;
 
-import static com.jzargo.leaderboardmicroservice.config.KafkaConfig.LEADERBOARD_EVENT_TOPIC;
-import static com.jzargo.leaderboardmicroservice.config.KafkaConfig.MESSAGE_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
-import static org.springframework.kafka.support.KafkaHeaders.RECEIVED_KEY;
 
-@EmbeddedKafka()
+@EmbeddedKafka
 @DirtiesContext
 @ActiveProfiles("test")
 @EnableAutoConfiguration(exclude = RedisAutoConfiguration.class)
@@ -53,22 +51,23 @@ public class KafkaLeaderboardIntegrationTest {
     private LeaderboardService leaderboardService;
     @MockitoBean
     private StringRedisTemplate stringRedisTemplate;
+
     @Mock
     private ValueOperations<String, String> valueOperations;
+
     @MockitoBean
     private RedisConnectionFactory redisConnectionFactory;
     @MockitoBean
     private RedisGlobalLeaderboardUpdateHandler redisGlobalLeaderboardUpdateHandler;
     @MockitoBean
     private RedisLocalLeaderboardHandler redisLocalLeaderboardHandler;
+
     @Autowired
-    private KafkaTemplate<String, UserScoreEvent> mutableKafkaTemplate;
+    private KafkaPropertyStorage kafkaPropertyStorage;
     @Autowired
-    private KafkaTemplate<String, UserScoreUploadEvent> immutableKafkaTemplate;
+    private KafkaTemplate<String, Object> kafkaTemplate;
     @MockitoSpyBean
     private KafkaUserScoreHandler kafkaUserScoreHandler;
-    @MockitoBean
-    private JwtDecoder jwtDecoder;
 
     @BeforeEach
     void mockingBeans(){
@@ -98,15 +97,19 @@ public class KafkaLeaderboardIntegrationTest {
         } catch (CannotCreateCachedUserException e) {
             throw new RuntimeException(e);
         }
-        String messageId = UUID.randomUUID().toString();
-        ProducerRecord<String, UserScoreEvent> pr =
-                new ProducerRecord<>(LEADERBOARD_EVENT_TOPIC, String.valueOf(USER_ID) ,userScoreEvent);
-        pr.headers()
-                .add(MESSAGE_ID, messageId.getBytes())
-                .add(RECEIVED_KEY, String.valueOf(USER_ID).getBytes());
 
+        ProducerRecord<String, Object> record = KafkaUtils.createRecord(
+                kafkaPropertyStorage.getTopic().getNames().getLeaderboardEvent(),
+                String.valueOf(USER_ID),
+                userScoreEvent
+        );
+        KafkaUtils.addCommonHeaders(
+                record,
+                LEADERBOARD_ID,
+                kafkaPropertyStorage.getHeaders().getMessageId()
+                );
 
-        mutableKafkaTemplate.send(pr);
+        kafkaTemplate.send(record);
 
 
         ArgumentCaptor<UserScoreEvent> event = ArgumentCaptor.forClass(UserScoreEvent.class);
@@ -120,7 +123,10 @@ public class KafkaLeaderboardIntegrationTest {
                 event.capture(), messId.capture()
         );
 
-        assertEquals(messageId, messId.getValue());
+        assertEquals(
+                kafkaPropertyStorage.getHeaders()
+                        .getMessageId(), messId.getValue());
+
         assertEquals(userScoreEvent.getScore(), event.getValue().getScore());
         assertEquals(userScoreEvent.getUserId(), event.getValue().getUserId());
         assertEquals(userScoreEvent.getLbId(), event.getValue().getLbId());
@@ -142,15 +148,24 @@ public class KafkaLeaderboardIntegrationTest {
                 );
 
         String messageId = UUID.randomUUID().toString();
-        ProducerRecord<String, UserScoreUploadEvent> pr =
-                new ProducerRecord<>(LEADERBOARD_EVENT_TOPIC, String.valueOf(USER_ID) ,userScoreUploadEvent);
-        pr.headers()
-                .add(MESSAGE_ID, messageId.getBytes())
-                .add(RECEIVED_KEY, String.valueOf(USER_ID).getBytes());
 
-        immutableKafkaTemplate.send(pr);
+        ProducerRecord<String, Object> record = KafkaUtils.createRecord(
+                kafkaPropertyStorage.getTopic().getNames()
+                        .getLeaderboardEvent(),
+                String.valueOf(USER_ID),
+                userScoreUploadEvent);
+
+        KafkaUtils.addCommonHeaders(
+                record,
+                LEADERBOARD_ID,
+                kafkaPropertyStorage.getHeaders().getMessageId()
+                );
+
+        kafkaTemplate.send(record);
+
         ArgumentCaptor<UserScoreUploadEvent> event = ArgumentCaptor.forClass(UserScoreUploadEvent.class);
         ArgumentCaptor<String> messId = ArgumentCaptor.forClass(String.class);
+
         verify(
                 kafkaUserScoreHandler,
                 timeout(

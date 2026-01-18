@@ -1,14 +1,14 @@
 package com.jzargo.leaderboardmicroservice.integration;
 
-import com.jzargo.leaderboardmicroservice.config.KafkaConfig;
+import com.jzargo.leaderboardmicroservice.config.properties.KafkaPropertyStorage;
 import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.leaderboardmicroservice.dto.CreateLeaderboardRequest;
 import com.jzargo.leaderboardmicroservice.entity.SagaControllingState;
 import com.jzargo.leaderboardmicroservice.entity.SagaStep;
 import com.jzargo.leaderboardmicroservice.handler.KafkaSagaLeaderboardCreationHandler;
 import com.jzargo.leaderboardmicroservice.repository.SagaControllingStateRepository;
+import com.jzargo.leaderboardmicroservice.saga.KafkaUtils;
 import com.jzargo.leaderboardmicroservice.saga.SagaLeaderboardCreate;
-import com.jzargo.leaderboardmicroservice.saga.SagaUtils;
 import com.jzargo.messaging.LeaderboardEventInitialization;
 import com.jzargo.messaging.SuccessfulEventInitialization;
 import com.jzargo.messaging.UserAddedLeaderboard;
@@ -57,14 +57,22 @@ public class SagaLeaderboardCreateIntegrationTest {
             DockerImageName.parse("redis:latest")
     ).withExposedPorts(6379);
 
+
     @Autowired
     private KafkaTemplate<String, Object> kafkaTemplate;
+
+    @Autowired
+    private KafkaPropertyStorage kafkaPropertyStorage;
 
     @Autowired
     private SagaControllingStateRepository sagaControllingStateRepository;
 
     @Autowired
     private SagaTestConsumer sagaTestConsumer;
+
+    @Autowired
+    private SagaLeaderboardCreate saga;
+
 
     @DynamicPropertySource
     static void redisProperties(DynamicPropertyRegistry registry) {
@@ -76,8 +84,6 @@ public class SagaLeaderboardCreateIntegrationTest {
     @MockitoSpyBean
     KafkaSagaLeaderboardCreationHandler kafkaSagaLeaderboardCreationHandler;
 
-    @Autowired
-    SagaLeaderboardCreate saga;
 
 
     @Test
@@ -101,7 +107,7 @@ public class SagaLeaderboardCreateIntegrationTest {
                 .build();
 
         // ===== WHEN =====
-        saga.startSaga(req, 100L, "jack", Regions.GLOBAL.getCode());
+        saga.startSaga(req, 100L, "jack");
 
         // ===== CAPTORS =====
         ArgumentCaptor<InitLeaderboardCreateEvent> initCaptor =
@@ -131,18 +137,27 @@ public class SagaLeaderboardCreateIntegrationTest {
         SagaControllingState stateAfterInit = sagaControllingStateRepository
                 .findById(sagaId)
                 .orElseThrow();
+
         initEvent.setLbId(stateAfterInit.getLeaderboardId());
+
         assertEquals(SagaStep.OPTIONAL_EVENTS_CREATE, stateAfterInit.getStatus());
         assertEquals(SagaStep.LEADERBOARD_CREATE.name(), stateAfterInit.getLastStepCompleted());
 
         LeaderboardEventInitialization pollLbInit =
                 sagaTestConsumer.getLeaderboardEventInitializationBlockingQueue().poll(10, TimeUnit.SECONDS);
+
         assertLeaderboardEventInitialization(initEvent, pollLbInit);
 
         SuccessfulEventInitialization successfulEvent = new SuccessfulEventInitialization();
+
         ProducerRecord<String, Object> record =
-                SagaUtils.createRecord(KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC, sagaId, successfulEvent);
-        SagaUtils.addSagaHeaders(record, sagaId, SagaUtils.newMessageId(), sagaId);
+                KafkaUtils.createRecord(
+                        kafkaPropertyStorage.getTopic().getNames().getSagaCreateLeaderboard(),
+                        sagaId,
+                        successfulEvent);
+
+        KafkaUtils.addSagaHeaders(record, sagaId, KafkaUtils.newMessageId(), sagaId);
+
         kafkaTemplate.send(record);
 
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
@@ -155,37 +170,48 @@ public class SagaLeaderboardCreateIntegrationTest {
         );
 
         SuccessfulEventInitialization value = successCaptor.getValue();
+
         String sagaIdInEventInit = sagaIdCaptor.getValue();
 
         assertSuccessfulEvent(initEvent, sagaId, value, sagaIdInEventInit);
 
         UserNewLeaderboardCreated pollUser =
                 sagaTestConsumer.getUserNewLeaderboardCreatedBlockingQueue().poll(10, TimeUnit.SECONDS);
+
         assertUserCreated(req, initEvent, pollUser);
 
         UserAddedLeaderboard userAddedLeaderboardBody =
                 new UserAddedLeaderboard(initEvent.getLbId(), initEvent.getOwnerId());
+
         ProducerRecord<String, Object> successfulUserUpdate =
-                SagaUtils.createRecord(KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC, sagaId, userAddedLeaderboardBody);
-        SagaUtils.addSagaHeaders(successfulUserUpdate, sagaId, SagaUtils.newMessageId(), sagaId);
+                KafkaUtils.createRecord(
+                        kafkaPropertyStorage.getTopic().getNames().getSagaCreateLeaderboard(),
+                        sagaId,
+                        userAddedLeaderboardBody);
+
+        KafkaUtils.addSagaHeaders(successfulUserUpdate, sagaId, KafkaUtils.newMessageId(), sagaId);
+
         kafkaTemplate.send(successfulUserUpdate);
 
         await().atMost(Duration.ofSeconds(5)).untilAsserted(() ->
                 verify(kafkaSagaLeaderboardCreationHandler, atLeastOnce())
                         .handleUserAddedLeaderboard(
+                                userAddedCaptor.capture(),
                                 sagaIdCaptor.capture(),
-                                anyString(),
-                                userAddedCaptor.capture()
+                                anyString()
                         )
         );
 
         UserAddedLeaderboard userAddedLeaderboard = userAddedCaptor.getValue();
+
         String sagaIdAfterUser = sagaIdCaptor.getValue();
 
         assertUserAdded(req, initEvent, userAddedLeaderboard, sagaIdAfterUser, sagaId);
 
         SagaControllingState stateAfterAddedLb = sagaControllingStateRepository.findById(sagaId).orElseThrow();
+
         assertEquals(SagaStep.COMPLETE, stateAfterAddedLb.getStatus());
+
         assertEquals(SagaStep.USER_PROFILE_UPDATE.name(), stateAfterAddedLb.getLastStepCompleted());
     }
 

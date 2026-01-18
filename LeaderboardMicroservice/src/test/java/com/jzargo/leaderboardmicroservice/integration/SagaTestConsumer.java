@@ -1,6 +1,5 @@
 package com.jzargo.leaderboardmicroservice.integration;
 
-import com.jzargo.leaderboardmicroservice.config.KafkaConfig;
 import com.jzargo.messaging.LeaderboardEventInitialization;
 import com.jzargo.messaging.UserNewLeaderboardCreated;
 import org.springframework.kafka.annotation.KafkaHandler;
@@ -9,7 +8,8 @@ import org.springframework.kafka.annotation.KafkaListener;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-@KafkaListener(topics = KafkaConfig.LEADERBOARD_UPDATE_TOPIC, groupId = "${kafka.consumer.group-id")
+@KafkaListener(topics = "#{@kafkaPropertyStorage.topic.names.sagaCreateLeaderboard}",
+        groupId = "#{@kafkaPropertyStorage.consumer.groupId}")
 public class SagaTestConsumer {
 
         private final BlockingQueue<UserNewLeaderboardCreated>

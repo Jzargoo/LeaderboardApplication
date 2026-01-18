@@ -14,11 +14,6 @@ public class TestConfigHelper {
     }
 
     @Bean
-    public TestConsumer testConsumer() {
-        return new TestConsumer();
-    }
-
-    @Bean
     public SagaTestConsumer sagaTestConsumer (){
         return new SagaTestConsumer();
     }

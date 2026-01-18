@@ -1,9 +1,5 @@
 package com.jzargo.leaderboardmicroservice.unit;
 
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
-
 import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.leaderboardmicroservice.dto.CreateLeaderboardRequest;
 import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
@@ -18,17 +14,23 @@ import com.jzargo.messaging.DeleteLbEvent;
 import com.jzargo.messaging.FailedLeaderboardCreation;
 import com.jzargo.messaging.UserAddedLeaderboard;
 import com.jzargo.region.Regions;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
-import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.kafka.core.KafkaTemplate;
-import java.util.*;
+
 import java.time.LocalDateTime;
+import java.util.*;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -99,7 +101,7 @@ public class SagaLeaderboardCreateTest {
     void testStartSaga() {
         when(mapper.map(request)).thenReturn(event);
 
-        sagaService.startSaga(request, request.getOwnerId(), event.getUsername(), "region1");
+        sagaService.startSaga(request, request.getOwnerId(), event.getUsername());
 
         verify(sagaRepository).save(any(SagaControllingState.class));
         verify(kafkaTemplate).send(any(ProducerRecord.class));

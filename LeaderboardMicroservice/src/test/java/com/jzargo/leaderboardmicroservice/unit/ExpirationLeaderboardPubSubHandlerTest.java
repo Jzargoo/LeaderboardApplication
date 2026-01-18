@@ -1,6 +1,7 @@
 package com.jzargo.leaderboardmicroservice.unit;
 
 
+import com.jzargo.leaderboardmicroservice.config.properties.KafkaPropertyStorage;
 import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.handler.ExpirationLeaderboardPubSubHandler;
 import com.jzargo.leaderboardmicroservice.repository.LeaderboardInfoRepository;
@@ -8,13 +9,19 @@ import com.jzargo.leaderboardmicroservice.saga.SagaLeaderboardCreate;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.*;
+import org.mockito.Answers;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.kafka.core.KafkaTemplate;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+
 import static org.mockito.Mockito.*;
 
 public class ExpirationLeaderboardPubSubHandlerTest {
@@ -27,6 +34,9 @@ public class ExpirationLeaderboardPubSubHandlerTest {
 
     @Mock
     private SagaLeaderboardCreate sagaLeaderboardCreate;
+
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+    private KafkaPropertyStorage kafkaPropertyStorage;
 
     @Mock
     private StringRedisTemplate stringRedisTemplate;
@@ -77,21 +87,32 @@ public class ExpirationLeaderboardPubSubHandlerTest {
         Message message = mock(Message.class);
         when(message.toString()).thenReturn(expiredKey);
 
-        LeaderboardInfo lb = mock(LeaderboardInfo.class);
-        when(lb.isActive()).thenReturn(true);
-        when(lb.getId()).thenReturn("123");
-        when(lb.getName()).thenReturn("LB Name");
-        when(lb.getDescription()).thenReturn("LB Description");
-        when(lb.getKey()).thenReturn("key123");
+        LeaderboardInfo lb = new LeaderboardInfo();
+
+        lb.setActive(true);
+        lb.setId("123");
+        lb.setName("LB name");
+        lb.setDescription("LB Description");
+        lb.setMutable(true);
+
         when(leaderboardInfoRepository.findById("123")).thenReturn(Optional.of(lb));
 
         ZSetOperations.TypedTuple<String> tuple = mock(ZSetOperations.TypedTuple.class);
+
         when(tuple.getValue()).thenReturn("1");
+
         when(tuple.getScore()).thenReturn(100.0);
 
         Set<ZSetOperations.TypedTuple<String>> tuples = new HashSet<>();
         tuples.add(tuple);
+
         when(zSetOperations.reverseRangeWithScores("key123", 0, -1)).thenReturn(tuples);
+
+        when(kafkaPropertyStorage.getTopic().getNames().getLeaderboardUpdateState())
+                .thenReturn("leaderboard-update-state");
+
+        when(kafkaPropertyStorage.getHeaders().getMessageId())
+                .thenReturn("message-id");
 
         handler.onMessage(message, null);
 
