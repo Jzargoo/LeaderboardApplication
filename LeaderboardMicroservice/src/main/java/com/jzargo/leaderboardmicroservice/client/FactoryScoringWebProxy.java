@@ -11,7 +11,7 @@ public class FactoryScoringWebProxy {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final KafkaPropertyStorage kafkaPropertyStorage;
 
-    // Once upon a time I add others realizations
+    // Once upon a time I add other realizations
     public ScoringServiceWebProxy getClient(TypesOfProxy type) {
         return switch (type) {
             case REST -> null;

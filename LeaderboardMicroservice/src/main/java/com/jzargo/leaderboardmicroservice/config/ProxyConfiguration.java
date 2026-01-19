@@ -1,4 +1,4 @@
-package com.jzargo.leaderboardmicroservice.api;
+package com.jzargo.leaderboardmicroservice.config;
 
 import com.jzargo.leaderboardmicroservice.client.*;
 import com.jzargo.leaderboardmicroservice.config.properties.ApplicationPropertyStorage;

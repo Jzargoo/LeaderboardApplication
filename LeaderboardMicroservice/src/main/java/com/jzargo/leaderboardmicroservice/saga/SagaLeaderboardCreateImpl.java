@@ -1,7 +1,8 @@
 package com.jzargo.leaderboardmicroservice.saga;
 
-import com.jzargo.leaderboardmicroservice.client.*;
-import com.jzargo.leaderboardmicroservice.config.properties.ApplicationPropertyStorage;
+import com.jzargo.leaderboardmicroservice.client.LeaderboardServiceWebProxy;
+import com.jzargo.leaderboardmicroservice.client.ScoringServiceWebProxy;
+import com.jzargo.leaderboardmicroservice.client.UserServiceWebProxy;
 import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.leaderboardmicroservice.dto.CreateLeaderboardRequest;
 import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
@@ -14,7 +15,6 @@ import com.jzargo.leaderboardmicroservice.repository.SagaControllingStateReposit
 import com.jzargo.leaderboardmicroservice.service.LeaderboardService;
 import com.jzargo.messaging.*;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,13 +27,15 @@ import java.util.UUID;
 public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate {
 
     private final CreateInitialCreateLeaderboardSagaRequestMapper mapper;
-    private final LeaderboardServiceWebProxy leaderboardServiceWebProxy;
-    private final ScoringServiceWebProxy scoringServiceWebProxy;
-    private final UserServiceWebProxy userServiceWebProxy;
     private final SagaControllingStateRepository sagaRepository;
     private final LeaderboardService leaderboardService;
     private final LeaderboardInfoRepository leaderboardInfoRepository;
     private final CreateLeaderboardEventInitializationCreateMapper createLeaderboardEventInitializationCreateMapper;
+
+
+    private final LeaderboardServiceWebProxy leaderboardServiceWebProxy;
+    private final ScoringServiceWebProxy scoringServiceWebProxy;
+    private final UserServiceWebProxy userServiceWebProxy;
 
     public SagaLeaderboardCreateImpl(
 
@@ -41,27 +43,17 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate {
             SagaControllingStateRepository sagaRepository,
             LeaderboardService leaderboardService,
             LeaderboardInfoRepository leaderboardInfoRepository,
-            FactoryLeaderboardWebProxy leaderboardProxyFactory,
-            FactoryUserWebProxy userProxyFactory,
-            FactoryScoringWebProxy scoringProxyFactory,
             CreateLeaderboardEventInitializationCreateMapper createLeaderboardEventInitializationCreateMapper,
-            ApplicationPropertyStorage applicationPropertyStorage) {
-
-        ApplicationPropertyStorage.Proxy proxy= applicationPropertyStorage.getProxy();
+            LeaderboardServiceWebProxy leaderboardServiceWebProxy, ScoringServiceWebProxy scoringServiceWebProxy, UserServiceWebProxy userServiceWebProxy) {
 
         this.mapper = mapper;
         this.sagaRepository = sagaRepository;
         this.leaderboardService = leaderboardService;
         this.leaderboardInfoRepository = leaderboardInfoRepository;
-
-        this.leaderboardServiceWebProxy =
-                leaderboardProxyFactory.getClient(proxy.getMode().getLeaderboard());
-        this.userServiceWebProxy =
-                userProxyFactory.getClient(proxy.getMode().getUser());
-        this.scoringServiceWebProxy =
-                scoringProxyFactory.getClient(proxy.getMode().getScoring());
-
         this.createLeaderboardEventInitializationCreateMapper = createLeaderboardEventInitializationCreateMapper;
+        this.leaderboardServiceWebProxy = leaderboardServiceWebProxy;
+        this.scoringServiceWebProxy = scoringServiceWebProxy;
+        this.userServiceWebProxy = userServiceWebProxy;
     }
 
     @Override

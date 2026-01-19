@@ -1,5 +1,8 @@
 package com.jzargo.leaderboardmicroservice.unit;
 
+import com.jzargo.leaderboardmicroservice.client.LeaderboardServiceWebProxy;
+import com.jzargo.leaderboardmicroservice.client.ScoringServiceWebProxy;
+import com.jzargo.leaderboardmicroservice.client.UserServiceWebProxy;
 import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.leaderboardmicroservice.dto.CreateLeaderboardRequest;
 import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
@@ -13,6 +16,7 @@ import com.jzargo.leaderboardmicroservice.service.LeaderboardService;
 import com.jzargo.messaging.DeleteLbEvent;
 import com.jzargo.messaging.FailedLeaderboardCreation;
 import com.jzargo.messaging.UserAddedLeaderboard;
+import com.jzargo.messaging.UserNewLeaderboardCreated;
 import com.jzargo.region.Regions;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,16 +48,27 @@ public class SagaLeaderboardCreateTest {
     @Mock private RedisScript<String> sagaSuccessfulScript;
     @Mock private LeaderboardInfoRepository leaderboardInfoRepository;
 
+    @Mock private LeaderboardServiceWebProxy leaderboardServiceWebProxy;
+    @Mock private ScoringServiceWebProxy scoringServiceWebProxy;
+    @Mock private UserServiceWebProxy userServiceWebProxy;
+
     @InjectMocks private SagaLeaderboardCreateImpl sagaService;
 
+
     private CreateLeaderboardRequest request;
+
     private InitLeaderboardCreateEvent event;
+
     private SagaControllingState sagaState;
+
     private LeaderboardInfo leaderboardInfo;
 
+
+
+
     @BeforeEach
-    void setup() {
-        // Request DTO с более разнообразными данными
+    void setupDataClasses() {
+        // Request DTO with real-data
         request = new CreateLeaderboardRequest();
         request.setDescription("Test leaderboard for JUnit");
         request.setGlobalRange(15);
@@ -95,21 +110,31 @@ public class SagaLeaderboardCreateTest {
                 .isMutable(request.isMutable())
                 .regions(Regions.GLOBAL.getCode())
                 .build();
+
     }
 
     @Test
-    void testStartSaga() {
-        when(mapper.map(request)).thenReturn(event);
+    void testStartSaga_successful() {
+        when(
+                mapper.map(request)
+        ).thenReturn(event);
 
         sagaService.startSaga(request, request.getOwnerId(), event.getUsername());
 
-        verify(sagaRepository).save(any(SagaControllingState.class));
-        verify(kafkaTemplate).send(any(ProducerRecord.class));
+        verify(sagaRepository)
+                .save(any(SagaControllingState.class));
+
+        verify(leaderboardServiceWebProxy)
+                .createLeaderboard(
+                        any(InitLeaderboardCreateEvent.class),
+                        anyString()
+                );
+
         assertEquals(request.getOwnerId(), event.getOwnerId());
     }
 
     @Test
-    void testStepCreateLeaderboard_NonMutable() {
+    void testStepCreateLeaderboard_NonMutable_successful() {
         when(sagaRepository.findById(sagaState.getId())).thenReturn(Optional.of(sagaState));
         when(leaderboardService.createLeaderboard(event)).thenReturn(leaderboardInfo.getId());
 
@@ -117,29 +142,58 @@ public class SagaLeaderboardCreateTest {
 
         assertTrue(result);
         verify(sagaRepository).save(any(SagaControllingState.class));
-        verify(kafkaTemplate).send(any(ProducerRecord.class));
+        verify(userServiceWebProxy)
+                .createUserAddedLeaderboard(
+                        any(UserNewLeaderboardCreated.class),
+                        anyString()
+                );
     }
 
     @Test
     void testStepCreateLeaderboard_MutableWithoutEvents_Throws() {
+        when(sagaRepository
+                .findById(anyString())
+        ).thenReturn(
+                Optional.ofNullable(sagaState)
+        );
+
         event.setMutable(true);
         event.setEvents(Collections.emptyMap());
+
 
         assertThrows(IllegalArgumentException.class,
                 () -> sagaService.stepCreateLeaderboard(event, sagaState.getId()));
     }
 
     @Test
-    void testStepSagaCompleted() {
+    void testStepSagaCompleted_successful() {
+
         UserAddedLeaderboard userAdded = new UserAddedLeaderboard();
         userAdded.setLbId(leaderboardInfo.getId());
         userAdded.setUserId(request.getOwnerId());
 
+        sagaState.setStatus(SagaStep.COMPLETE);
+        sagaState.setLastStepCompleted(SagaStep.USER_PROFILE_UPDATE.name());
+
+        when(sagaRepository
+                .findById(anyString())
+        ).thenReturn(
+                Optional.ofNullable(sagaState)
+        );
+
+
+
         sagaService.stepSagaCompleted(userAdded, sagaState.getId());
 
-        verify(stringRedisTemplate).execute(eq(sagaSuccessfulScript), anyList(), eq(leaderboardInfo.getId()),
-                eq(SagaStep.COMPLETE.name()), eq(SagaStep.USER_PROFILE_UPDATE.name()));
-        verify(leaderboardService).confirmLbCreation(leaderboardInfo.getId());
+        verify(sagaRepository)
+                .save(
+                        any(SagaControllingState.class)
+                );
+
+        verify(leaderboardService)
+                .confirmLbCreation(
+                        leaderboardInfo.getId()
+                );
     }
 
     @Test

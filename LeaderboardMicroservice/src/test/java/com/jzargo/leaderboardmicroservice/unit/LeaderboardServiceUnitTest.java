@@ -1,5 +1,6 @@
 package com.jzargo.leaderboardmicroservice.unit;
 
+import com.jzargo.leaderboardmicroservice.config.properties.ApplicationPropertyStorage;
 import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.leaderboardmicroservice.dto.InitUserScoreRequest;
 import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
@@ -15,13 +16,13 @@ import com.jzargo.region.Regions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
-import org.springframework.data.redis.core.script.RedisScript;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -35,36 +36,20 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 public class LeaderboardServiceUnitTest {
 
-    @Mock
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
     private StringRedisTemplate stringRedisTemplate;
 
     @Mock
     private LeaderboardInfoRepository leaderboardInfoRepository;
 
     @Mock
-    private RedisScript<String> mutableLeaderboardScript;
-
-    @Mock
-    private RedisScript<String> immutableLeaderboardScript;
-
-    @Mock
-    private RedisScript<String> createLeaderboardScript;
-
-    @Mock
     private MapperCreateLeaderboardInfo mapperCreateLeaderboardInfo;
-
-
-    @Mock
-    private RedisScript<String> createUserCachedScript;
-
-    @Mock
-    private RedisScript<String> deleteLeaderboardScript;
-
-    @Mock
-    private RedisScript<String> confirmLbCreationScript;
 
     @Mock
     private SagaControllingStateRepository sagaControllingStateRepository;
+
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+    private ApplicationPropertyStorage applicationPropertyStorage;
 
     @Mock
     private ZSetOperations<String, String> zSetOperations;
@@ -141,9 +126,12 @@ public class LeaderboardServiceUnitTest {
 
         when(stringRedisTemplate.execute(
                 any(),
-                anyList(),
-                any(Object[].class)
+                anyList()
         )).thenReturn("error");
+
+        when(stringRedisTemplate
+                        .opsForHash()
+                        .hasKey(anyString(), anyString())).thenReturn(false);
 
         assertThrows(CannotCreateCachedUserException.class,
                 () -> leaderboardService.increaseUserScore(userScoreEvent));
@@ -184,10 +172,22 @@ public class LeaderboardServiceUnitTest {
         LeaderboardInfo mappedInfo = testLeaderboardInfo;
         mappedInfo.setId("lb-999");
 
-        when(mapperCreateLeaderboardInfo.map(any())).thenReturn(mappedInfo);
-        when(stringRedisTemplate.execute(any(), anyList(), any(Object[].class))).thenReturn("OK");
+        when(
+                mapperCreateLeaderboardInfo.map(any())
+        ).thenReturn(mappedInfo);
+
+        when(stringRedisTemplate
+                .execute(
+                        any(),
+                        anyList(),
+                        any(Object[].class))
+        ).thenReturn("OK");
+
+        when(applicationPropertyStorage.getMax().getDurationForInactiveState())
+                .thenReturn(36000L);
 
         String lbId = leaderboardService.createLeaderboard(request);
+
         assertEquals("lb-999", lbId);
     }
 

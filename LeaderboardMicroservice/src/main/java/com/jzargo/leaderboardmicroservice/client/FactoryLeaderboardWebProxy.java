@@ -12,7 +12,7 @@ public class FactoryLeaderboardWebProxy {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final KafkaPropertyStorage kafkaPropertyStorage;
 
-    // Once upon a time I add others realizations
+    // Once upon a time I add other realizations
     public LeaderboardServiceWebProxy getClient(TypesOfProxy type) {
         return switch (type) {
             case REST -> null;
