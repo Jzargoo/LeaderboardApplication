@@ -1,34 +1,21 @@
 package com.jzargo.leaderboardmicroservice.client;
 
+import com.jzargo.leaderboardmicroservice.config.properties.KafkaPropertyStorage;
+import lombok.RequiredArgsConstructor;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 @Component
+@RequiredArgsConstructor
 public class FactoryScoringWebProxy {
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final KafkaPropertyStorage kafkaPropertyStorage;
 
-    private final Map<String, ScoringServiceWebProxy> proxies;
-
-    public ScoringServiceWebProxy getClient(String type) {
-        if (type == null)
-            return proxies.get(TypesOfProxy.KAFKA.name());
-
-        return proxies.getOrDefault(type.toUpperCase(),
-                proxies.get(TypesOfProxy.KAFKA.name())
-        );
+    // Once upon a time I add others realizations
+    public ScoringServiceWebProxy getClient(TypesOfProxy type) {
+        return switch (type) {
+            case REST -> null;
+            default -> new ScoringKafkaWebProxy(kafkaTemplate, kafkaPropertyStorage);
+        };
     }
-
-    FactoryScoringWebProxy (List<ScoringServiceWebProxy> scoringServiceWebProxies){
-        proxies = scoringServiceWebProxies.stream()
-                .collect(
-                        Collectors.toMap(
-                                proxy -> proxy.getType()
-                                        .name().toLowerCase(),
-                                proxy -> proxy
-                        )
-                );
-    }
-
 }

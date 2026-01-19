@@ -1,5 +1,5 @@
 package com.jzargo.leaderboardmicroservice.client;
 
-enum TypesOfProxy {
+public enum TypesOfProxy {
     REST, KAFKA
 }

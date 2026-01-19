@@ -8,10 +8,8 @@ import com.jzargo.messaging.OutOfTimeEvent;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.stereotype.Component;
 
 @RequiredArgsConstructor
-@Component
 public class LeaderboardKafkaProxy implements LeaderboardServiceWebProxy{
 
     private final KafkaTemplate<String, Object> kafkaTemplate;

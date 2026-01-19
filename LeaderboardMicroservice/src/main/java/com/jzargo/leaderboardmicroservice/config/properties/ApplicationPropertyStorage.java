@@ -1,5 +1,6 @@
 package com.jzargo.leaderboardmicroservice.config.properties;
 
+import com.jzargo.leaderboardmicroservice.client.TypesOfProxy;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -42,9 +43,9 @@ public class ApplicationPropertyStorage {
 
         @Data
         public static class Mode{
-            private String scoring;
-            private String user;
-            private String leaderboard;
+            private TypesOfProxy scoring;
+            private TypesOfProxy user;
+            private TypesOfProxy leaderboard;
         }
 
     }
