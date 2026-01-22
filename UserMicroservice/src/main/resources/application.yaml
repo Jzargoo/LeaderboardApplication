@@ -1,11 +1,6 @@
 spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:devconfig}
+    include: ${SPRING_PROFILES_INCLUDE:}
   application:
     name: user-microservice
-api:
-  keycloak-connection-header: X-KEYCLOAK-SECRET
-  secret-keycloak-connection: Gz9Tj7cE2Rk1Q4L8aXnYhP7vWb3sQ6Lf
-images:
-  dir-path:
-    user: ../images/user
-  dump:
-    user: dump.png

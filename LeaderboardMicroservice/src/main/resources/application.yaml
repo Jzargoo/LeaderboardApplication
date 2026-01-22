@@ -5,3 +5,11 @@ spring:
   application:
     name: leaderboard-microservice
 
+logging:
+  level:
+    org:
+      springframework:
+        expression: DEBUG
+      kafka:
+        annotation:
+          KafkaListenerAnnotationBeanPostProcessor: TRACE

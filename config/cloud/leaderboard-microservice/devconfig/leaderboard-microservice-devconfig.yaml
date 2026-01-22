@@ -1,7 +1,7 @@
 spring:
   kafka:
     consumer:
-      group-id: leaderboard-group
+      group-id: ${kafka.consumer.groupId}
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       properties:
@@ -13,4 +13,13 @@ spring:
       properties:
         spring.json.trusted.packages: "com.jzargo.messaging,com.jzargo.leaderboardmicroservice.core.messaging"
 application:
+  proxy:
+    mode:
+      leaderboard: KAFKA
+      scoring: KAFKA
+      user: KAFKA
+
   max.durationForInactiveState: 86400000
+kafka:
+  consumer:
+    groupId: leaderboard-group

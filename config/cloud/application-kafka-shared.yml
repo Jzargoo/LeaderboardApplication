@@ -8,6 +8,6 @@ kafka:
       leaderboard-event: "leaderboard.user-activity.event"
       leaderboard-update: "leaderboard.state.updated"
       user-state-event: "user.state.event"
-      saga-create-eaderboard: "leaderboard.create.saga"
+      saga-create-leaderboard: "leaderboard.create.saga"
       command-string-score: "event.user-score.command"
       participant-leaderboard: "leaderboard.participation.event"
