@@ -37,6 +37,8 @@ dependencies {
 	implementation 'org.springframework.kafka:spring-kafka'
 	implementation 'org.apache.kafka:kafka-streams'
 	implementation 'com.jzargo:core:1.0-SNAPSHOT'
+	implementation 'org.springframework.cloud:spring-cloud-starter-config'
+	implementation 'org.liquibase:liquibase-core'
 
 
 	compileOnly 'org.projectlombok:lombok'
