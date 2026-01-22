@@ -19,8 +19,8 @@ import java.util.Set;
 import static org.springframework.kafka.support.KafkaHeaders.RECEIVED_KEY;
 
 
-@Component
 @Slf4j
+@Component
 public class RedisLocalLeaderboardHandler implements StreamListener<String, MapRecord<String, String, String>> {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private final StringRedisTemplate stringRedisTemplate;

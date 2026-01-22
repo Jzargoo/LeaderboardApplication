@@ -1,4 +1,4 @@
-package com.jzargo.leaderboardmicroservice.core.messaging;
+package com.jzargo.messaging;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

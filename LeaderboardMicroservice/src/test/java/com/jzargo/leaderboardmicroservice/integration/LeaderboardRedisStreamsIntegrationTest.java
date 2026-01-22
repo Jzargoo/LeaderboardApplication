@@ -100,7 +100,6 @@ class LeaderboardRedisStreamsIntegrationTest {
                 "50",
                 String.valueOf(leaderboardInfo.getMaxEventsPerUser()),
                 String.valueOf(leaderboardInfo.getMaxEventsPerUserPerDay()),
-                String.join(",", leaderboardInfo.getRegions()),
                 String.valueOf(leaderboardInfo.getGlobalRange()),
                 MUTABLE_LEADERBOARD_ID.toString()
         );

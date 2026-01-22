@@ -1,7 +1,6 @@
 package com.jzargo.leaderboardmicroservice.integration;
 
 import com.jzargo.leaderboardmicroservice.config.properties.KafkaPropertyStorage;
-import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.leaderboardmicroservice.dto.CreateLeaderboardRequest;
 import com.jzargo.leaderboardmicroservice.entity.SagaControllingState;
 import com.jzargo.leaderboardmicroservice.entity.SagaStep;
@@ -9,10 +8,7 @@ import com.jzargo.leaderboardmicroservice.handler.KafkaSagaLeaderboardCreationHa
 import com.jzargo.leaderboardmicroservice.repository.SagaControllingStateRepository;
 import com.jzargo.leaderboardmicroservice.saga.KafkaUtils;
 import com.jzargo.leaderboardmicroservice.saga.SagaLeaderboardCreate;
-import com.jzargo.messaging.LeaderboardEventInitialization;
-import com.jzargo.messaging.SuccessfulEventInitialization;
-import com.jzargo.messaging.UserAddedLeaderboard;
-import com.jzargo.messaging.UserNewLeaderboardCreated;
+import com.jzargo.messaging.*;
 import com.jzargo.region.Regions;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.jupiter.api.Test;
@@ -49,7 +45,7 @@ import static org.mockito.Mockito.verify;
 @ActiveProfiles("test")
 @Import(TestConfigHelper.class)
 @Testcontainers
-@SpringBootTest(properties = "spring.kafka.producer.bootstrap-servers=${spring.embedded.kafka.brokers}")
+@SpringBootTest
 public class SagaLeaderboardCreateIntegrationTest {
 
     @Container

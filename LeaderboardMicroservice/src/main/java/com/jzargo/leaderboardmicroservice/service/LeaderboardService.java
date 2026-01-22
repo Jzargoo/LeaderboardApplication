@@ -2,9 +2,9 @@ package com.jzargo.leaderboardmicroservice.service;
 
 import com.jzargo.dto.LeaderboardResponse;
 import com.jzargo.dto.UserScoreResponse;
-import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.leaderboardmicroservice.dto.InitUserScoreRequest;
 import com.jzargo.leaderboardmicroservice.exceptions.CannotCreateCachedUserException;
+import com.jzargo.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.messaging.UserScoreEvent;
 import com.jzargo.messaging.UserScoreUploadEvent;
 

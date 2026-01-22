@@ -1,9 +1,4 @@
 spring:
-  config:
-    import:
-      - "optional:configserver:http://localhost:8888/redis-common-${spring.profiles.active}.yaml"
-      - "optional:configserver:http://localhost:8888/eureka-common-${spring.profiles.active}.yaml"
-      - "optional:configserver:http://localhost:8888/kafka-common-${spring.profiles.active}.yaml"
   kafka:
     consumer:
       group-id: leaderboard-group
@@ -17,3 +12,5 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
         spring.json.trusted.packages: "com.jzargo.messaging,com.jzargo.leaderboardmicroservice.core.messaging"
+application:
+  max.durationForInactiveState: 86400000

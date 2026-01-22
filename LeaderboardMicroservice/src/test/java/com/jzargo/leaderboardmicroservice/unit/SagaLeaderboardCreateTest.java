@@ -3,7 +3,6 @@ package com.jzargo.leaderboardmicroservice.unit;
 import com.jzargo.leaderboardmicroservice.client.LeaderboardServiceWebProxy;
 import com.jzargo.leaderboardmicroservice.client.ScoringServiceWebProxy;
 import com.jzargo.leaderboardmicroservice.client.UserServiceWebProxy;
-import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.leaderboardmicroservice.dto.CreateLeaderboardRequest;
 import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.entity.SagaControllingState;
@@ -13,12 +12,8 @@ import com.jzargo.leaderboardmicroservice.repository.LeaderboardInfoRepository;
 import com.jzargo.leaderboardmicroservice.repository.SagaControllingStateRepository;
 import com.jzargo.leaderboardmicroservice.saga.SagaLeaderboardCreateImpl;
 import com.jzargo.leaderboardmicroservice.service.LeaderboardService;
-import com.jzargo.messaging.DeleteLbEvent;
-import com.jzargo.messaging.FailedLeaderboardCreation;
-import com.jzargo.messaging.UserAddedLeaderboard;
-import com.jzargo.messaging.UserNewLeaderboardCreated;
+import com.jzargo.messaging.*;
 import com.jzargo.region.Regions;
-import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,7 +29,8 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -197,33 +193,47 @@ public class SagaLeaderboardCreateTest {
     }
 
     @Test
-    void testCompensateStepUserProfile_ForImmutable() {
+    void testCompensateStepUserProfile_ForImmutable_Successful() {
         sagaState.setStatus(SagaStep.USER_PROFILE_UPDATE);
         sagaState.setLeaderboardId(leaderboardInfo.getId());
 
         leaderboardInfo.setMutable(false);
         when(sagaRepository.findById(sagaState.getId())).thenReturn(Optional.of(sagaState));
-        when(leaderboardInfoRepository.findById(leaderboardInfo.getId())).thenReturn(Optional.of(leaderboardInfo));
 
         sagaService.compensateStepUserProfile(sagaState.getId(), new FailedLeaderboardCreation());
 
         verify(sagaRepository).save(any(SagaControllingState.class));
-        verify(kafkaTemplate, never()).send(any(ProducerRecord.class));
+        verify(scoringServiceWebProxy).deleteLeaderboardEvents(
+                any(LeaderboardEventDeletion.class),
+                anyString()
+        );
+
     }
 
     @Test
-    void testCompensateStepUserProfile_ForMutable() {
+    void testCompensateStepUserProfile_ForMutable_Successful() {
         sagaState.setStatus(SagaStep.USER_PROFILE_UPDATE);
+
+        sagaState.setLastStepCompleted(
+                SagaStep.OPTIONAL_EVENTS_CREATE.name()
+        );
+
         sagaState.setLeaderboardId(leaderboardInfo.getId());
 
         leaderboardInfo.setMutable(true);
-        when(sagaRepository.findById(sagaState.getId())).thenReturn(Optional.of(sagaState));
-        when(leaderboardInfoRepository.findById(leaderboardInfo.getId())).thenReturn(Optional.of(leaderboardInfo));
+
+        when(sagaRepository.findById(sagaState.getId()))
+                .thenReturn(Optional.of(sagaState));
+
 
         sagaService.compensateStepUserProfile(sagaState.getId(), new FailedLeaderboardCreation());
 
         verify(sagaRepository).save(any(SagaControllingState.class));
-        verify(kafkaTemplate).send(any(ProducerRecord.class));
+
+        verify(scoringServiceWebProxy).deleteLeaderboardEvents(
+                any(LeaderboardEventDeletion.class),
+                anyString()
+        );
     }
 
     @Test
@@ -236,6 +246,11 @@ public class SagaLeaderboardCreateTest {
         sagaService.compensateStepOptionalEvent(sagaState.getId(), leaderboardInfo.getId());
 
         verify(sagaRepository).save(any(SagaControllingState.class));
+        verify(leaderboardServiceWebProxy)
+                .compensateLeaderboard(
+                        any(DeleteLbEvent.class),
+                        anyString()
+                );
     }
 
     @Test
@@ -251,13 +266,25 @@ public class SagaLeaderboardCreateTest {
 
     @Test
     void testStepOutOfTime_LeaderboardCreate() {
+
         sagaState.setStatus(SagaStep.LEADERBOARD_CREATE);
         sagaState.setLeaderboardId(leaderboardInfo.getId());
-        when(sagaRepository.findByLeaderboardId(leaderboardInfo.getId())).thenReturn(List.of(sagaState));
+
+        when(sagaRepository.findByLeaderboardId(leaderboardInfo.getId()))
+                .thenReturn(List.of(sagaState));
+
+        when(leaderboardInfoRepository.findById(leaderboardInfo.getId()))
+                .thenReturn(Optional.ofNullable(leaderboardInfo));
+
 
         boolean result = sagaService.stepOutOfTime(leaderboardInfo.getId());
 
+
         verify(leaderboardService).deleteLeaderboard(leaderboardInfo.getId(), sagaState.getId());
+        verify(sagaRepository).save(any(SagaControllingState.class));
+        verify(leaderboardServiceWebProxy).outOfTime(
+                any(OutOfTimeEvent.class), anyString()
+        );
         assertTrue(result);
     }
 }

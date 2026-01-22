@@ -59,7 +59,11 @@ public class KafkaUtils {
     }
 
     public static void addCommonHeaders(ProducerRecord<String, Object> record, String key, String messageIdHeader) {
-        record.headers().add(messageIdHeader, newMessageId().getBytes())
+        addCommonHeaders(record, key, messageIdHeader, newMessageId());
+    }
+
+    public static void addCommonHeaders(ProducerRecord<String, Object> record, String key, String messageIdHeader, String messageId) {
+        record.headers().add(messageIdHeader, messageId.getBytes())
                 .add(KafkaHeaders.RECEIVED_KEY, key.getBytes());
     }
 }

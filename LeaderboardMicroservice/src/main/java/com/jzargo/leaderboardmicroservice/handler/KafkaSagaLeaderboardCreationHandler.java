@@ -1,7 +1,6 @@
 package com.jzargo.leaderboardmicroservice.handler;
 
 import com.jzargo.leaderboardmicroservice.config.properties.KafkaPropertyStorage;
-import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.repository.LeaderboardInfoRepository;
 import com.jzargo.leaderboardmicroservice.saga.KafkaUtils;
@@ -20,10 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 
 @Component
-@KafkaListener(topics = {
-        "#{@kafkaPropertyStorage.topic.names.leaderboardEvent}",
+@KafkaListener(topics =
         "#{@kafkaPropertyStorage.topic.names.sagaCreateLeaderboard}"
-},
+,
         groupId = "#{@kafkaPropertyStorage.consumer.groupId}"
 )
 @Slf4j

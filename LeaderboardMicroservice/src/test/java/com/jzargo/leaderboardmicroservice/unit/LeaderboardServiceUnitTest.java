@@ -1,7 +1,6 @@
 package com.jzargo.leaderboardmicroservice.unit;
 
 import com.jzargo.leaderboardmicroservice.config.properties.ApplicationPropertyStorage;
-import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.leaderboardmicroservice.dto.InitUserScoreRequest;
 import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.entity.SagaControllingState;
@@ -10,6 +9,7 @@ import com.jzargo.leaderboardmicroservice.mapper.MapperCreateLeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.repository.LeaderboardInfoRepository;
 import com.jzargo.leaderboardmicroservice.repository.SagaControllingStateRepository;
 import com.jzargo.leaderboardmicroservice.service.LeaderboardServiceImpl;
+import com.jzargo.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.messaging.UserScoreEvent;
 import com.jzargo.messaging.UserScoreUploadEvent;
 import com.jzargo.region.Regions;

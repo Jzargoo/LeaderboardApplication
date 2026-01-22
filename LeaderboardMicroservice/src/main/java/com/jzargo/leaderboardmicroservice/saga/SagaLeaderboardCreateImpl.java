@@ -3,7 +3,6 @@ package com.jzargo.leaderboardmicroservice.saga;
 import com.jzargo.leaderboardmicroservice.client.LeaderboardServiceWebProxy;
 import com.jzargo.leaderboardmicroservice.client.ScoringServiceWebProxy;
 import com.jzargo.leaderboardmicroservice.client.UserServiceWebProxy;
-import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.leaderboardmicroservice.dto.CreateLeaderboardRequest;
 import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.entity.SagaControllingState;

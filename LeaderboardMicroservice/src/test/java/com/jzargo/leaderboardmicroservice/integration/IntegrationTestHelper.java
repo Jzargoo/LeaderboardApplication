@@ -1,10 +1,13 @@
 package com.jzargo.leaderboardmicroservice.integration;
 
+import com.jzargo.leaderboardmicroservice.config.properties.ApplicationPropertyStorage;
 import com.jzargo.region.Regions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.RedisScript;
 
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 
@@ -21,12 +24,18 @@ public class IntegrationTestHelper {
     public static final Long OWNER_ID = 999L;
     public static final Double MAX_SCORE = 100000.0;
 
+    public static final Long TIME_LEADERBOARD_LIFE =
+            Duration.of(1, ChronoUnit.DAYS).toMillis();
+
+
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
     @Autowired
     private RedisScript<String> createLeaderboardScript;
     @Autowired
     private RedisScript<String> createUserCachedScript;
+    @Autowired
+    private ApplicationPropertyStorage applicationPropertyStorage;
 
     public IntegrationTestHelper(StringRedisTemplate stringRedisTemplate, RedisScript<String> createLeaderboardScript) {
         this.stringRedisTemplate = stringRedisTemplate;
@@ -50,13 +59,10 @@ public class IntegrationTestHelper {
     public void createUser() {
         stringRedisTemplate.execute(createUserCachedScript,
                 List.of(
-                        "user_cached:" + USER_ID,
                         "user_cached:" + USER_ID + ":daily_attempts",
-                        "user_cached:" + USER_ID + ":total_attempts"
-                        ),
-                USER_ID.toString(),
-                USERNAME,
-                Regions.GLOBAL.getCode()
+                        "user_cached:" + USER_ID + ":total_attempts",
+                        "user_cached:" + USER_ID
+                        )
         );
         initializeUser();
     }
@@ -69,8 +75,8 @@ public class IntegrationTestHelper {
                         MUTABLE_BOARD:
                         IMMUTABLE_BOARD
                 ,
-                "leaderboard_information:" + lbId
-
+                "leaderboard_information:" + lbId,
+                "leaderboard_signal:" + lbId
         );
         stringRedisTemplate.execute(
                 createLeaderboardScript,
@@ -88,7 +94,8 @@ public class IntegrationTestHelper {
                 MAX_SCORE.toString(),
                 CODE,
                 "10",
-                "3"
+                "3",
+                TIME_LEADERBOARD_LIFE.toString()
         );
     }
 }

@@ -1,7 +1,7 @@
 package com.jzargo.leaderboardmicroservice.client;
 
-import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.messaging.DeleteLbEvent;
+import com.jzargo.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.messaging.OutOfTimeEvent;
 
 public interface LeaderboardServiceWebProxy {

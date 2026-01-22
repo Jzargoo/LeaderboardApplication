@@ -1,5 +1,6 @@
 -- KEYS[1] = user_cached:{id}:daily_attempts
 -- KEYS[2] = user_cached:{id}:total_attempts
+-- KEYS[3] = user_cached:{id}
 
 if redis.call("HEXISTS", KEYS[1], "__init__") == 0 then
 	redis.call("HSET", KEYS[1], "__init__", "1")
@@ -11,5 +12,7 @@ if redis.call("HEXISTS", KEYS[2], "__init__") == 0 then
 	redis.call("HSET", KEYS[2], "__init__", "1")
 	redis.call("HSET", KEYS[2], "count", 0)
 end
+
+redis.call("HSET", KEYS[3], "active", "true")
 
 return "OK"

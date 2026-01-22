@@ -1,6 +1,7 @@
 package com.jzargo.leaderboardmicroservice.integration;
 
 import com.jzargo.leaderboardmicroservice.config.KafkaConfig;
+import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.exceptions.CannotCreateCachedUserException;
 import com.jzargo.leaderboardmicroservice.handler.RedisGlobalLeaderboardUpdateHandler;
 import com.jzargo.leaderboardmicroservice.handler.RedisLocalLeaderboardHandler;
@@ -33,7 +34,8 @@ import java.util.Objects;
 import java.util.Set;
 
 import static com.jzargo.leaderboardmicroservice.integration.IntegrationTestHelper.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @Testcontainers
 @EnableAutoConfiguration(exclude = { KafkaAutoConfiguration.class })
@@ -76,7 +78,7 @@ class LeaderboardPushEventIntegrationTest {
     public void prepareLeaderboards(){
         integrationTestHelper.createLeaderboard(true);
         integrationTestHelper.createLeaderboard(false);
-        integrationTestHelper.initializeUser();
+        integrationTestHelper.createUser();
     }
 
     private void assertLeaderboardState(
@@ -85,7 +87,10 @@ class LeaderboardPushEventIntegrationTest {
             boolean expectedMutable,
             double expectedScore
     ) {
-        var leaderboardInfo = leaderboardInfoRepository.findById(leaderboardId.toString()).orElseThrow();
+        LeaderboardInfo leaderboardInfo =
+                leaderboardInfoRepository.findById(leaderboardId.toString()).orElseThrow(
+                        RuntimeException::new
+                );
 
         assertNotNull(leaderboardInfo, "leaderboard info did not find");
         assertEquals(DESCRIPTION, leaderboardInfo.getDescription());
@@ -113,11 +118,10 @@ class LeaderboardPushEventIntegrationTest {
 
         UserScoreUploadEvent userScoreUploadEvent = new UserScoreUploadEvent();
         userScoreUploadEvent.setUserId(USER_ID);
+        userScoreUploadEvent.setScore(10.0);
         userScoreUploadEvent.setLbId(IMMUTABLE_LEADERBOARD_ID.toString());
 
         leaderboardService.addNewScore(userScoreUploadEvent);
-
-
 
         assertLeaderboardState(
                 IMMUTABLE_LEADERBOARD_ID,

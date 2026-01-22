@@ -1,9 +1,9 @@
 package com.jzargo.leaderboardmicroservice.client;
 
 import com.jzargo.leaderboardmicroservice.config.properties.KafkaPropertyStorage;
-import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.leaderboardmicroservice.saga.KafkaUtils;
 import com.jzargo.messaging.DeleteLbEvent;
+import com.jzargo.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.messaging.OutOfTimeEvent;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.producer.ProducerRecord;

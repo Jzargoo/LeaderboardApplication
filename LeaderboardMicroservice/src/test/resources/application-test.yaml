@@ -1,21 +1,18 @@
 spring:
+  cloud.config.enabled: false
   kafka:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
-        spring.json.trusted.packages: "com.jzargo.messaging,
-        com.jzargo.leaderboardmicroservice.core.messaging"
+        spring.json.trusted.packages: "com.jzargo.messaging"
+      bootstrap-servers: localhost:9090
     consumer:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       auto-offset-reset: earliest
       properties:
-        spring.json.trusted.packages: "com.jzargo.messaging,
-        com.jzargo.leaderboardmicroservice.core.messaging"
-  embedded:
-    kafka:
-      bootstrap-servers: localhost:9090
+        spring.json.trusted.packages: "com.jzargo.messaging"
 kafka:
   headers:
     message-id: "message-id"
@@ -31,3 +28,13 @@ kafka:
       leaderboard-update-state: "test.leaderboard.update-state"
       saga-create-leaderboard: "test.saga.leaderboard.create"
 
+redis.enabled: false
+eureka.client.enabled: false
+
+application:
+  headers.user-id: "TEST-USER-ID"
+  max.durationForInactiveState: 86400000
+  proxy.mode:
+    leaderboard: kafka
+    scoring: kafka
+    user: kafka

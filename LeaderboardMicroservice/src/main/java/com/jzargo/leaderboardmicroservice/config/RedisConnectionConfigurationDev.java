@@ -3,7 +3,7 @@ package com.jzargo.leaderboardmicroservice.config;
 import com.jzargo.leaderboardmicroservice.config.properties.RedisPropertyStorage;
 import io.lettuce.core.ClientOptions;
 import io.lettuce.core.protocol.ProtocolVersion;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,6 +15,7 @@ import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactor
 
 @Configuration
 @EnableConfigurationProperties(RedisPropertyStorage.class)
+@ConditionalOnBooleanProperty(name = "redis.enabled", matchIfMissing = true)
 @Profile("devconfig")
 public class RedisConnectionConfigurationDev{
     private final RedisPropertyStorage redisPropertyStorage;

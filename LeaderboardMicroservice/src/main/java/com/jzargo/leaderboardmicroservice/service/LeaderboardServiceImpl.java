@@ -4,7 +4,6 @@ import com.jzargo.dto.LeaderboardResponse;
 import com.jzargo.dto.UserScoreResponse;
 import com.jzargo.leaderboardmicroservice.config.RedisConfig;
 import com.jzargo.leaderboardmicroservice.config.properties.ApplicationPropertyStorage;
-import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.leaderboardmicroservice.dto.InitUserScoreRequest;
 import com.jzargo.leaderboardmicroservice.entity.LeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.entity.SagaControllingState;
@@ -15,18 +14,21 @@ import com.jzargo.leaderboardmicroservice.mapper.LeaderboardToResponseReadMapper
 import com.jzargo.leaderboardmicroservice.mapper.MapperCreateLeaderboardInfo;
 import com.jzargo.leaderboardmicroservice.repository.LeaderboardInfoRepository;
 import com.jzargo.leaderboardmicroservice.repository.SagaControllingStateRepository;
+import com.jzargo.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.messaging.UserScoreEvent;
 import com.jzargo.messaging.UserScoreUploadEvent;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.*;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -139,6 +141,7 @@ public class LeaderboardServiceImpl implements LeaderboardService{
 
 
         List<String> keys = getStrings(userId, lbId, isMutable);
+
         String execute = stringRedisTemplate.execute(
                 isMutable? mutableLeaderboardScript : immutableLeaderboardScript,
                 keys,
@@ -146,7 +149,6 @@ public class LeaderboardServiceImpl implements LeaderboardService{
                 String.valueOf(scoreDelta),
                 String.valueOf(info.getMaxEventsPerUser()),
                 String.valueOf(info.getMaxEventsPerUserPerDay()),
-                info.getRegions().toString(),
                 String.valueOf(info.getGlobalRange()),
                 lbId
         );

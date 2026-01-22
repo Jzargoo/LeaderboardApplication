@@ -4,10 +4,10 @@ import com.jzargo.leaderboardmicroservice.handler.ExpirationLeaderboardPubSubHan
 import com.jzargo.leaderboardmicroservice.handler.RedisGlobalLeaderboardUpdateHandler;
 import com.jzargo.leaderboardmicroservice.handler.RedisLocalLeaderboardHandler;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.stream.Consumer;
 import org.springframework.data.redis.connection.stream.MapRecord;
@@ -22,11 +22,11 @@ import org.springframework.data.redis.stream.StreamMessageListenerContainer.Stre
 
 import java.time.Duration;
 
-import static org.springframework.data.redis.stream.StreamMessageListenerContainer.*;
+import static org.springframework.data.redis.stream.StreamMessageListenerContainer.create;
 
 @Configuration
-@Profile("!standalone")
 @Import(RedisLuaScriptsConfig.class)
+@ConditionalOnBooleanProperty(name = "redis.enabled", matchIfMissing = true)
 @Slf4j
 public class RedisConfig {
 

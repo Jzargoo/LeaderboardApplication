@@ -1,7 +1,7 @@
 package com.jzargo.leaderboardmicroservice.mapper;
 
-import com.jzargo.leaderboardmicroservice.core.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.mapper.Mapper;
+import com.jzargo.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.messaging.LeaderboardEventInitialization;
 import org.springframework.stereotype.Component;
 
