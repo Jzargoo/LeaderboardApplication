@@ -1,7 +1,6 @@
-CREATE TABLE user_added_created_lb
+CREATE TABLE user_added_created_leaderboard
 (
     id varchar(128) PRIMARY KEY,
-    saga_id varchar(128),
     user_id bigint REFERENCES users,
     lb_id varchar(128)
 );

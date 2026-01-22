@@ -19,9 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 
 @Component
-@KafkaListener(topics =
-        "#{@kafkaPropertyStorage.topic.names.sagaCreateLeaderboard}"
-,
+@KafkaListener(
+        topics = "#{@kafkaPropertyStorage.topic.names.sagaCreateLeaderboard}",
         groupId = "#{@kafkaPropertyStorage.consumer.groupId}"
 )
 @Slf4j

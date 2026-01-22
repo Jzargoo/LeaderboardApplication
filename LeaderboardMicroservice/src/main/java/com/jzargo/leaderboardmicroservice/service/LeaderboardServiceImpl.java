@@ -206,7 +206,7 @@ public class LeaderboardServiceImpl implements LeaderboardService{
                 map.getRegions().toString(),
                 String.valueOf(map.getMaxEventsPerUser()),
                 String.valueOf(map.getMaxEventsPerUserPerDay()),
-                applicationPropertyStorage.getMax().getDurationForInactiveState()
+                applicationPropertyStorage.getMax().getDurationForInactiveState().toString()
         );
         return map.getId();
     }

@@ -36,7 +36,7 @@ public class LeaderboardKafkaProxy implements LeaderboardServiceWebProxy{
     @Override
     public void createLeaderboard(InitLeaderboardCreateEvent event, String sagaId) {
         ProducerRecord<String, Object> record = KafkaUtils.createRecord(
-                kafkaPropertyStorage.getTopic().getNames().getLeaderboardEvent(),
+                kafkaPropertyStorage.getTopic().getNames().getSagaCreateLeaderboard(),
                 sagaId,
                 event
         );

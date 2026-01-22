@@ -1,7 +1,8 @@
 package com.jzargo.usermicroservice.service;
 
+import com.jzargo.usermicroservice.config.properties.ApplicationPropertiesStorage;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -12,21 +13,28 @@ import java.util.UUID;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class ImageServiceImpl implements ImageService{
-    @Value("${images.dir-path.user}")
-    private String dirUserPath;
-    @Value("${images.dump.user}")
-    private String dumpUserAvatar;
+
+    private final ApplicationPropertiesStorage applicationPropertiesStorage;
 
     @Override
     public String saveImage(byte[] image) {
         try {
 
-            Files.createDirectories(Path.of(dirUserPath));
+            Files.createDirectories(Path.of(
+                    applicationPropertiesStorage.getImages().getDirPath().getUser()
+            ));
             log.debug("created directories if needed");
 
             String filename = UUID.randomUUID() + ".png";
-            Files.write(Path.of(dirUserPath+"/"+filename), image);
+            Files.write(
+                    Path.of(
+                            applicationPropertiesStorage.getImages().getDirPath().getUser()
+                                    + "/" + filename
+                    ),
+                    image
+            );
 
             log.info("Image saved successfully");
             return filename;
@@ -38,9 +46,17 @@ public class ImageServiceImpl implements ImageService{
 
     @Override
     public void deleteImage(String avatar) {
-        if(!avatar.equalsIgnoreCase(dumpUserAvatar)){
+        if(!avatar.equalsIgnoreCase(
+                applicationPropertiesStorage.getImages().getDump().getUser()
+        )){
             try {
-                Files.deleteIfExists(Path.of(dirUserPath + avatar));
+                Files.deleteIfExists(
+                        Path.of(
+                                applicationPropertiesStorage.getImages().getDirPath().getUser() +
+                                        "/" +
+                                        avatar
+                        )
+                );
                 log.info("Image was deleted successful");
             } catch (IOException e) {
                 log.error("Occurred error while processing image {}", e.toString());
