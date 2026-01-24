@@ -1,6 +1,8 @@
 package com.jzargo.scoringmicroservice.handlers;
 
-import com.jzargo.scoringmicroservice.config.KafkaConfig;
+import com.jzargo.messaging.LeaderboardEventDeletion;
+import com.jzargo.messaging.LeaderboardEventInitialization;
+import com.jzargo.messaging.UserEventHappenedCommand;
 import com.jzargo.scoringmicroservice.entity.DeletedEvents;
 import com.jzargo.scoringmicroservice.entity.FailedCreateLeaderboardEvents;
 import com.jzargo.scoringmicroservice.entity.ProcessedMessage;
@@ -10,9 +12,6 @@ import com.jzargo.scoringmicroservice.repository.ProcessedMessageRepository;
 import com.jzargo.scoringmicroservice.service.ScoringService;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
-import com.jzargo.messaging.LeaderboardEventDeletion;
-import com.jzargo.messaging.LeaderboardEventInitialization;
-import com.jzargo.messaging.UserEventHappenedCommand;
 import org.springframework.kafka.annotation.KafkaHandler;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.handler.annotation.Header;
@@ -25,29 +24,35 @@ import java.util.UUID;
 @Slf4j
 @KafkaListener(
         topics = {
-                KafkaConfig.COMMAND_STRING_SCORE_TOPIC,
-                KafkaConfig.USER_EVENT_SCORE_TOPIC,
-                KafkaConfig.SAGA_CREATE_LEADERBOARD_TOPIC
+                "#{@kafkaPropertiesStorage.topic.names.commandStringScore}",
+                "#{@kafkaPropertiesStorage.topic.names.sagaCreateLeaderboard}"
         },
-        groupId = KafkaConfig.GROUP_ID
+        groupId = "#{@kafkaPropertiesStorage.consumer.groupId}"
 )
 public class KafkaScoringEventsAndCommandsHandler {
+
     private final ProcessedMessageRepository processedMessageRepository;
     private final ScoringService scoringService;
     private final FailedCreateLeaderboardEventsRepository failedCreateLeaderboardEventsRepository;
     private final DeletedEventsRepository deletedEventsRepository;
 
-    public KafkaScoringEventsAndCommandsHandler(ProcessedMessageRepository processedMessageRepository, ScoringService scoringService, FailedCreateLeaderboardEventsRepository failedCreateLeaderboardEventsRepository, DeletedEventsRepository deletedEventsRepository) {
+    public KafkaScoringEventsAndCommandsHandler(
+            ProcessedMessageRepository processedMessageRepository,
+            ScoringService scoringService,
+            FailedCreateLeaderboardEventsRepository failedCreateLeaderboardEventsRepository,
+            DeletedEventsRepository deletedEventsRepository) {
+
         this.processedMessageRepository = processedMessageRepository;
         this.scoringService = scoringService;
         this.failedCreateLeaderboardEventsRepository = failedCreateLeaderboardEventsRepository;
         this.deletedEventsRepository = deletedEventsRepository;
+
     }
 
     @KafkaHandler
     @Transactional
     public void handleStringScoreCommand(@Payload UserEventHappenedCommand command,
-                                         @Header  (KafkaConfig.MESSAGE_HEADER) String messageId){
+                                         @Header  ("#{@kafkaPropertiesStorage.headers.messageId") String messageId){
         if(processedMessageRepository.existsById(messageId)) {
             getDebug(messageId);
             return;
@@ -72,8 +77,8 @@ public class KafkaScoringEventsAndCommandsHandler {
     @KafkaHandler
     @Transactional
     public void handleCreateLeaderboardEvents (@Payload LeaderboardEventInitialization leaderboardEventInitialization,
-                                              @Header(KafkaConfig.SAGA_HEADER) String sagaId,
-                                              @Header(KafkaConfig.MESSAGE_HEADER) String messageId) {
+                                               @Header  ("#{@kafkaPropertiesStorage.headers.sagaId") String sagaId,
+                                               @Header ("#{@kafkaPropertiesStorage.headers.messageId") String messageId) {
         if (processedMessageRepository.existsById(messageId)) {
             getDebug(messageId);
             return;
@@ -104,8 +109,8 @@ public class KafkaScoringEventsAndCommandsHandler {
     @KafkaHandler
     @Transactional
     public void handleDeleteLeaderboardEvents(@Payload LeaderboardEventDeletion deletion,
-                                              @Header(KafkaConfig.SAGA_HEADER) String sagaId,
-                                              @Header(KafkaConfig.MESSAGE_HEADER) String messageId){
+                                              @Header  ("#{@kafkaPropertiesStorage.headers.sagaId") String sagaId,
+                                              @Header ("#{@kafkaPropertiesStorage.headers.messageId") String messageId) {
         if (processedMessageRepository.existsById(messageId)) {
             getDebug(messageId);
             return;

@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/internal/users")
+@RequestMapping("/internal/api/users")
 public class SecurityUserController {
     private final ApplicationPropertiesStorage applicationPropertiesStorage;
     private final UserService userService;

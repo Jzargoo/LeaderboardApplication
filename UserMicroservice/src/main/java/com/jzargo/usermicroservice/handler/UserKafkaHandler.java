@@ -121,9 +121,8 @@ public class UserKafkaHandler {
             userService.addCreatedLeaderboard(userNewLeaderboardCreated);
             UserAddedCreatedLeaderboard userAddedCreatedLeaderboard =
                     new UserAddedCreatedLeaderboard(
-                            sagaId, sagaId,
-                            userNewLeaderboardCreated.getUserId(),
-                            userNewLeaderboardCreated.getLbId());
+
+                    );
             userAddedCreatedLeaderboardRepository.save(
                     userAddedCreatedLeaderboard
             );

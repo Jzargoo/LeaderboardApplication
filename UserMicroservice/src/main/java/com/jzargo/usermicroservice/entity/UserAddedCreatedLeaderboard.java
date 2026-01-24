@@ -21,4 +21,5 @@ public class UserAddedCreatedLeaderboard {
     @OneToMany(mappedBy = "user_id")
     private List<User> users;
     private String lbId;
+    private String sagaId;
 }

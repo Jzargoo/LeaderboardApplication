@@ -3,6 +3,8 @@ package com.jzargo.scoringmicroservice.config;
 import com.jzargo.messaging.FailedLeaderboardCreation;
 import com.jzargo.messaging.LeaderboardEventDeletion;
 import com.jzargo.messaging.UserScoreEvent;
+import com.jzargo.scoringmicroservice.config.properties.KafkaPropertiesStorage;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.common.serialization.Serdes;
@@ -12,72 +14,115 @@ import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.processor.api.Processor;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafkaStreams;
 import org.springframework.kafka.config.TopicBuilder;
+import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.kafka.support.serializer.JsonSerde;
 
 import java.util.Map;
 import java.util.UUID;
 
-@Configuration
 @Slf4j
+@Configuration
 @EnableKafkaStreams
+@RequiredArgsConstructor
+@EnableConfigurationProperties
 public class KafkaConfig {
 
+    private final KafkaPropertiesStorage kafkaPropertiesStorage;
     @Bean
     public NewTopic userEventScoreTopic(){
         return TopicBuilder
-                .name(USER_EVENT_SCORE_TOPIC)
-                .partitions(3)
-                .replicas(2)
-                .config("Min.insync.replicas", "2")
+                .name(
+                        kafkaPropertiesStorage.getTopic().getNames()
+                                .getCommandStringScore()
+                )
+                .partitions(
+                        kafkaPropertiesStorage.getTopic().getPartitions()
+                )
+                .replicas(
+                        kafkaPropertiesStorage.getTopic().getReplicas()
+                )
+                .config("Min.insync.replicas",
+                        kafkaPropertiesStorage.getTopic().getInsyncReplicas().toString()
+                )
                 .build();
     }
 
+    //Topic with events which leaderboard read
     @Bean
     public NewTopic leaderboardEventTopic(){
         return TopicBuilder
-                .name(LEADERBOARD_EVENT_TOPIC)
-                .partitions(3)
-                .replicas(2)
-                .config("Min.insync.replicas", "2")
+                .name(
+                        kafkaPropertiesStorage.getTopic().getNames()
+                                .getLeaderboardEvent()
+                )
+                .partitions(
+                        kafkaPropertiesStorage.getTopic().getPartitions()
+                )
+                .replicas(
+                        kafkaPropertiesStorage.getTopic().getReplicas()
+                )
+                .config("Min.insync.replicas",
+                        kafkaPropertiesStorage.getTopic().getInsyncReplicas().toString()
+                )
                 .build();
     }
 
+    //Topic for scoring microservice for mapping string event -> increasedValue
     @Bean
     public NewTopic commandStringScoreTopic(){
         return TopicBuilder
-                .name(COMMAND_STRING_SCORE_TOPIC)
-                .partitions(3)
-                .replicas(2)
-                .config("Min.insync.replicas", "2")
+                .name(
+                        kafkaPropertiesStorage.getTopic().getNames()
+                                .getCommandStringScore()
+                )
+                .partitions(
+                        kafkaPropertiesStorage.getTopic().getPartitions()
+                )
+                .replicas(
+                        kafkaPropertiesStorage.getTopic().getReplicas()
+                )
+                .config("Min.insync.replicas",
+                        kafkaPropertiesStorage.getTopic().getInsyncReplicas().toString()
+                )
                 .build();
     }
 
     @Bean
-    @SuppressWarnings("unchecked")
     public KStream<String, Map<String, Object>> KScoringStream(StreamsBuilder streamsBuilder) {
 
         JsonSerde<UserScoreEvent> userScoreSerde = new JsonSerde<>(UserScoreEvent.class);
 
         KStream<String, Map<String, Object>> stream = streamsBuilder
                 .stream(
-                        DEBEZIUM_SCORING_TOPIC,
+                        kafkaPropertiesStorage.getTopic().getNames()
+                                .getDebeziumScoring(),
                         Consumed.with(Serdes.String(), new JsonSerde<>(Map.class))
                         );
 
         stream
-                .peek((key, value) -> log.info(
-                        "Received message in scoring microservice " +
-                                "from Debezium topic: {} with key: {}",
-                        DEBEZIUM_SCORING_TOPIC, key))
+                .peek(
+                        (key, value) -> log.info(
+                                "Received message in scoring microservice " +
+                                        "from Debezium topic: {} with key: {}",
+                                kafkaPropertiesStorage.getTopic().getNames()
+                                        .getDebeziumScoring(),
+                                key
+                        )
+                )
                 .filter((key, value) -> {
+
                     if (value == null) return false;
+
                     Map<String, Object> payload = (Map<String, Object>) value.get("payload");
+
                     return payload != null && "c".equals(payload.get("op"));
                 })
+
                 .map((key, value) -> {
 
                     Map<String, Object> payload = (Map<String, Object>) value.get("payload");
@@ -112,26 +157,39 @@ public class KafkaConfig {
                                 record -> {
                                     String id = UUID.randomUUID().toString();
                                     record.headers()
-                                            .add(SAGA_HEADER, record.key().getBytes())
-                                            .add(MESSAGE_HEADER, id.getBytes());
+                                            .add(
+                                                    KafkaHeaders.RECEIVED_KEY,
+                                                    record.key().getBytes()
+                                            )
+                                            .add(
+                                                    kafkaPropertiesStorage.getHeaders()
+                                                            .getMessageId(),
+                                                    id.getBytes()
+                                            );
                                 }
                 )
                 .peek(
                         (key, value) -> log.info(
                                 "Preparing to send message to topic: {} with key: {} and Value {}",
-                                LEADERBOARD_EVENT_TOPIC, key, value)
+                                kafkaPropertiesStorage.getTopic().getNames()
+                                        .getLeaderboardEvent(),
+                                key, value)
                 )
-                .to(LEADERBOARD_EVENT_TOPIC,  Produced.with(Serdes.String(), userScoreSerde));
+                .to(
+                        kafkaPropertiesStorage.getTopic().getNames()
+                                .getLeaderboardEvent(),
+                        Produced.with(Serdes.String(), userScoreSerde)
+                );
         return stream;
     }
 
     @Bean
-    @SuppressWarnings("unchecked")
     public KStream<String, Map<String, Object>> KFailedLbEventsStream(StreamsBuilder streamsBuilder) {
 
         KStream<String, Map<String, Object>> stream = streamsBuilder
                 .stream(
-                        DEBEZIUM_FAILED_TOPIC,
+                        kafkaPropertiesStorage.getTopic().getNames()
+                                .getDebeziumFailed(),
                         Consumed.with(Serdes.String(), new JsonSerde<>(Map.class))
                 );
 
@@ -174,20 +232,34 @@ public class KafkaConfig {
                                 record -> {
                                     String id = UUID.randomUUID().toString();
                                     record.headers()
-                                            .add(SAGA_HEADER, record.key().getBytes())
-                                            .add(MESSAGE_HEADER, id.getBytes());
+                                            .add(
+                                                    kafkaPropertiesStorage.getHeaders().getSagaId(),
+                                                    record.key().getBytes()
+                                            )
+                                            .add(
+                                                    KafkaHeaders.RECEIVED_KEY,
+                                                    record.key().getBytes()
+                                            )
+                                            .add(kafkaPropertiesStorage.getHeaders()
+                                                    .getMessageId(),
+                                                    id.getBytes()
+                                            );
                                 }
                 )
-                .to(LEADERBOARD_EVENT_TOPIC, Produced.with(Serdes.String(), new JsonSerde<>(FailedLeaderboardCreation.class)));
+                .to(
+                        kafkaPropertiesStorage.getTopic().getNames()
+                                .getSagaCreateLeaderboard(),
+                        Produced.with(Serdes.String(), new JsonSerde<>(FailedLeaderboardCreation.class))
+                );
         return stream;
     }
     @Bean
-    @SuppressWarnings("unchecked")
     public KStream<String, Map<String, Object>> KDeletedEvents(StreamsBuilder streamsBuilder) {
 
         KStream<String, Map<String, Object>> stream = streamsBuilder
                 .stream(
-                        DEBEZIUM_DELETED_EVENT_TOPIC,
+                        kafkaPropertiesStorage.getTopic().getNames()
+                                .getDebeziumDeleted(),
                         Consumed.with(Serdes.String(), new JsonSerde<>(Map.class))
                 );
 
@@ -223,11 +295,24 @@ public class KafkaConfig {
                                 record -> {
                                     String id = UUID.randomUUID().toString();
                                     record.headers()
-                                            .add(SAGA_HEADER, record.key().getBytes())
-                                            .add(MESSAGE_HEADER, id.getBytes());
+                                            .add(
+                                                    kafkaPropertiesStorage.getHeaders().getSagaId(),
+                                                    record.key().getBytes()
+                                            )
+                                            .add(
+                                                    KafkaHeaders.RECEIVED_KEY,
+                                                    record.key().getBytes()
+                                            )
+                                            .add(kafkaPropertiesStorage.getHeaders()
+                                                            .getMessageId(),
+                                                    id.getBytes()
+                                            );
                                 }
                 )
-                .to(LEADERBOARD_EVENT_TOPIC, Produced.with(Serdes.String(), new JsonSerde<>(LeaderboardEventDeletion.class)));
+                .to(
+                        kafkaPropertiesStorage.getTopic()
+                                .getNames().getSagaCreateLeaderboard(),
+                        Produced.with(Serdes.String(), new JsonSerde<>(LeaderboardEventDeletion.class)));
         return stream;
     }
 }
