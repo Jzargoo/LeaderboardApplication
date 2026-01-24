@@ -10,7 +10,7 @@
     "database.dbname": "scoresdb",
     "topic.prefix": "pgserver",
     "decimal.handling.mode": "double",
-    "table.include.list": "public.scoring_events,public.failed_create_leaderboard_events",
+    "table.include.list": "public.scoring_events,public.failed_create_leaderboard_events, public.deleted_events",
     "slot.name": "scoring_debezium",
     "publication.name": "scoring_publication",
     
