@@ -1,16 +1,6 @@
 spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/scoresdb
-    driver-class-name: org.postgresql.Driver
-    username: jzargo
-    password: root333
-  kafka:
-    consumer:
-      bootstrap-servers: localhost:9090,localhost:9092
-      group-id: scoring-group
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      properties:
-        spring.json.trusted.packages: "com.jzargo.messaging.*"
+  profiles:
+    include: ${SPRING_INCLUDED_PROFILES:devconfig}
+    active: ${SPRING_ACTIVE_PROFILE:}
   application:
-    name: ScoringMicroservice
+    name: scoring-microservice

@@ -1,18 +1,21 @@
 spring:
   kafka:
     consumer:
-      group-id: webSocket-group
+      group-id: ${kafka.consumer.group-id}
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       properties:
         spring.deserializer.value.delegate.class: org.apache.kafka.common.serialization.JsonDeserializer
-        spring.json.trusted.packages: com.jzargo.core.*
+        spring.json.trusted.packages: 'com.jzargo.messaging.*'
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
-        spring.json.trusted.packages: com.jzargo.core.*
+        spring.json.trusted.packages: 'com.jzargo.messaging.*'
 
+kafka:
+  consumer:
+    group-id: webSocket-group
 
 application:
   attribute:

@@ -24,4 +24,4 @@ kafka:
     names:
       debezium-scoring: "pgserver.public.scoring_events"
       debezium-failed: "pgserver.public.failed_create_leaderboard_events"
-      debezium-deleted: "pgserver.public.deleted_events"
+      debezium-deleted-event: "pgserver.public.deleted_events"

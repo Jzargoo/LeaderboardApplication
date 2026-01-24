@@ -3,7 +3,7 @@ spring:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
   kafka:
     consumer:
-      group-id: ${kafka.consumer.groupId}
+      group-id: ${kafka.consumer.group-id}
       value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       properties:
@@ -16,12 +16,14 @@ spring:
         spring.json.trusted.packages: "com.jzargo.messaging.*"
 
 kafka:
-  consumer.groupId: user-group
+  consumer.group-id: user-group
   topic.names:
     debezium-flc: "pgserver.users.public.failed_leaderboard_creation"
     debezium-users: "pgserver.users.public.users"
 
 application:
+  db:
+    name: usersdb
   headers:
     keycloak-connection:
       name: X-KEYCLOAK-SECRET

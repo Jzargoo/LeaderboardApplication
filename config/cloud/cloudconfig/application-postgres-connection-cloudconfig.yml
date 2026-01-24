@@ -2,4 +2,4 @@ datasource:
   username: jzargo
   password: root333
   driver-class-name: org.postgresql.Driver
-  url: jdbc:postgresql://generaldb:5432/usersdb
+  url: jdbc:postgresql://generaldb:5432/${application.db.name}
