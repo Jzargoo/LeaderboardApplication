@@ -5,12 +5,13 @@ import com.jzargo.messaging.DiedLeaderboardEvent;
 import com.jzargo.messaging.OutOfTimeEvent;
 import com.jzargo.messaging.UserNewLeaderboardCreated;
 import com.jzargo.usermicroservice.entity.FailedLeaderboardCreation;
+import com.jzargo.usermicroservice.entity.LeaderboardCreatedByUser;
 import com.jzargo.usermicroservice.entity.ProcessingMessage;
-import com.jzargo.usermicroservice.entity.UserAddedCreatedLeaderboard;
 import com.jzargo.usermicroservice.exception.UserCannotCreateLeaderboardException;
+import com.jzargo.usermicroservice.mapper.LeaderboardCreatedByUserCreateMapper;
 import com.jzargo.usermicroservice.repository.FailedLeaderboardCreationRepository;
+import com.jzargo.usermicroservice.repository.LeaderboardCreatedByUserRepository;
 import com.jzargo.usermicroservice.repository.ProcessingMessageRepository;
-import com.jzargo.usermicroservice.repository.UserAddedCreatedLeaderboardRepository;
 import com.jzargo.usermicroservice.service.UserService;
 import com.sun.jdi.request.DuplicateRequestException;
 import lombok.RequiredArgsConstructor;
@@ -38,7 +39,8 @@ public class UserKafkaHandler {
     private final ProcessingMessageRepository processingMessageRepository;
     private final UserService userService;
     private final FailedLeaderboardCreationRepository failedLeaderboardCreationRepository;
-    private final UserAddedCreatedLeaderboardRepository userAddedCreatedLeaderboardRepository;
+    private final LeaderboardCreatedByUserRepository LeaderboardCreatedByUserRepository;
+    private final LeaderboardCreatedByUserCreateMapper LeaderboardCreatedByUserCreateMapper;
 
     @Transactional
     @KafkaHandler
@@ -118,14 +120,16 @@ public class UserKafkaHandler {
         checkProcessed(messageId);
 
         try{
+            
             userService.addCreatedLeaderboard(userNewLeaderboardCreated);
-            UserAddedCreatedLeaderboard userAddedCreatedLeaderboard =
-                    new UserAddedCreatedLeaderboard(
-
-                    );
-            userAddedCreatedLeaderboardRepository.save(
-                    userAddedCreatedLeaderboard
+            
+            LeaderboardCreatedByUser leaderboardCreatedByUser = LeaderboardCreatedByUserCreateMapper.map(userNewLeaderboardCreated);
+            leaderboardCreatedByUser.setSagaId(sagaId);
+            
+            LeaderboardCreatedByUserRepository.save(
+                    leaderboardCreatedByUser
             );
+
             processingMessageRepository.save(
                     ProcessingMessage.builder()
                             .id(messageId)

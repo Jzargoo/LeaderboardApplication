@@ -1,6 +1,7 @@
 package com.jzargo.usermicroservice.api;
 
 import com.jzargo.messaging.UserRegisterRequest;
+import com.jzargo.usermicroservice.api.model.UserUpdateRequest;
 import com.jzargo.usermicroservice.config.properties.ApplicationPropertiesStorage;
 import com.jzargo.usermicroservice.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +41,8 @@ public class SecurityUserController {
     @PutMapping
     public ResponseEntity<String> updateUser(
             @Header("#{@applicationPropertiesStorage.headers.keycloakConnection.name}") String keycloakValue,
-            @RequestBody UserRegisterRequest request
+            @Header("#{@applicationPropertiesStorage.headers.userId}") Long userId,
+            @RequestBody UserUpdateRequest request
     ){
         if(
                 keycloakValue != null &&
@@ -51,7 +53,7 @@ public class SecurityUserController {
                     .build();
         }
         try{
-            userService.updateUser(request.getUserId(), request);
+            userService.updateUser(userId, request);
             return ResponseEntity.ok("User updated successfully");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());

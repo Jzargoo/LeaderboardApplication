@@ -2,6 +2,7 @@ package com.jzargo.usermicroservice.service;
 
 import com.jzargo.messaging.*;
 import com.jzargo.usermicroservice.api.model.UserResponse;
+import com.jzargo.usermicroservice.api.model.UserUpdateRequest;
 import com.jzargo.usermicroservice.entity.User;
 import com.jzargo.usermicroservice.exception.UserCannotCreateLeaderboardException;
 import com.jzargo.usermicroservice.mapper.CreateRegisterUserMapper;
@@ -56,7 +57,7 @@ public class UserServiceImpl implements UserService{
     }
 
     @Override
-    public void updateUser(Long id, UserRegisterRequest request) {
+    public void updateUser(Long id, UserUpdateRequest request) {
         User user = userRepository.findById(id)
                 .orElseThrow();
         user.setName(request.getName());
@@ -103,6 +104,7 @@ public class UserServiceImpl implements UserService{
 
         User user = userRepository.findById(userId)
                 .orElseThrow(()-> new UserCannotCreateLeaderboardException("Cannot find user with id"));
+
         user.addCreatedLeaderboard(userNewLeaderboardCreated);
     }
 

@@ -10,7 +10,7 @@ databaseChangeLog:
   - include:
       file: db/changelog/change-sets/create_processing_messages_table.sql
   - include:
-      file: db/changelog/change-sets/create_user_added_created_lb.sql
+      file: db/changelog/change-sets/create_table_created_leaderboard_outbox.sql
   - include:
       file: db/changelog/change-sets/create_active_leaderboards_table.sql
   - include:

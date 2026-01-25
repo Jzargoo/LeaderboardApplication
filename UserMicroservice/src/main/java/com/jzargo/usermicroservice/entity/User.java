@@ -41,6 +41,7 @@ public class User {
     @Builder.Default
     private Map<String, String> createdLeaderboards = new HashMap<>();
 
+
     @ElementCollection
     @MapKeyColumn(
             name = "id"
@@ -52,6 +53,7 @@ public class User {
     )
     @Builder.Default
     private Set<String> activeLeaderboards = new HashSet<>();
+
 
     public void addActiveLeaderboard(String leaderboardName) {
         activeLeaderboards.add(leaderboardName);

@@ -21,6 +21,7 @@ public class ApplicationPropertiesStorage {
     @Data
     public static class Headers {
         private KeycloakConnection keycloakConnection;
+        private String userId;
 
         @Data
         public static class KeycloakConnection {

@@ -2,6 +2,7 @@ package com.jzargo.usermicroservice.service;
 
 import com.jzargo.messaging.*;
 import com.jzargo.usermicroservice.api.model.UserResponse;
+import com.jzargo.usermicroservice.api.model.UserUpdateRequest;
 import com.jzargo.usermicroservice.exception.UserCannotCreateLeaderboardException;
 
 public interface UserService {
@@ -11,7 +12,7 @@ public interface UserService {
 
     boolean deleteUser(Long id);
 
-    void updateUser(Long id, UserRegisterRequest request);
+    void updateUser(Long id, UserUpdateRequest request);
 
     UserResponse findById(Long id);
 
