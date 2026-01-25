@@ -6,12 +6,12 @@ import com.jzargo.leaderboardmicroservice.saga.KafkaUtils;
 import com.jzargo.messaging.LeaderboardEventDeletion;
 import com.jzargo.messaging.LeaderboardEventInitialization;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.stereotype.Component;
 
 @RequiredArgsConstructor
-@Component
+@Slf4j
 public class ScoringKafkaWebProxy implements ScoringServiceWebProxy {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
@@ -33,6 +33,13 @@ public class ScoringKafkaWebProxy implements ScoringServiceWebProxy {
                 kafkaPropertyStorage.getHeaders().getSagaId()
         );
         kafkaTemplate.send(record);
+
+        logPublishing(sagaId);
+
+    }
+
+    private static void logPublishing(String sagaId) {
+        log.debug("The message was published with saga id: {}", sagaId);
     }
 
     @Override
@@ -52,5 +59,8 @@ public class ScoringKafkaWebProxy implements ScoringServiceWebProxy {
         );
         
         kafkaTemplate.send(record);
+
+        logPublishing(sagaId);
+
     }
 }

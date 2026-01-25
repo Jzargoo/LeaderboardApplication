@@ -15,7 +15,6 @@ import com.jzargo.leaderboardmicroservice.service.LeaderboardService;
 import com.jzargo.messaging.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -59,6 +58,7 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate {
     public void startSaga(CreateLeaderboardRequest request,
                           long userId,
                           String username) {
+        log.trace("Started processing step start saga");
 
         InitLeaderboardCreateEvent event = mapper.map(request);
         event.setOwnerId(userId);
@@ -75,8 +75,9 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate {
     }
 
     @Override
-    @Transactional
     public boolean stepCreateLeaderboard(InitLeaderboardCreateEvent event, String sagaId) {
+
+        log.trace("Started processing step create leaderboard with saga id {}", sagaId);
 
         SagaControllingState saga = sagaRepository.findById(sagaId).orElseThrow();
 
@@ -124,6 +125,8 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate {
     @Override
     public void stepSuccessfulEventInit(SuccessfulEventInitialization event, String sagaId) {
 
+        log.trace("Started processing step successful event init with saga id {}", sagaId);
+
         SagaControllingState saga = sagaRepository.findById(sagaId).orElseThrow();
 
         if (saga.getStatus() != SagaStep.OPTIONAL_EVENTS_CREATE) {
@@ -150,8 +153,9 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate {
     }
 
     @Override
-    @Transactional
     public void stepSagaCompleted(UserAddedLeaderboard event, String sagaId) {
+
+        log.trace("Started processing step completed with saga id {}", sagaId);
 
         SagaControllingState saga = sagaRepository.findById(sagaId).orElseThrow();
 
@@ -173,9 +177,10 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate {
         leaderboardService.confirmLbCreation(event.getLbId());
     }
 
-    @Transactional
     @Override
     public void compensateStepUserProfile(String sagaId, FailedLeaderboardCreation failed) {
+
+        log.trace("Started processing step compensate user profile with saga id {}", sagaId);
 
         SagaControllingState saga = sagaRepository.findById(sagaId).orElseThrow();
 
@@ -196,9 +201,10 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate {
         );
     }
 
-    @Transactional
     @Override
     public void compensateStepOptionalEvent(String sagaId, String lbId) {
+
+        log.trace("Started processing step compensate optional event with saga id {}", sagaId);
 
         SagaControllingState saga = sagaRepository.findById(sagaId).orElseThrow();
 
@@ -226,6 +232,8 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate {
     @Override
     public void stepCompensateLeaderboard(DeleteLbEvent event, String sagaId) {
 
+        log.trace("Started processing step compensate leaderboard with saga id {}", sagaId);
+
         SagaControllingState saga = sagaRepository.findById(sagaId).orElseThrow();
 
         if (saga.getStatus() != SagaStep.COMPENSATE_LEADERBOARD &&
@@ -244,6 +252,9 @@ public class SagaLeaderboardCreateImpl implements SagaLeaderboardCreate {
 
     @Override
     public boolean stepOutOfTime(String lbId) {
+
+        log.trace("Started processing step out of time");
+
         List<SagaControllingState> sagas = sagaRepository.findByLeaderboardId(lbId);
         if (sagas == null) {
             log.error("No sagas found for lbId {}", lbId);

@@ -6,9 +6,11 @@ import com.jzargo.messaging.DeleteLbEvent;
 import com.jzargo.messaging.InitLeaderboardCreateEvent;
 import com.jzargo.messaging.OutOfTimeEvent;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.kafka.core.KafkaTemplate;
 
+@Slf4j
 @RequiredArgsConstructor
 public class LeaderboardKafkaProxy implements LeaderboardServiceWebProxy{
 
@@ -29,8 +31,14 @@ public class LeaderboardKafkaProxy implements LeaderboardServiceWebProxy{
                 kafkaPropertyStorage.getHeaders().getMessageId(), 
                 kafkaPropertyStorage.getHeaders().getSagaId()
                 );
+
         kafkaTemplate.send(record);
 
+        logPublishing(sagaId);
+    }
+
+    private static void logPublishing(String sagaId) {
+        log.debug("The message was published with saga id: {}", sagaId);
     }
 
     @Override
@@ -48,6 +56,8 @@ public class LeaderboardKafkaProxy implements LeaderboardServiceWebProxy{
         );
         kafkaTemplate.send(record);
 
+        logPublishing(sagaId);
+
     }
 
     @Override
@@ -64,6 +74,10 @@ public class LeaderboardKafkaProxy implements LeaderboardServiceWebProxy{
                 kafkaPropertyStorage.getHeaders().getMessageId(),
                 kafkaPropertyStorage.getHeaders().getSagaId()
         );
+
         kafkaTemplate.send(record);
+
+        logPublishing(sagaId);
+
     }
 }

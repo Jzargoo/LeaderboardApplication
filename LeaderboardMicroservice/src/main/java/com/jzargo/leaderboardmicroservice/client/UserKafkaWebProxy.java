@@ -4,10 +4,12 @@ import com.jzargo.leaderboardmicroservice.config.properties.KafkaPropertyStorage
 import com.jzargo.leaderboardmicroservice.saga.KafkaUtils;
 import com.jzargo.messaging.UserNewLeaderboardCreated;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class UserKafkaWebProxy implements UserServiceWebProxy {
@@ -30,6 +32,8 @@ public class UserKafkaWebProxy implements UserServiceWebProxy {
                 kafkaPropertyStorage.getHeaders().getSagaId()
         );
         kafkaTemplate.send(record);
+
+        log.debug("The message was published with saga id: {}", sagaId);
     }
 
 
