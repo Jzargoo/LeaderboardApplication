@@ -23,3 +23,10 @@ application:
 kafka:
   consumer:
     groupId: leaderboard-group
+
+logging:
+  level:
+    com.jzargo.leaderboardmicroservice.client: DEBUG
+    com.jzargo.leaderboardmicroservice.handler.KafkaSagaLeaderboardCreation: DEBUG
+    com.jzargo.leaderboardmicroservice.handler.SagaLeaderboardCreateImpl: DEBUG
+

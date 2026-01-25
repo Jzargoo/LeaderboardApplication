@@ -21,7 +21,7 @@ public class ScoringKafkaWebProxy implements ScoringServiceWebProxy {
     public void initiateEvents(LeaderboardEventInitialization leaderboardEventInitialization, String sagaId) {
         ProducerRecord<String, Object> record =
                 KafkaUtils.createRecord(
-                        kafkaPropertyStorage.getTopic().getNames().getLeaderboardEvent(),
+                        kafkaPropertyStorage.getTopic().getNames().getSagaCreateLeaderboard(),
                         sagaId,
                         leaderboardEventInitialization
                 );
@@ -46,7 +46,7 @@ public class ScoringKafkaWebProxy implements ScoringServiceWebProxy {
     public void deleteLeaderboardEvents(LeaderboardEventDeletion leaderboardEventDeletion, String sagaId) {
         ProducerRecord<String, Object> record =
                 KafkaUtils.createRecord(
-                        kafkaPropertyStorage.getTopic().getNames().getLeaderboardEvent(),
+                        kafkaPropertyStorage.getTopic().getNames().getSagaCreateLeaderboard(),
                         sagaId,
                         leaderboardEventDeletion
                 );

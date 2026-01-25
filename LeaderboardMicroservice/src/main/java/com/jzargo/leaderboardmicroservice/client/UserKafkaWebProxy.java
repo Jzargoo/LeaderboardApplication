@@ -21,7 +21,7 @@ public class UserKafkaWebProxy implements UserServiceWebProxy {
     public void createUserAddedLeaderboard(UserNewLeaderboardCreated userNewLeaderboardCreated, String sagaId) {
         ProducerRecord<String, Object> record =
                 KafkaUtils.createRecord(
-                        kafkaPropertyStorage.getTopic().getNames().getLeaderboardEvent(),
+                        kafkaPropertyStorage.getTopic().getNames().getSagaCreateLeaderboard(),
                         sagaId,
                         userNewLeaderboardCreated);
 
