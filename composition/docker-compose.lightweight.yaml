@@ -16,7 +16,7 @@ services:
   generaldb:
     build:
       context: ./postgres-init
-    container_name: postresdb
+    container_name: postgresdb
     environment:
       POSTGRES_USERNAME: postgres
       POSTGRES_PASSWORD: root333
@@ -28,29 +28,6 @@ services:
     volumes:
       - ./postgres-data:/bitnami/postgresql
 
-  redpanda:
-    image: redpandadata/redpanda:latest
-    container_name: redpanda
-    mem_limit: 512M
-    command:
-      - redpanda
-      - start
-      - --overprovisioned
-      - --smp 1
-      - --memory 384M
-      - --reserve-memory 0M
-      - --node-id 0
-      - --check=false
-      - --kafka-addr PLAINTEXT://0.0.0.0:9092
-      - --advertise-kafka-addr PLAINTEXT://localhost:9092
-    networks:
-      - tool
-    ports:
-      - "9092:9092"
-      - "9644:9644"
-
-    volumes:
-      - redpanda-data:/var/lib/redpanda/data
   redis:
     image: redis:latest
     container_name: redis
@@ -85,9 +62,33 @@ services:
       - "8899:8080"
     volumes:
       - ../keycloak-extensions/files:/opt/keycloak/providers
+  redpanda:
+    image: redpandadata/redpanda:latest
+    container_name: redpanda
+    mem_limit: 1512M
+    command:
+      - redpanda
+      - start
+      - --overprovisioned
+      - --smp 1
+      - --memory 1024M
+      - --reserve-memory 0M
+      - --node-id 0
+      - --check=false
+      - --set redpanda.auto_create_topics_enabled=true
+      - --kafka-addr INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092
+      - --advertise-kafka-addr INTERNAL://redpanda:29092,EXTERNAL://localhost:9092
+    networks:
+      - tool
+    ports:
+      - "9092:9092"
+      - "9644:9644"
+
+    volumes:
+      - redpanda-data:/var/lib/redpanda/data
 
   debezium-dev-container:
-    image: quay.io/debezium/connect:latest
+    image: leaderboard-lightweight-debezium-dev-container:latest
     container_name: debezium-dev-container
     networks:
       - tool
@@ -95,15 +96,30 @@ services:
       - redpanda
       - generaldb
     environment:
-      BOOTSTRAP_SERVERS: redpanda:9092
-      GROUP_ID: 1
+
+      CONNECT_LOG4J_ROOT_LOGLEVEL: "DEBUG"
+      CONNECT_LOG4J_LOGGERS: "org.apache.kafka.connect.runtime.distributed=DEBUG,org.apache.kafka.clients=DEBUG"
+
+      BOOTSTRAP_SERVERS: redpanda:29092
+      GROUP_ID: "debezium-cluster"
+
+      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      INTERNAL_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      INTERNAL_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+
+      CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+
       CONFIG_STORAGE_TOPIC: connect-configs
       OFFSET_STORAGE_TOPIC: connect-offsets
       STATUS_STORAGE_TOPIC: connect-statuses
-    ports:
-      - "10103:8083"
-    volumes:
-      - ./configuration-files/lightweight:/kafka/configs
+
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+      KAFKA_OPTS: "-Xms512M -Xmx1G"
+    mem_limit: 2G
   eureka:
     build:
       context: ./../EurekaServerService
