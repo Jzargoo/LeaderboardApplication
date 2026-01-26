@@ -1,5 +1,5 @@
 CREATE TABLE
-    created_leaderboards
+    public.created_leaderboards
 (
     user_id          BIGINT REFERENCES users,
     id               BIGINT NOT NULL,

@@ -1,4 +1,4 @@
-CREATE TABLE failed_leaderboard_creation(
+CREATE TABLE public.failed_leaderboard_creation(
     id SERIAL PRIMARY KEY,
     reason varchar(256),
     leaderboard_id varchar(128),

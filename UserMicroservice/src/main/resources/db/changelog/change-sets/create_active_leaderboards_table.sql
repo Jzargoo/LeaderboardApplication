@@ -1,4 +1,4 @@
-CREATE TABLE active_leaderboards
+CREATE TABLE public.active_leaderboards
 (
     user_id          BIGINT REFERENCES users,
     leaderboard_name VARCHAR(255) NOT NULL,

@@ -1,4 +1,4 @@
-CREATE TABLE created_leaderboard_outbox
+CREATE TABLE public.created_leaderboard_outbox
 (
     id varchar(128) PRIMARY KEY,
     user_id bigint REFERENCES users,

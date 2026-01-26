@@ -1,4 +1,4 @@
-CREATE TABLE users(
+CREATE TABLE public.users(
     id BIGINT PRIMARY KEY,
     avatar varchar(128),
     name varchar(64),
