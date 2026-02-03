@@ -20,6 +20,13 @@ configurations {
 	}
 }
 
+bootJar {
+	archiveFileName = "${rootProject.name}-${version}-application.jar"
+	layered {
+		enabled = true
+	}
+}
+
 repositories {
 	mavenCentral()
 	mavenLocal()

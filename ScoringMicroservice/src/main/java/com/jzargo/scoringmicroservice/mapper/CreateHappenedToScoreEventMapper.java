@@ -1,8 +1,8 @@
 package com.jzargo.scoringmicroservice.mapper;
 
-import com.jzargo.scoringmicroservice.entity.ScoringEvent;
 import com.jzargo.mapper.Mapper;
 import com.jzargo.messaging.UserEventHappenedCommand;
+import com.jzargo.scoringmicroservice.entity.ScoringEvent;
 import org.springframework.stereotype.Component;
 
 @Component

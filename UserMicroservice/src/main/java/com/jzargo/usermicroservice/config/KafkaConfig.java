@@ -64,6 +64,49 @@ public class KafkaConfig {
                         ))
                 .build();
     }
+    @Bean
+    NewTopic sagaCreateLeaderboardTopic(){
+        return TopicBuilder
+                .name(propertiesStorage.getTopic()
+                        .getNames().getSagaCreateLeaderboard()
+                )
+                .partitions(propertiesStorage.getTopic().getPartitions())
+                .replicas(propertiesStorage.getTopic().getReplicas())
+                .config("Min.insync.replicas",
+                        String.valueOf(
+                                propertiesStorage.getTopic().getInSyncReplicas()
+                        ))
+                .build();
+    }
+    @Bean
+    NewTopic sagaCreateLeaderboardTopic(){
+        return TopicBuilder
+                .name(propertiesStorage.getTopic()
+                        .getNames().getSagaCreateLeaderboard()
+                )
+                .partitions(propertiesStorage.getTopic().getPartitions())
+                .replicas(propertiesStorage.getTopic().getReplicas())
+                .config("Min.insync.replicas",
+                        String.valueOf(
+                                propertiesStorage.getTopic().getInSyncReplicas()
+                        ))
+                .build();
+    }
+
+    @Bean
+    NewTopic debeziumScoringTopic(){
+        return TopicBuilder
+                .name(propertiesStorage.getTopic()
+                        .getNames().getDebeziumFlc()
+                )
+                .partitions(propertiesStorage.getTopic().getPartitions())
+                .replicas(propertiesStorage.getTopic().getReplicas())
+                .config("Min.insync.replicas",
+                        String.valueOf(
+                                propertiesStorage.getTopic().getInSyncReplicas()
+                        ))
+                .build();
+    }
 
 
     @Bean
@@ -217,4 +260,7 @@ public class KafkaConfig {
                 );
         return stream;
     }
+
+    @Bean
+
 }

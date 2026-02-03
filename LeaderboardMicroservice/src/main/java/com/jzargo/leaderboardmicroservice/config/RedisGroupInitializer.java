@@ -3,12 +3,8 @@ package com.jzargo.leaderboardmicroservice.config;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.stream.ReadOffset;
-import org.springframework.data.redis.connection.stream.StreamRecords;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.stereotype.Component;
-
-import java.util.Collections;
 
 import static com.jzargo.leaderboardmicroservice.config.RedisConfig.*;
 

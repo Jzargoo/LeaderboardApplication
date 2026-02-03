@@ -1,9 +1,9 @@
 package com.jzargo.websocketapi.lifecylce;
 
 import com.jzargo.dto.UserScoreResponse;
+import com.jzargo.websocketapi.config.properties.ApplicationPropertiesStorage;
 import com.jzargo.websocketapi.exception.ParticipantException;
 import com.jzargo.websocketapi.service.LeaderboardWebClient;
-import com.jzargo.websocketapi.config.properties.ApplicationPropertiesStorage;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

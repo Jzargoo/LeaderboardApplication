@@ -1,20 +1,21 @@
-FROM gradle:8-jdk17 AS build
-LABEL authors="jzargo"
+FROM eclipse-temurin:21-jdk-jammy as build
 
-WORKDIR /home/gatewayService
+WORKDIR application
 
-COPY build.gradle settings.gradle gradlew ./
-COPY gradle ./gradle
-COPY src ./src
+ARG JAR_FILE=build/libs/*-application.jar
 
-RUN ./gradlew clean bootJar -x test
+COPY ${JAR_FILE} application.jar
 
-FROM amazoncorretto:17-alpine-jdk
-WORKDIR /app
-COPY --from=build /home/gatewayService/build/libs/*.jar app.jar
-EXPOSE 8080
+RUN java -Djarmode=layertools -jar application.jar extract
 
-RUN addgroup -S spring && adduser -S spring -G spring
-USER spring:spring
 
-ENTRYPOINT ["java","-jar","app.jar"]
+FROM eclipse-temurin:21-jre-jammy
+
+WORKDIR application
+
+COPY --from=build application/dependencies/ ./
+COPY --from=build application/spring-boot-loader/ ./
+COPY --from=build application/snapshot-dependencies/ ./
+COPY --from=build application/application/ ./
+
+ENTRYPOINT ["java", "org.springframework.boot.loader.jarLauncher"]

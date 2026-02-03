@@ -18,6 +18,13 @@ java {
 	}
 }
 
+bootJar {
+	archiveFileName = "${rootProject.name}-${version}-application.jar"
+	layered {
+		enabled = true
+	}
+}
+
 configurations {
 	compileOnly {
 		extendsFrom annotationProcessor

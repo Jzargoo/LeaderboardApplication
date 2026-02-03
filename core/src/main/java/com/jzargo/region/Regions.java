@@ -1,7 +1,5 @@
 package com.jzargo.region;
 
-import java.util.Optional;
-
 public enum Regions {
     AFRICA("AF"),
     GLOBAL("ZZ"),

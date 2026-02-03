@@ -1,18 +1,18 @@
 package com.jzargo.scoringmicroservice.service;
 
-import com.jzargo.scoringmicroservice.entity.LbEventType;
-import com.jzargo.scoringmicroservice.entity.LeaderboardEvents;
-import com.jzargo.scoringmicroservice.entity.ScoringEvent;
-import com.jzargo.scoringmicroservice.mapper.LeaderboardCreateMapper;
-import com.jzargo.scoringmicroservice.repository.LbEventTypeRepository;
-import com.jzargo.scoringmicroservice.repository.LeaderboardEventsRepository;
-import com.jzargo.scoringmicroservice.mapper.CreateHappenedToScoreEventMapper;
-import com.jzargo.scoringmicroservice.repository.ScoringEventRepository;
-import jakarta.transaction.Transactional;
-import lombok.extern.slf4j.Slf4j;
 import com.jzargo.messaging.LeaderboardEventDeletion;
 import com.jzargo.messaging.LeaderboardEventInitialization;
 import com.jzargo.messaging.UserEventHappenedCommand;
+import com.jzargo.scoringmicroservice.entity.LbEventType;
+import com.jzargo.scoringmicroservice.entity.LeaderboardEvents;
+import com.jzargo.scoringmicroservice.entity.ScoringEvent;
+import com.jzargo.scoringmicroservice.mapper.CreateHappenedToScoreEventMapper;
+import com.jzargo.scoringmicroservice.mapper.LeaderboardCreateMapper;
+import com.jzargo.scoringmicroservice.repository.LbEventTypeRepository;
+import com.jzargo.scoringmicroservice.repository.LeaderboardEventsRepository;
+import com.jzargo.scoringmicroservice.repository.ScoringEventRepository;
+import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
