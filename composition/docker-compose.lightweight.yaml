@@ -1,6 +1,8 @@
 name: leaderboard-lightweight
 
 networks:
+  config:
+    driver: bridge
   tool:
     driver: bridge
   backend:
@@ -9,6 +11,8 @@ networks:
     driver: bridge
 
 volumes:
+  vault-light-data:
+    driver: local
   redpanda-data:
     driver: local
 
@@ -66,6 +70,8 @@ services:
     image: redpandadata/redpanda:latest
     container_name: redpanda
     mem_limit: 1512M
+    environment:
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
     command:
       - redpanda
       - start
@@ -120,6 +126,18 @@ services:
       STATUS_STORAGE_REPLICATION_FACTOR: 1
       KAFKA_OPTS: "-Xms512M -Xmx1G"
     mem_limit: 2G
+  vault-light:
+    image: hashicorp/vault:latest
+    ports:
+      - "8200:8200"
+    environment:
+      VAULT_ADDR: http://0.0.0.0:8200
+    command: server -dev=false -config=/vault/config/vault-light.hcl
+    volumes:
+      - ./vault-config:/vault/config
+      - vault-light-data:/vault/file
+    networks:
+      - config
   eureka:
     build:
       context: ./../EurekaServerService
@@ -135,3 +153,9 @@ services:
       - frontend
     ports:
       - "8080:8080"
+  config-server-light:
+    build:
+      context: ./../ConfigServer
+    networks:
+      - backend
+      - config
