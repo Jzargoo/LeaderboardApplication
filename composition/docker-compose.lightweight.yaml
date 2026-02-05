@@ -130,9 +130,10 @@ services:
     image: hashicorp/vault:latest
     ports:
       - "8200:8200"
-    environment:
-      VAULT_ADDR: http://0.0.0.0:8200
-    command: server -dev=false -config=/vault/config/vault-light.hcl
+    cap_add:
+      - IPC_LOCK
+    privileged: true
+    command: ["vault","server", "-config=/vault/config/vault-light.hcl"]
     volumes:
       - ./vault-config:/vault/config
       - vault-light-data:/vault/file

@@ -7,15 +7,26 @@ networks:
     driver: bridge
   frontend:
     driver: bridge
+  config:
+    driver: bridge
 
 volumes:
+  vault-data:
+    driver: local
   postgres-data:
+    driver: local
   redis-master-data:
+    driver: local
   kafka1-data:
+    driver: local
   redis-slave-2-data:
+    driver: local
   kafka2-data:
+    driver: local
   redis-slave-1-data:
+    driver: local
   kafka3-data:
+    driver: local
 
 services:
   scoresdb:
@@ -54,9 +65,7 @@ services:
       - "5435:5432"
 
   generaldb:
-    networks:
-      - tool
-    image: bitnami/postgresql:latest
+    image: leaderboard-lightweight-generaldb:latest
     container_name: generaldb
     environment:
       POSTGRESQL_USERNAME: postgres
@@ -64,19 +73,17 @@ services:
       POSTGRESQL_DATABASE: generaldb
     ports:
       - "5432:5432"
-    volumes:
-      - postgres-data:/bitnami/postgresql
-      - ./postgres-init:/docker-entrypoint-initdb.d
-
-  kafka1:
     networks:
       - tool
+    volumes:
+      - postgres-data:/bitnami/postgresql
+
+  kafka1:
     image: bitnami/kafka:latest
     container_name: kafka1
     hostname: kafka1
-    ports:
-      - "9090:9090"
-      - "9091:9091"
+    networks:
+      - tool
     environment:
       KAFKA_CFG_BROKER_ID: 1
       KAFKA_CFG_NODE_ID: 1
@@ -98,9 +105,6 @@ services:
     image: bitnami/kafka:latest
     container_name: kafka2
     hostname: kafka2
-    ports:
-      - "9092:9090"
-      - "9093:9091"
     environment:
       KAFKA_CFG_BROKER_ID: 2
       KAFKA_CFG_NODE_ID: 2
@@ -121,9 +125,6 @@ services:
     image: bitnami/kafka:latest
     container_name: kafka3
     hostname: kafka3
-    ports:
-      - "9094:9090"
-      - "9095:9091"
     environment:
       KAFKA_CFG_BROKER_ID: 3
       KAFKA_CFG_NODE_ID: 3
@@ -140,18 +141,16 @@ services:
       - kafka3-data:/bitnami/kafka/data
 
   redis-master:
-    networks:
-      - tool
     image: redis:latest
     container_name: redis-master
-    ports:
-      - "6379:6379"
     command: [
       "redis-server",
       "--requirepass", "masterRedisPassword",
       "--appendonly","yes",
       "--appendfsync", "everysec",
     ]
+    networks:
+      - tool
     volumes:
       - redis-master-data:/data
   redis-slave-1:
@@ -161,8 +160,6 @@ services:
     container_name: redis-slave-1
     depends_on:
       - redis-master
-    ports:
-      - "6380:6379"
     command: [
       "redis-server",
       "--requirepass", "rootRedisPassword",
@@ -180,8 +177,6 @@ services:
     container_name: redis-slave-2
     depends_on:
       - redis-master
-    ports:
-      - "6381:6379"
     command: [
       "redis-server",
       "--requirepass", "rootRedisPassword",
@@ -194,13 +189,13 @@ services:
       - redis-slave-2-data:/data
 
   keycloak:
-    networks:
-      - tool
     image: keycloak/keycloak:latest
     container_name: keycloak-security
     command: start-dev
     depends_on:
       - generaldb
+    networks:
+      - tool
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin-password
@@ -216,22 +211,45 @@ services:
       - ../keycloak-extensions/files:/opt/keycloak/providers
 
   debezium:
-    networks:
-      - tool
-    image: quay.io/debezium/connect:latest
+    image: leaderboard-lightweight-debezium-dev-container:latest
     container_name: debezium
     depends_on:
       - kafka1
       - kafka2
       - kafka3
       - generaldb
-    ports:
-      - "10103:8083"
+    networks:
+      - tool
     environment:
       BOOTSTRAP_SERVERS: kafka1:9091,kafka2:9093
       GROUP_ID: 1
       CONFIG_STORAGE_TOPIC: connect-configs-topic
       OFFSET_STORAGE_TOPIC: connect-offsets-topic
       STATUS_STORAGE_TOPIC: connect-statuses-topic
+  vault:
+    image: hashicorp/vault:latest
+    command: server -dev=false -config=/vault/config/vault.hcl
     volumes:
-      - ./configuration-files:/kafka/configs
+      - ./vault-config:/vault/config
+      - vault-data:/vault/file
+    networks:
+      - config
+
+  eureka:
+    image: leaderboard/eureka-service:latest
+    container_name: eureka
+    networks:
+      - backend
+  gateway:
+    image: leaderboard/gateway:latest
+    container_name: gateway
+    networks:
+      - backend
+      - frontend
+    ports:
+      - "8080:8080"
+  config-server:
+    image: leaderboard/config-server:latest
+    networks:
+      - backend
+      - config

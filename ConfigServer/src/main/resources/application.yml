@@ -2,14 +2,25 @@ server:
   port: 8888
 
 spring:
+  profiles:
+    active: native,vault
+
   application:
     name: ConfigServer
   cloud:
     config:
       server:
+        vault:
+          port: ${VAULT_PORT}
+          host: ${VAULT_HOST}
+          authentication: APPROLE
+          kv-version: ${KV_VERSION}
+          scheme: http
+          app-role:
+            secret-id: "${VAULT_SECRET_ID}"
+            role-id: "${VAULT_ROLE_ID}"
         native:
           search-locations:
             - file:///${CONFIG_DIR_PATH}/cloud/{application}/{profile}/
             - file:///${CONFIG_DIR_PATH}/cloud/{profile}/
             - file:///${CONFIG_DIR_PATH}/cloud
-        vault:
