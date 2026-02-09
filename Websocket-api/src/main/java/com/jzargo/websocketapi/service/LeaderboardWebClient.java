@@ -8,20 +8,19 @@ import org.springframework.web.bind.annotation.*;
 
 
 @FeignClient(
-        name = "leaderboard-microservice",
-        url = "/api/v1/leaderboard"
+        name = "leaderboard-microservice"
 )
 public interface LeaderboardWebClient {
 
     @PutMapping
     void initUserScore(@RequestBody InitUserScoreRequest initUserScoreRequest);
 
-    @GetMapping("/view/{id}")
+    @GetMapping("/api/v1/leaderboard/view/{id}")
     LeaderboardResponse getLeaderboard(@PathVariable String id);
 
-    @GetMapping("/view/participant/{lbId}")
+    @GetMapping("/api/v1/leaderboard/view/participant/{lbId}")
     boolean isParticipant(@PathVariable String lbId, @RequestParam String userId);
 
-    @GetMapping("/score/{lbId}")
+    @GetMapping("/api/v1/leaderboard/score/{lbId}")
     UserScoreResponse myScoreIn(@PathVariable String lbId, @RequestParam  Long userId);
 }

@@ -22,4 +22,6 @@ public interface LeaderboardService {
     boolean userExistsById(Long id, String ldId);
 
     UserScoreResponse getUserScoreInLeaderboard(Long userId, String id);
+
+    boolean isParticipant(String lbId, Long userId);
 }

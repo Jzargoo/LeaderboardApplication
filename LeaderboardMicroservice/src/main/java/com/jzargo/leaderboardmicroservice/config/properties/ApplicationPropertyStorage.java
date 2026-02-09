@@ -26,7 +26,7 @@ public class ApplicationPropertyStorage {
     @Data
     public static class Headers {
         @NotNull
-        private String userId;
+        private Long userId;
     }
 
     @Data

@@ -59,7 +59,7 @@ public abstract class ContractVerifierBase {
 
         if (name.contains("defaultMocks")) {
             doNothing().when(sagaLeaderboardCreate)
-                    .startSaga(any(), anyLong(), anyString(), anyString());
+                    .startSaga(any(), anyLong(), anyString());
 
             when(leaderboardService.userExistsById(anyLong(), anyString()))
                     .thenReturn(true);
@@ -74,6 +74,12 @@ public abstract class ContractVerifierBase {
                             "Test Leaderboard",
                             "lb123"
                     ));
+
+            when(leaderboardService
+                    .isParticipant(
+                            anyString(),
+                            anyLong()))
+                    .thenReturn(true);
         }
     }
 

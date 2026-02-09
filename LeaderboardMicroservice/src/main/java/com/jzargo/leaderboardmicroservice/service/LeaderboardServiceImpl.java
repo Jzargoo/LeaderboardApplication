@@ -326,6 +326,18 @@ public class LeaderboardServiceImpl implements LeaderboardService{
                 }).orElseThrow();
     }
 
+    @Override
+    public boolean isParticipant(String lbId, Long userId) {
+
+        Optional<LeaderboardInfo> byId = leaderboardInfoRepository.findById(lbId);
+
+        if(byId.isEmpty()) return false;
+
+        Double score = stringRedisTemplate.opsForZSet().score(byId.get().getKey(), userId);
+
+        return score != null;
+    }
+
     private Optional<Long> getUserRank(Long id, LeaderboardInfo leaderboardInfo) {
 
         return Optional.ofNullable(

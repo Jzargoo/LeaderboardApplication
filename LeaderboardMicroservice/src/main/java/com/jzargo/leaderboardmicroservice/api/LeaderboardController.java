@@ -2,6 +2,7 @@ package com.jzargo.leaderboardmicroservice.api;
 
 import com.jzargo.dto.LeaderboardResponse;
 import com.jzargo.dto.UserScoreResponse;
+import com.jzargo.leaderboardmicroservice.config.properties.ApplicationPropertyStorage;
 import com.jzargo.leaderboardmicroservice.dto.CreateLeaderboardRequest;
 import com.jzargo.leaderboardmicroservice.dto.InitUserScoreRequest;
 import com.jzargo.leaderboardmicroservice.exceptions.LeaderboardNotFound;
@@ -21,10 +22,12 @@ public class LeaderboardController {
 
     private final LeaderboardService leaderboardService;
     private final SagaLeaderboardCreate sagaLeaderboardCreate;
+    private final ApplicationPropertyStorage applicationPropertyStorage;
 
-    public LeaderboardController(LeaderboardService leaderboardService, SagaLeaderboardCreate sagaLeaderboardCreate) {
+    public LeaderboardController(LeaderboardService leaderboardService, SagaLeaderboardCreate sagaLeaderboardCreate, ApplicationPropertyStorage applicationPropertyStorage) {
         this.leaderboardService = leaderboardService;
         this.sagaLeaderboardCreate = sagaLeaderboardCreate;
+        this.applicationPropertyStorage = applicationPropertyStorage;
     }
 
     @GetMapping("/score/{id}")
@@ -130,5 +133,13 @@ public class LeaderboardController {
                     .badRequest().build();
 
         }
+    }
+
+    @GetMapping("/view/participant/{lbId}")
+    public ResponseEntity<Boolean> isParticipant(@PathVariable String lbId,
+                                                 @RequestHeader("#{@applicationPropertyStorage.headers.userId}") Long userId) {
+        return ResponseEntity.ok(
+                leaderboardService.isParticipant(lbId, userId)
+        );
     }
 }
