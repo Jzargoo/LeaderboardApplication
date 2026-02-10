@@ -61,7 +61,10 @@ public class WebSocketServiceImpl implements WebSocketService {
                         )
                 );
 
-        KafkaSendUtils.addBasicHeaders(uus);
+        KafkaSendUtils.addBasicHeaders(
+                uus,
+                kafkaPropertiesStorage.getHeaders().getMessageId()
+        );
 
         kafkaTemplate.send(uus);
     }
@@ -82,7 +85,10 @@ public class WebSocketServiceImpl implements WebSocketService {
                         )
                 );
 
-        KafkaSendUtils.addBasicHeaders(ius);
+        KafkaSendUtils.addBasicHeaders(
+                ius,
+                kafkaPropertiesStorage.getHeaders().getMessageId()
+                );
 
         kafkaTemplate.send(ius);
     }

@@ -2,6 +2,7 @@ package com.jzargo.websocketapi;
 
 import com.jzargo.messaging.GlobalLeaderboardEvent;
 import com.jzargo.messaging.UserLocalUpdateEvent;
+import com.jzargo.websocketapi.config.properties.ApplicationPropertiesStorage;
 import com.jzargo.websocketapi.dto.LeaderboardResponsePayload;
 import com.jzargo.websocketapi.service.WebSocketServiceImpl;
 import org.junit.jupiter.api.Test;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.time.LocalDateTime;
@@ -23,6 +25,9 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 public class WebSocketServiceUnitTest {
     @Mock
     private SimpMessagingTemplate simpMessagingTemplate;
+
+    @Autowired
+    private ApplicationPropertiesStorage applicationPropertiesStorage;
 
     @InjectMocks
     private WebSocketServiceImpl webSocketService;
@@ -42,7 +47,7 @@ public class WebSocketServiceUnitTest {
 
         verify(simpMessagingTemplate).convertAndSendToUser(
                 eq("1"),
-                eq(ConnectSTOMPInterceptor.LOCAL_LEADERBOARD_UPDATE_ENDPOINT),
+                eq(applicationPropertiesStorage.getEndpointsPattern().getLocalLeaderboardPush()),
                 argThat(object ->{
                     LeaderboardResponsePayload payload = (LeaderboardResponsePayload) object;
                     return "777".equals(payload.getLeaderboardId()) &&
@@ -54,7 +59,7 @@ public class WebSocketServiceUnitTest {
 
         verify(simpMessagingTemplate).convertAndSendToUser(
                 eq("2"),
-                eq(ConnectSTOMPInterceptor.LOCAL_LEADERBOARD_UPDATE_ENDPOINT),
+                eq(applicationPropertiesStorage.getEndpointsPattern().getGlobalLeaderboardPush()),
                 argThat(object->{
                     LeaderboardResponsePayload payload = (LeaderboardResponsePayload) object;
                     return "777".equals(payload.getLeaderboardId()) &&
@@ -105,7 +110,7 @@ public class WebSocketServiceUnitTest {
                 )
         );
         verify(simpMessagingTemplate).convertAndSend(
-                eq(ConnectSTOMPInterceptor.GLOBAL_LEADERBOARD_UPDATE_ENDPOINT),
+                eq(applicationPropertiesStorage.getEndpointsPattern().getGlobalLeaderboardPush()),
                 argThat((LeaderboardResponsePayload payload) -> "leaderboard-1".equals(payload.getLeaderboardId()) &&
                         payload.getUserId() == 1L &&
                         payload.getScore() == 500.0 &&

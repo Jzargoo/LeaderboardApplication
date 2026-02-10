@@ -1,6 +1,5 @@
 package com.jzargo.websocketapi.utils;
 
-import com.jzargo.websocketapi.config.KafkaConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.kafka.support.KafkaHeaders;
 
@@ -15,8 +14,8 @@ public class KafkaSendUtils {
         return new ProducerRecord<>(topic, key, value);
     }
 
-    public static void addBasicHeaders(ProducerRecord<?,?> record){
-        record.headers().add(KafkaConfig.MESSAGE_ID, newMessageId().getBytes())
+    public static void addBasicHeaders(ProducerRecord<?,?> record, String messageIdHeader){
+        record.headers().add(messageIdHeader, newMessageId().getBytes())
                 .add(KafkaHeaders.RECEIVED_KEY, record.key().toString().getBytes());
     }
 }
