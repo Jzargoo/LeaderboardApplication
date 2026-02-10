@@ -1,8 +1,11 @@
 package com.jzargo.websocketapi.lifecylce;
 
+import com.jzargo.dto.LeaderboardResponse;
 import com.jzargo.dto.UserScoreResponse;
 import com.jzargo.websocketapi.config.properties.ApplicationPropertiesStorage;
+import com.jzargo.websocketapi.dto.LeaderboardRefreshResponse;
 import com.jzargo.websocketapi.exception.ParticipantException;
+import com.jzargo.websocketapi.mapper.CreateLeaderboardRefreshRequestMapper;
 import com.jzargo.websocketapi.service.LeaderboardWebClient;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +28,7 @@ public class SubscribeSTOMPInterceptor implements ChannelInterceptor {
     private final LeaderboardWebClient leaderboardWebClient;
     private final ApplicationPropertiesStorage applicationPropertiesStorage;
     private final SimpMessagingTemplate simpMessagingTemplate;
+    private final CreateLeaderboardRefreshRequestMapper createLeaderboardRefreshRequestMapper;
 
     @Override
     public Message<?> preSend(@NonNull Message<?> message, @NonNull MessageChannel channel) {
@@ -68,8 +72,8 @@ public class SubscribeSTOMPInterceptor implements ChannelInterceptor {
 
         StompHeaderAccessor accessor = StompHeaderAccessor.wrap(message);
 
-        //if accessor does not have destination, it will not a valid message,
-        //so I should stop it by throwing exception
+        //if accessor does not have destination, it will not be a valid message,
+        //so message should be stopped by throwing an exception
         if (accessor.getDestination() ==null) {
             throw new NullArgumentException("Destination in accessor for subscribe stomp interceptor is null");
         }
@@ -88,11 +92,22 @@ public class SubscribeSTOMPInterceptor implements ChannelInterceptor {
 
                 UserScoreResponse usr =
                         leaderboardWebClient.myScoreIn(lbId, userId);
+                LeaderboardResponse leaderboard =
+                        leaderboardWebClient.getLeaderboard(lbId);
+
+                LeaderboardRefreshResponse map = createLeaderboardRefreshRequestMapper.map(
+                        new CreateLeaderboardRefreshRequestMapper.RefreshInfo(
+                                usr, leaderboard
+                        )
+                );
+
                 simpMessagingTemplate.convertAndSendToUser(
                         String.valueOf(userId),
                         applicationPropertiesStorage.getEndpointsPattern().getLocalLeaderboardPush() + lbId,
-                        usr
+                        map
                 );
+
+
             }
         }
     }

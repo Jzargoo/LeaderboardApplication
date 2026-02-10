@@ -15,9 +15,8 @@ public class KafkaConfig {
                 .name(
                         kafkaPropertiesStorage
                                 .getTopic().getNames()
-                                .getUserEventScore()
+                                .getCommandStringScore()
                 )
-                .partitions()
                 .partitions(kafkaPropertiesStorage.getTopic().getPartitions())
                 .config("Min.insync.replicas",
                         String.valueOf(
@@ -31,7 +30,7 @@ public class KafkaConfig {
         return TopicBuilder
                 .name(kafkaPropertiesStorage
                         .getTopic().getNames()
-                        .getLeaderboardUpdate()
+                        .getLeaderboardEvent()
                 )
                 .partitions(kafkaPropertiesStorage.getTopic().getPartitions())
                 .replicas(kafkaPropertiesStorage.getTopic().getReplicas())
