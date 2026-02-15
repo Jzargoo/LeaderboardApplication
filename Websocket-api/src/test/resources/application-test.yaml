@@ -1,4 +1,7 @@
 spring:
+  cloud:
+    config:
+      enabled: false
   kafka:
     consumer:
       group-id: webSocket-group
@@ -13,3 +16,12 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
         spring.json.trusted.packages: com.jzargo.core.*
+application:
+  tests:
+    blank:
+      leaderboardId: lb123
+      leaderboardName: 'Test leaderboard'
+      leaderboard:
+        1: 100
+        2: 90
+        3: 80

@@ -1,7 +1,7 @@
 spring:
   kafka:
     consumer:
-      group-id: ${kafka.consumer.groupId}
+      group-id: leaderboard-group
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       properties:

@@ -6,6 +6,6 @@ spring:
       bootstrap-servers: localhost:9092
 kafka:
   topic:
-    insync-replicas: 1
-    replicas: 1
-    partitions: 2
+    insync-replicas: 2
+    replicas: 3
+    partitions: 3

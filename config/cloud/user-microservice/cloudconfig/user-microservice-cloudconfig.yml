@@ -1,4 +1,7 @@
 spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://usersdb:5432/usersdb
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
   kafka:

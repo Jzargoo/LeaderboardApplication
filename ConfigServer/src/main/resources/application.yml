@@ -3,7 +3,7 @@ server:
 
 spring:
   profiles:
-    active: native,vault
+    active: vault
 
   application:
     name: ConfigServer
@@ -19,8 +19,17 @@ spring:
           app-role:
             secret-id: "${VAULT_SECRET_ID}"
             role-id: "${VAULT_ROLE_ID}"
+          backend: secret
+          default-key: application
         native:
           search-locations:
             - file:///${CONFIG_DIR_PATH}/cloud/{application}/{profile}/
             - file:///${CONFIG_DIR_PATH}/cloud/{profile}/
             - file:///${CONFIG_DIR_PATH}/cloud
+logging:
+  level:
+    org.springframework.cloud.config.server.environment.VaultEnvironmentRepository: TRACE
+    org.springframework.web.client.RestTemplate: TRACE
+    org.springframework.cloud.config.server: DEBUG
+    org.springframework.cloud.vault: DEBUG
+    org.springframework.web: DEBUG
