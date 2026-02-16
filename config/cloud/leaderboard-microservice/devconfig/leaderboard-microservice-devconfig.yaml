@@ -1,4 +1,8 @@
 spring:
+  data:
+    redis:
+      port: 6379
+      host: localhost
   kafka:
     consumer:
       group-id: leaderboard-group

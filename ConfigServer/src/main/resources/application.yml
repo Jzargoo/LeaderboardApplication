@@ -3,11 +3,20 @@ server:
 
 spring:
   profiles:
-    active: vault
+    active: native,vault
 
   application:
     name: ConfigServer
   cloud:
+    vault:
+      authentication: APPROLE
+      app-role:
+        role-id: ${ROLE_ID}
+        secret-id: ${SECRET_ID}
+      kv:
+        default-context: application
+        profile-separator: /
+        backend: secret
     config:
       server:
         vault:
@@ -19,8 +28,10 @@ spring:
           app-role:
             secret-id: "${VAULT_SECRET_ID}"
             role-id: "${VAULT_ROLE_ID}"
+            app-role-path: approle
           backend: secret
           default-key: application
+          profile-separator: /
         native:
           search-locations:
             - file:///${CONFIG_DIR_PATH}/cloud/{application}/{profile}/
