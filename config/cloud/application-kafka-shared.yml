@@ -6,7 +6,7 @@ kafka:
   topic:
     names:
       leaderboard-event: "leaderboard.user-activity.event"
-      leaderboard-update: "leaderboard.state.updated"
+      leaderboard-update-state: "leaderboard.state.updated"
       user-state-event: "user.state.event"
       saga-create-leaderboard: "leaderboard.create.saga"
       command-string-score: "event.user-score.command"

@@ -36,7 +36,8 @@ spring:
           search-locations:
             - file:///${CONFIG_DIR_PATH}/cloud/{application}/{profile}/
             - file:///${CONFIG_DIR_PATH}/cloud/{profile}/
-            - file:///${CONFIG_DIR_PATH}/cloud
+            - file:///${CONFIG_DIR_PATH}/cloud/
+            - file:///${CONFIG_DIR_PATH}/cloud/{application}/
 logging:
   level:
     org.springframework.cloud.config.server.environment.VaultEnvironmentRepository: TRACE

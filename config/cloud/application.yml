@@ -1,3 +1,4 @@
 application:
   headers:
     userId: X-USER-ID
+    preferredUsername: X-PREFERRED-USERNAME

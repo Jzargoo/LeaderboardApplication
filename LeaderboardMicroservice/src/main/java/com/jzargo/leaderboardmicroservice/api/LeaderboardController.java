@@ -12,6 +12,7 @@ import com.jzargo.leaderboardmicroservice.service.LeaderboardService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,18 +22,18 @@ import org.springframework.web.bind.annotation.*;
 public class LeaderboardController {
 
     private final LeaderboardService leaderboardService;
-    private final SagaLeaderboardCreate sagaLeaderboardCreate;
     private final ApplicationPropertyStorage applicationPropertyStorage;
+    private final SagaLeaderboardCreate sagaLeaderboardCreate;
 
-    public LeaderboardController(LeaderboardService leaderboardService, SagaLeaderboardCreate sagaLeaderboardCreate, ApplicationPropertyStorage applicationPropertyStorage) {
+    public LeaderboardController(LeaderboardService leaderboardService, ApplicationPropertyStorage applicationPropertyStorage, SagaLeaderboardCreate sagaLeaderboardCreate) {
         this.leaderboardService = leaderboardService;
-        this.sagaLeaderboardCreate = sagaLeaderboardCreate;
         this.applicationPropertyStorage = applicationPropertyStorage;
+        this.sagaLeaderboardCreate = sagaLeaderboardCreate;
     }
 
     @GetMapping("/score/{id}")
     public ResponseEntity<UserScoreResponse> getMyScoreIn(@PathVariable String id,
-                                                          @RequestParam Long userId
+                                                          @Header("#{@applicationPropertyStorage.headers.userId}") Long userId
                                                           ) {
         try {
             UserScoreResponse userScoreInLeaderboard = leaderboardService.getUserScoreInLeaderboard(
@@ -56,23 +57,34 @@ public class LeaderboardController {
     @PostMapping("/create")
     public ResponseEntity<String> createLeaderboard(
             @RequestBody @Validated CreateLeaderboardRequest request,
-            @RequestParam Long userId,
-            @RequestParam String preferredUsername
+            @RequestHeader("#{@applicationPropertyStorage.headers.userId}") Long userId,
+            @RequestHeader("#{@applicationPropertyStorage.headers.preferredUsername}") String preferredUsername
             ) {
 
         try {
-
             if(
                     request.isMutable() && (
                             request.getEvents() ==null || request.getEvents().isEmpty()
                     )
             ) {
 
-                return ResponseEntity.badRequest().body("Mutable leaderboard must contain at least 1 event");
+                return ResponseEntity.badRequest()
+                        .body("Mutable leaderboard must contain at least 1 event");
 
             }
 
+            if(
+                    userId == null || preferredUsername == null
+            ) {
+                return ResponseEntity.badRequest()
+                        .body("Either userId or preferredUsername header is null");
+            }
+
             sagaLeaderboardCreate.startSaga(request, userId,preferredUsername);
+
+            log.info("leaderboard with name {} created by user with id {}",
+                    request.getName(), userId);
+            return ResponseEntity.ok("leaderboard created");
 
         } catch (Exception e) {
 
@@ -80,15 +92,12 @@ public class LeaderboardController {
             return ResponseEntity.badRequest().build();
 
         }
-        log.info("leaderboard with name {} created by user with id {}",
-                request.getName(), userId);
-        return ResponseEntity.ok("leaderboard created");
     }
 
     @PutMapping
     public ResponseEntity<Void> initUserScore(
             @RequestBody @Validated InitUserScoreRequest request,
-            @RequestParam long userId
+            @Header("#{@applicationPropertyStorage.headers.userId}") long userId
     ) {
 
 
