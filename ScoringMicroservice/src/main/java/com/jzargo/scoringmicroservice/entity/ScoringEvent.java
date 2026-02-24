@@ -21,7 +21,7 @@ public class ScoringEvent {
     private Long userId;
     private String lbId;
     private String eventName;
-    @Column(name="event_score")
+    @Column(name="score")
     private Double scoreChange;
     @Builder.Default
     private LocalDateTime happenedAt = LocalDateTime.now();

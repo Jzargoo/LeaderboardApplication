@@ -45,7 +45,7 @@ public class UserKafkaHandler {
     @Transactional
     @KafkaHandler
     public void activeLeaderboard(
-            @Header("#{@kafkaPropertyStorage.headers.messageId}") String messageId,
+            @Header("#{@kafkaPropertiesStorage.headers.messageId}") String messageId,
             @Payload ActiveLeaderboardEvent event){
         checkProcessed(messageId);
         try {
@@ -64,7 +64,7 @@ public class UserKafkaHandler {
     @Transactional
     @KafkaHandler
     public void endLeaderboard(
-            @Header("#{@kafkaPropertyStorage.headers.messageId}") String messageId,
+            @Header("#{@kafkaPropertiesStorage.headers.messageId}") String messageId,
             @Payload DiedLeaderboardEvent event){
         checkProcessed(messageId);
         try {
@@ -84,7 +84,7 @@ public class UserKafkaHandler {
     @KafkaHandler
     public void handleOutOfTime(
             @Payload OutOfTimeEvent outOfTimeEvent,
-            @Header("#{@kafkaPropertyStorage.headers.messageId}") String messageId
+            @Header("#{@kafkaPropertiesStorage.headers.messageId}") String messageId
     ) {
         checkProcessed(messageId);
 
@@ -113,8 +113,8 @@ public class UserKafkaHandler {
     @KafkaHandler
     public void handleSaga(
             @Payload UserNewLeaderboardCreated userNewLeaderboardCreated,
-            @Header("#{@kafkaPropertyStorage.headers.messageId}") String messageId,
-            @Header("#{@kafkaPropertyStorage.headers.sagaId}") String sagaId
+            @Header("#{@kafkaPropertiesStorage.headers.messageId}") String messageId,
+            @Header("#{@kafkaPropertiesStorage.headers.sagaId}") String sagaId
             ) {
 
         checkProcessed(messageId);
