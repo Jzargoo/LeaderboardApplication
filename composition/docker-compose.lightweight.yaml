@@ -22,7 +22,7 @@ services:
       context: ./postgres-init
     container_name: postgresdb
     environment:
-      POSTGRES_USERNAME: postgres
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: root333
       POSTGRES_DATABASE: generaldb
     ports:
@@ -92,7 +92,7 @@ services:
       - redpanda-data:/var/lib/redpanda/data
 
   debezium-dev-container:
-    image: leaderboard-lightweight-debezium-dev-container:latest
+    image: leaderboard-lightweight-debezium:latest
     container_name: debezium-dev-container
     networks:
       - tool
