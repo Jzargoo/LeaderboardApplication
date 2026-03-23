@@ -1,0 +1,9 @@
+
+services:
+  vault:
+    image: hashicorp/vault:latest
+    container_name: vault
+    ports:
+      - "127.0.0.1:8200:8200"
+    volumes:
+      - ./vault-config:/vault/config
