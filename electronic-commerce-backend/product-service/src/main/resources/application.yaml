@@ -1,0 +1,14 @@
+spring:
+
+  application:
+    name: product-service
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    username: jzargo
+    password:  root123
+
+application:
+  headers:
+    part-filtered:
+      X-PARTIALLY-FILTERED
