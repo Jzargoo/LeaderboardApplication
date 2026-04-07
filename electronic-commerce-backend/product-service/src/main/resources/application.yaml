@@ -3,12 +3,15 @@ spring:
   application:
     name: product-service
 
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri:
+
+
   datasource:
     driver-class-name: org.postgresql.Driver
     username: jzargo
     password:  root123
-
-application:
-  headers:
-    part-filtered:
-      X-PARTIALLY-FILTERED
+    url: jdbc:postgresql://localhost:5432/productdb

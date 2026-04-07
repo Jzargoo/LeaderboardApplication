@@ -1,28 +1,25 @@
 package com.jzargo.productservice.api;
 
 import com.jzargo.productservice.model.*;
+import com.jzargo.productservice.service.ProductService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.List;
-
-
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("api/products")
 public class ProductController {
-    @GetMapping
-    ResponseEntity<Page<ProductInformation>> getAllByFilter(
-            @RequestParam ProductFilter productFilter,
-            @RequestHeader("${application.headers.part-filtered}") List<Long> partiallyFiltered
-    ) {
 
-        return ResponseEntity.badRequest().build();
-    }
+    private final ProductService productService;
 
     @GetMapping("/{id}")
     ResponseEntity<ProductDetails>  getProductById(@PathVariable Long id){
-        return null;
+        try {
+            return ResponseEntity.ok(productService.getProductById(id));
+        } catch (Exception e) {
+            return ResponseEntity.noContent().build();
+        }
     }
 
     @PostMapping
@@ -36,15 +33,6 @@ public class ProductController {
             @RequestBody CreateAndUpdateProductDetails createAndUpdateProductDetails
             ) {
         return ResponseEntity.ok(new ProductDetails());
-    }
-
-    @GetMapping("/categories")
-    ResponseEntity<List<String>> getCategories (){
-        List<String> categories = new ArrayList<>();
-        categories.add("Electronics");
-        return ResponseEntity.ok(
-                categories
-        );
     }
 
     @DeleteMapping("/{id}")

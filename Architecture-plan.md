@@ -1,7 +1,6 @@
 **User Endpoints:**
 
 1. **Product Service**
-    - `GET /products/*filters` Header: X-PARTIALLY-FILTERED List<Long>
     - `GET /products/{id}`
     - `POST /products`
     - `PUT /products/{id}`

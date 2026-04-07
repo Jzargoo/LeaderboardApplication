@@ -5,6 +5,10 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
+import java.util.Map;
 
 
 @Data
@@ -20,9 +24,11 @@ public class Product {
 
     @ManyToOne
     private Category category;
-
     private String name;
     private String description;
     private Double stockPrice;
-    private Long rateId;
+
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    private Map<String, String> characteristics;
 }
