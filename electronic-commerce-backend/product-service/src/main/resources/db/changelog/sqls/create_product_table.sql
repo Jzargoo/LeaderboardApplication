@@ -4,8 +4,7 @@ CREATE TABLE
     id BIGSERIAL PRIMARY KEY,
     name VARCHAR(64),
     description VARCHAR(512),
-    -- There will be also json characteristics
+    characteristics jsonb,
     stock_price DECIMAL(10, 2),
-    rate_id bigint,
     category_id INT REFERENCES categories
 )

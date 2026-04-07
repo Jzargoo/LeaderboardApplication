@@ -7,13 +7,12 @@ import lombok.NoArgsConstructor;
 
 import java.util.Map;
 
+@Data
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
-@Data
-public class ProductDetails {
-    private String category;
+public class CategoryDetails {
+    private Map<String, String> attributes;
     private String name;
-    private String description;
-    private Map<String, String> characteristics;
+    private Integer id;
 }
