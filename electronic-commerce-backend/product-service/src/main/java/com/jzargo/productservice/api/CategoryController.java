@@ -32,7 +32,7 @@ public class CategoryController {
         } catch (MalformedDataError e) {
             return ResponseEntity.badRequest().build();
         } catch (Exception e) {
-
+            return ResponseEntity.internalServerError().build();
         }
     }
 }
