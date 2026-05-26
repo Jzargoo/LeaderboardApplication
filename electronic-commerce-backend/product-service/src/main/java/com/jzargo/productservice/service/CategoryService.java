@@ -8,4 +8,5 @@ import java.util.List;
 
 public interface CategoryService {
     CategoryDetails createCategory(CreateAndUpdateCategoryDetails createCategoryDetails) throws MalformedDataError;
+    List<String> getCategories();
 }

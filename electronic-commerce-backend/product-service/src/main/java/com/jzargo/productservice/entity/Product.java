@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.util.List;
 import java.util.Map;
 
 
@@ -22,7 +23,9 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    private String avatar;
+
+    @ManyToOne()
     private Category category;
     private String name;
     private String description;
@@ -31,4 +34,7 @@ public class Product {
 
     @JdbcTypeCode(SqlTypes.JSON)
     private Map<String, String> characteristics;
+
+    @ElementCollection
+    private List<String> images;
 }

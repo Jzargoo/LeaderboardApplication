@@ -11,6 +11,8 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Data
 @Slf4j
 @Service
@@ -35,7 +37,8 @@ public class CategoryServiceImpl implements CategoryService{
                 (createCategoryDetails.getAttributes().isEmpty() &&
                         createCategoryDetails.getParentId() == null)
         ) {
-            log.error("");
+            log.error("Threw an error in creating category because of a lack of provided data: either attributes or name");
+
             throw new MalformedDataError();
         }
 
@@ -45,11 +48,18 @@ public class CategoryServiceImpl implements CategoryService{
                 )
         );
 
-        log.info("New category {save} was created");
+        log.info("New category {} was created", createCategoryDetails.getName());
 
         return categoryReadMapper.map(save);
+    }
 
-
-
+    @Override
+    public List<String> getCategories() {
+        return categoryRepository
+                .findAll()
+                .stream()
+                .map(categoryReadMapper::map)
+                .map(CategoryDetails::getName)
+                .toList();
     }
 }

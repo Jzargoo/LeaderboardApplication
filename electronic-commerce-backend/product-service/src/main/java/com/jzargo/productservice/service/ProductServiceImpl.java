@@ -1,5 +1,6 @@
 package com.jzargo.productservice.service;
 
+import com.jzargo.productservice.mapper.CategoryCreateAndUpdateMapper;
 import com.jzargo.productservice.mapper.ReadProductDetailsMapper;
 import com.jzargo.productservice.model.CreateAndUpdateProductDetails;
 import com.jzargo.productservice.model.ProductDetails;
@@ -11,10 +12,12 @@ public class ProductServiceImpl implements ProductService{
 
     private final ProductRepository productRepository;
     private final ReadProductDetailsMapper readProductDetailsMapper;
+    private final CategoryCreateAndUpdateMapper categoryCreateAndUpdateMapper;
 
-    public ProductServiceImpl(ProductRepository productRepository, ReadProductDetailsMapper readProductDetailsMapper) {
+    public ProductServiceImpl(ProductRepository productRepository, ReadProductDetailsMapper readProductDetailsMapper, CategoryCreateAndUpdateMapper categoryCreateAndUpdateMapper) {
         this.productRepository = productRepository;
         this.readProductDetailsMapper = readProductDetailsMapper;
+        this.categoryCreateAndUpdateMapper = categoryCreateAndUpdateMapper;
     }
 
     @Override
@@ -27,16 +30,17 @@ public class ProductServiceImpl implements ProductService{
 
     @Override
     public String createProduct(CreateAndUpdateProductDetails createProductDetails) {
-        return "";
+        return "Creation of the process started successfully";
     }
 
     @Override
     public ProductDetails updateProduct(CreateAndUpdateProductDetails updateProductDetails) {
-        return null;
+        productRepository.findById(updateProductDetails.)
+
     }
 
     @Override
     public String deleteProduct(Long productId) {
-        return "";
+        return "Deletion of the process started successfully";
     }
 }

@@ -14,6 +14,8 @@ import java.util.Map;
 public class ProductDetails {
     private String category;
     private String name;
+    private Float avgRate;
+    private Double price;
     private String description;
     private Map<String, String> characteristics;
 }
