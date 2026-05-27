@@ -8,3 +8,5 @@ databaseChangeLog:
             path: db/changelog/sqls/create_category_table.sql
         - sqlFile:
             path: db/changelog/sqls/create_product_table.sql
+        - sqlFile:
+            path: db/changelog/sqls/create_images_table.sql

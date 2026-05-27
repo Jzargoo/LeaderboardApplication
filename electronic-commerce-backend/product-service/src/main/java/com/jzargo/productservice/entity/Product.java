@@ -30,6 +30,7 @@ public class Product {
     private String name;
     private String description;
     private Double stockPrice;
+    private String shopId;
 
 
     @JdbcTypeCode(SqlTypes.JSON)
@@ -37,4 +38,8 @@ public class Product {
 
     @ElementCollection
     private List<String> images;
+
+    public void addImage(String imageName){
+        images.add(imageName);
+    }
 }

@@ -5,6 +5,7 @@ import com.jzargo.productservice.mapper.ReadProductDetailsMapper;
 import com.jzargo.productservice.model.CreateAndUpdateProductDetails;
 import com.jzargo.productservice.model.ProductDetails;
 import com.jzargo.productservice.repository.ProductRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -28,17 +29,20 @@ public class ProductServiceImpl implements ProductService{
                 .orElseThrow();
     }
 
+    @Transactional
     @Override
     public String createProduct(CreateAndUpdateProductDetails createProductDetails) {
         return "Creation of the process started successfully";
     }
 
     @Override
+    @Transactional
     public ProductDetails updateProduct(CreateAndUpdateProductDetails updateProductDetails) {
-        productRepository.findById(updateProductDetails.)
-
+        //  productRepository.findById(updateProductDetails)
+        return null;
     }
 
+    @Transactional
     @Override
     public String deleteProduct(Long productId) {
         return "Deletion of the process started successfully";
