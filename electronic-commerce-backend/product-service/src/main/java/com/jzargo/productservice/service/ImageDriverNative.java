@@ -17,7 +17,7 @@ public class ImageDriverNative implements ImageDriver{
     }
 
     @Override
-    public String save_file(byte[] image) throws IOException  {
+    public String saveFile(byte[] image) throws IOException  {
         String path = applicationPropertyStorage.getImage().getPath();
 
         Files.createDirectories(Path.of(path));

@@ -52,7 +52,7 @@ public class ImageServiceImpl implements ImageService {
         try {
 
             for (MultipartFile image: images) {
-                String imageName = imageDriver.save_file(image.getBytes());
+                String imageName = imageDriver.saveFile(image.getBytes());
                 product.addImage(imageName);
             }
 
@@ -84,7 +84,7 @@ public class ImageServiceImpl implements ImageService {
             );
         }
 
-        String imageName = imageDriver.save_file(image);
+        String imageName = imageDriver.saveFile(image);
 
         product.setAvatar(imageName);
 

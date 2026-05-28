@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @ExtendWith(MockitoExtension.class)
 public class ProductServiceUnitTest {
     private final long PRODUCT_ID = 1L;
+    private final String SHOP_ID = "shop123";
 
     private final Product PRODUCT = Product.builder()
             .id(PRODUCT_ID)
@@ -34,6 +35,7 @@ public class ProductServiceUnitTest {
                             .name("Test category")
                             .build()
             )
+            .shopId(SHOP_ID)
             .description("Test desc")
             .stockPrice(14.2)
             .characteristics(new HashMap<>())
