@@ -7,8 +7,17 @@ import java.io.IOException;
 import java.util.List;
 
 public interface ImageService {
-    void addImages(List<MultipartFile> images, Long productId, String shopId)
+
+    void addImages(List<MultipartFile> images, Long productId, Long shopId)
             throws IOException, ProductNotFoundException;
-    void addAvatar(byte[] image, Long productId, String shopId)
+
+    void addAvatar(byte[] image, Long productId, Long shopId)
             throws IOException, ProductNotFoundException;
+
+    List<byte[]> getAllImages(Long productId)
+            throws IOException, ProductNotFoundException;
+
+    byte[] getAvatar(Long productId)
+                throws IOException, ProductNotFoundException;
+
 }

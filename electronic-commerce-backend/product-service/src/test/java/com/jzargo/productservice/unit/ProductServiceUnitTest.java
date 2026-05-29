@@ -3,10 +3,12 @@ package com.jzargo.productservice.unit;
 
 import com.jzargo.productservice.entity.Category;
 import com.jzargo.productservice.entity.Product;
+import com.jzargo.productservice.exception.ProductNotFoundException;
 import com.jzargo.productservice.mapper.ReadProductDetailsMapper;
 import com.jzargo.productservice.model.ProductDetails;
 import com.jzargo.productservice.repository.ProductRepository;
 import com.jzargo.productservice.service.ProductServiceImpl;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -19,11 +21,12 @@ import java.util.HashMap;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @ExtendWith(MockitoExtension.class)
 public class ProductServiceUnitTest {
     private final long PRODUCT_ID = 1L;
-    private final String SHOP_ID = "shop123";
+    private final Long SHOP_ID = 123L;
 
     private final Product PRODUCT = Product.builder()
             .id(PRODUCT_ID)
@@ -56,7 +59,15 @@ public class ProductServiceUnitTest {
                 Optional.of(PRODUCT)
         );
 
-        ProductDetails productById = productService.getProductById(PRODUCT_ID);
+        ProductDetails productById = null;
+
+        try {
+            productById = productService.getProductById(PRODUCT_ID);
+        } catch (ProductNotFoundException e) {
+            Assertions.fail("Product service threw an error");
+        }
+
+        assertNotNull(productById, "The product is null");
 
         assertEquals(
                 productById.getName(),

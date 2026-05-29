@@ -7,10 +7,10 @@ import com.jzargo.productservice.mapper.CategoryReadMapper;
 import com.jzargo.productservice.model.CategoryDetails;
 import com.jzargo.productservice.model.CreateAndUpdateCategoryDetails;
 import com.jzargo.productservice.repository.CategoryRepository;
-import jakarta.transaction.Transactional;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 

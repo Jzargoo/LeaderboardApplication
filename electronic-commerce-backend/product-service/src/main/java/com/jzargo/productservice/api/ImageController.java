@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,7 +23,8 @@ public class ImageController {
     public ResponseEntity<String> addImages(
             @RequestBody @NotNull List<MultipartFile> multipartFiles,
             @PathVariable Long productId,
-            @AuthenticationPrincipal String shopId) {
+            @AuthenticationPrincipal Jwt jwt) {
+        Long shopId= jwt.getClaim("shop_id");
         try {
             imageService.addImages(multipartFiles, productId, shopId);
         } catch (IOException e) {
@@ -40,10 +42,12 @@ public class ImageController {
     public ResponseEntity<String> addAvatar (
             @RequestBody @NotNull MultipartFile multipartFile,
             @PathVariable Long productId,
-            @AuthenticationPrincipal String shopId) {
+            @AuthenticationPrincipal Jwt jwt) {
+        Long shopId = jwt.getClaim("shop_id");
 
         try {
             imageService.addAvatar(multipartFile.getBytes(), productId, shopId);
+
         } catch (IOException e) {
             return ResponseEntity.internalServerError().build();
         } catch (ProductNotFoundException e) {
@@ -53,5 +57,6 @@ public class ImageController {
         return ResponseEntity.ok(
                 "new avatar was added successfully"
         );
+
     }
 }

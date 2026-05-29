@@ -25,12 +25,16 @@ public class Product {
 
     private String avatar;
 
-    @ManyToOne()
+    @ManyToOne
     private Category category;
     private String name;
     private String description;
     private Double stockPrice;
-    private String shopId;
+    private Long shopId;
+    private String sellerId;
+
+    @Builder.Default
+    private boolean available = false;
 
 
     @JdbcTypeCode(SqlTypes.JSON)

@@ -1,7 +1,7 @@
 package com.jzargo.productservice.exception;
 
 public class ShopDoesNotOwnProductException extends RuntimeException {
-    public ShopDoesNotOwnProductException(String message) {
-        super(message);
+    public ShopDoesNotOwnProductException() {
+        super();
     }
 }

@@ -5,10 +5,9 @@ import com.jzargo.productservice.entity.Product;
 import com.jzargo.productservice.exception.ProductNotFoundException;
 import com.jzargo.productservice.exception.ShopDoesNotOwnProductException;
 import com.jzargo.productservice.repository.ProductRepository;
-import jakarta.transaction.Transactional;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -16,6 +15,7 @@ import java.util.List;
 
 @Slf4j
 @Service
+@Transactional(readOnly = true) // if not provided, data must be in immutable state
 public class ImageServiceImpl implements ImageService {
 
 
@@ -27,26 +27,18 @@ public class ImageServiceImpl implements ImageService {
         this.productRepository = productRepository;
     }
 
-    @SneakyThrows
-    @Transactional
-    @Override
-    public void addImages(List<MultipartFile> images, Long productId, String userId)  {
 
-        Product product = productRepository.findById(productId).orElseThrow(
-                () ->
-                        new ProductNotFoundException(
-                                "Cannot find a product with id " +
-                                        productId +
-                                        " while added a new image")
-        );
+    @Override
+    @Transactional
+    public void addImages(List<MultipartFile> images, Long productId, Long userId)
+    throws ProductNotFoundException{
+
+        Product product = productRepository
+                .findById(productId)
+                .orElseThrow(ProductNotFoundException::new);
 
         if (product.getShopId().equals(userId)) {
-            throw new ShopDoesNotOwnProductException(
-                    "The shop's id " +
-                            productId +
-                            " and provided in a product does not match " +
-                            product.getShopId()
-            );
+            throw new ShopDoesNotOwnProductException();
         }
 
         try {
@@ -64,24 +56,16 @@ public class ImageServiceImpl implements ImageService {
     }
 
     @Override
-    public void addAvatar(byte[] image, Long productId, String shopId)
+    @Transactional
+    public void addAvatar(byte[] image, Long productId, Long shopId)
             throws IOException, ProductNotFoundException {
 
-        Product product = productRepository.findById(productId).orElseThrow(
-                () ->
-                        new ProductNotFoundException(
-                                "Cannot find a product with id " +
-                                        productId +
-                                        " while added a new image")
-        );
+        Product product = productRepository
+                .findById(productId)
+                .orElseThrow(ProductNotFoundException::new);
 
         if (product.getShopId().equals(shopId)) {
-            throw new ShopDoesNotOwnProductException(
-                    "The shop's id " +
-                            productId +
-                            " and provided in a product does not match " +
-                            product.getShopId()
-            );
+            throw new ShopDoesNotOwnProductException();
         }
 
         String imageName = imageDriver.saveFile(image);
@@ -89,5 +73,35 @@ public class ImageServiceImpl implements ImageService {
         product.setAvatar(imageName);
 
         productRepository.save(product);
+    }
+
+    public byte[] getAvatar(Long productId)
+        throws ProductNotFoundException, IOException {
+
+        String avatar = productRepository
+                .findById(productId)
+                .map(Product::getAvatar)
+                .orElseThrow(ProductNotFoundException::new);
+
+        return imageDriver.getImage(avatar);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<byte[]> getAllImages(Long productId)
+        throws ProductNotFoundException, IOException {
+
+        List<String> allImages = productRepository
+                .findById(productId)
+                .map(product -> {
+                    List<String> images = product.getImages();
+                    images.add(product.getAvatar());
+                    return images;
+                })
+                .orElseThrow(
+                        ProductNotFoundException::new
+                );
+
+        return imageDriver.getImages(allImages);
     }
 }
