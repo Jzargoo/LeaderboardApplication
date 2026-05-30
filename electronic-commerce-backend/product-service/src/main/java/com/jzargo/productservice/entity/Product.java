@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -31,18 +32,22 @@ public class Product {
     private String description;
     private Double stockPrice;
     private Long shopId;
-    private String sellerId;
 
     @Builder.Default
     private boolean available = false;
 
 
     @JdbcTypeCode(SqlTypes.JSON)
-    private Map<String, String> characteristics;
+    @Builder.Default
+    private Map<String, String> characteristics = Map.of();
 
     @ElementCollection
-    private List<String> images;
+    @Builder.Default
+    private List<String> images = new ArrayList<>();
 
+    public void addImages(List<String> imageNames) {
+        images.addAll(imageNames);
+    }
     public void addImage(String imageName){
         images.add(imageName);
     }

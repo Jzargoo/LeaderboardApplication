@@ -30,24 +30,21 @@ public class ImageServiceImpl implements ImageService {
 
     @Override
     @Transactional
-    public void addImages(List<MultipartFile> images, Long productId, Long userId)
+    public void addImages(byte[][] images, Long productId, Long shopId)
     throws ProductNotFoundException{
 
         Product product = productRepository
                 .findById(productId)
                 .orElseThrow(ProductNotFoundException::new);
 
-        if (product.getShopId().equals(userId)) {
+        if (!product.getShopId().equals(shopId)) {
             throw new ShopDoesNotOwnProductException();
         }
 
         try {
+            List<String> names = imageDriver.saveFiles(images);
 
-            for (MultipartFile image: images) {
-                String imageName = imageDriver.saveFile(image.getBytes());
-                product.addImage(imageName);
-            }
-
+            product.addImages(names);
         } catch (IOException e) {
             log.error("Cannot save all images. Unexpected error occurred", e);
         }
@@ -64,7 +61,7 @@ public class ImageServiceImpl implements ImageService {
                 .findById(productId)
                 .orElseThrow(ProductNotFoundException::new);
 
-        if (product.getShopId().equals(shopId)) {
+        if (!product.getShopId().equals(shopId)) {
             throw new ShopDoesNotOwnProductException();
         }
 
@@ -88,16 +85,12 @@ public class ImageServiceImpl implements ImageService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<byte[]> getAllImages(Long productId)
+    public List<byte[]> getImages(Long productId)
         throws ProductNotFoundException, IOException {
 
         List<String> allImages = productRepository
                 .findById(productId)
-                .map(product -> {
-                    List<String> images = product.getImages();
-                    images.add(product.getAvatar());
-                    return images;
-                })
+                .map(Product::getImages)
                 .orElseThrow(
                         ProductNotFoundException::new
                 );

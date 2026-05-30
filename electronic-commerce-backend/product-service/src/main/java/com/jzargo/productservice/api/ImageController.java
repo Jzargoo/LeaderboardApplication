@@ -26,7 +26,17 @@ public class ImageController {
             @AuthenticationPrincipal Jwt jwt) {
         Long shopId= jwt.getClaim("shop_id");
         try {
-            imageService.addImages(multipartFiles, productId, shopId);
+
+             byte[][] images = (byte[][]) multipartFiles.stream().map((file) -> {
+                try {
+                    return file.getBytes();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }).toArray();
+
+            imageService.addImages(images, productId, shopId);
+
         } catch (IOException e) {
             return ResponseEntity.internalServerError().build();
         } catch (ProductNotFoundException e) {
