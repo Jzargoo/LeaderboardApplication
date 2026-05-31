@@ -35,7 +35,7 @@ public class ProductServiceImpl implements ProductService{
     @Transactional
     @Override
     public String createProduct(CreateAndUpdateProductDetails createProductDetails) {
-        return "Creation of the process started successfully";
+        return "Creation of the product started successfully";
     }
 
     @Override
